@@ -25,6 +25,16 @@ crab_test <- as.data.frame(crab_filtered %>%
 
 # Random forests ----
 # Females
+set.seed(1993)
+rf_females1 <- randomForest(scaled_female ~ depth +
+                              soaktime +
+                              doy,
+                            data = na.exclude(crab_train), # throws error if NAs included
+                            ntree = 1000,
+                            mtry = 5,
+                            importance = T,
+                            proximity = T)
+print(rf_females1)
 
 
 # Boosted regression trees ----
@@ -36,3 +46,4 @@ brt_females1 <- gbm.step(data = crab_train,
                          tree.complexity = 5,
                          learning.rate = 0.01,
                          bag.fraction = 0.5)
+summary(brt_females1)
