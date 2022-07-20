@@ -1,4 +1,37 @@
-**Directed Fishery Data**
+**Crab Fishery Data**
 - During Jan - Feb
 - Includes mature females and preferred size males
-- To be used as the response variable
+- Catch to be used as the response variable
+- Bycatch folder is for other crab fisheries, crab is for the directed snow crab fishery
+	- Dump: likely the specimen data from the whole catch
+	- Retained: likely the specimen data from the retained catch
+	- Potsum: likely summary data
+- Variables
+	- fishery: snow crab or other crab 
+	- adfg: permit number?
+	- sampdate: date of sample collection
+	- spcode: observer species code (932 for snow crab)
+	- size: carapace measurement
+	- legal: only legal in the retained files, other values (1, 2, 6, 0, -7, -9) in dump files
+		- 0: sublegal
+		- 1: legal and retained
+		- 2: legal not retained
+		- 6: legal unsure if retained
+		- -7: NA (will show for things like clutch size for males)
+		- -9: No data
+	- shell: the condition of the shell (retained and dump files)
+	- clutch: clutch fullness
+	- clutchcon: clutch condition
+	- eggdev: stage of egg maturity (higher numbers = more mature)
+	- maturity: maturity of the female crab (0-2)
+	- numcrab: ?
+	- spn: specimen number?
+	- female: number of female crabs
+	- sublegal: number of sublegal males
+	- legal_ret: males retained
+	- legal_nr: males not retained
+	- legal_ur: males unreported? only used for a few catches in 2015 and 2017
+	- tot_legal: total legal males
+	- msr_pot: ?
+	- gearcode:
+	- trip: trip number?
