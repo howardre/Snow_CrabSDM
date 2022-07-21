@@ -19,7 +19,9 @@ clean_data <- function(data){
                        day = lubridate::day(date))
   data_frame$doy <- as.numeric(mdy.date(data_frame$month, data_frame$day, 1960))
   data_frame[data_frame == -9] <- NA
-  return(data_frame)
+  data_frame <- data_frame[!is.na(data_frame$latitude), ]
+  data_frame <- data_frame[!is.na(data_frame$longitude), ]
+    return(data_frame)
 }
 
 # Load data ----
@@ -37,8 +39,10 @@ bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
 
 # Environmental data
-sst_data <- read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1))
-ice_data <- read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1))
+sst_data <-as.data.frame(read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1)))
+sst_data$month <- match(sst_data$month, month.abb)
+ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
+ice_data$month <- match(ice_data$month, month.abb)
 
 phi_raster <- raster(here('data', 'EBS_phi_1km.grd'))
 phi_pts <- rasterToPoints(phi_raster, spatial = T)
@@ -63,7 +67,28 @@ bycatch_offload <- clean_data(bycatch_retained)
 
 names(crab_survey) <- tolower(names(crab_survey))
 
-# Visualize
+# Match environmental data ----
+# Everything must be a data frame, tables do not work
+crab_summary[, c(29, 30)] <- as.data.frame(RANN::nn2(phi_data[, c('x', 'y')],
+                                                     crab_summary[, c('latitude', 'longitude')],
+                                                     k = 1))
+crab_summary$phi <- phi_data[c(crab_summary$nn.idx), 1] # Match nearest phi value
+crab_summary <- crab_summary[-c(29, 30)]
+
+crab_summary[, c(30, 31)] <- as.data.frame(RANN::nn2(ice_data[, c('lat', 'lon', 'month', 'year')],
+                                                     crab_summary[, c('latitude', 'longitude', 'month', 'year')],
+                                                     k = 1))
+crab_summary$ice <- ice_data[c(crab_summary$nn.idx), 4] # Match nearest ice value
+crab_summary <- crab_summary[-c(30, 31)]
+
+crab_summary[, c(31, 32)] <- as.data.frame(RANN::nn2(sst_data[, c('lat', 'lon', 'month', 'year')],
+                                                     crab_summary[, c('latitude', 'longitude', 'month', 'year')],
+                                                     k = 1))
+crab_summary$sst <- sst_data[c(crab_summary$nn.idx), 4] # Match nearest temperature value
+crab_summary <- crab_summary[-c(31, 32)]
+
+
+# Visualize ----
 par(mfrow = c(3, 4))
 plot(table(crab_summary$year[crab_summary$total > 0]),
      ylab = 'Frequency',
