@@ -7,6 +7,8 @@ library(tidyverse)
 library(here)
 library(lubridate)
 library(date)
+library(RANN)
+library(raster)
 
 # Functions ----
 clean_data <- function(data){
@@ -32,7 +34,19 @@ bycatch_potsum <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020',
 bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_retained_size_freq.csv'))
 
 # EBS survey data
-crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'))
+crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
+
+# Environmental data
+sst_data <- read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1))
+ice_data <- read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1))
+
+phi_raster <- raster(here('data', 'EBS_phi_1km.grd'))
+phi_pts <- rasterToPoints(phi_raster, spatial = T)
+proj4string(phi_pts)
+phi_prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+phi_trans <- spTransform(phi_pts, CRS(phi_prj))
+proj4string(phi_trans)
+phi_data <- as.data.frame(phi_trans)
 
 # Reformat data (summarize males, split up dates)
 crab_detailed <- clean_data(crab_dump)
@@ -48,7 +62,6 @@ bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_offload <- clean_data(bycatch_retained)
 
 names(crab_survey) <- tolower(names(crab_survey))
-crab_survey <- crab_survey[-c(1)]
 
 # Visualize
 par(mfrow = c(3, 4))
