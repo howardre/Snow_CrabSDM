@@ -3,9 +3,9 @@
 - Includes mature females and preferred size males
 - Catch to be used as the response variable
 - Bycatch folder is for other crab fisheries, crab is for the directed snow crab fishery
-	- Dump: likely the specimen data from the whole catch
-	- Retained: likely the specimen data from the retained catch
-	- Potsum: likely summary data
+	- Dump: specimen data collected at sea (includes locations)
+	- Retained: specimen data collected at offload?
+	- Potsum: summary data (includes locations)
 - Variables
 	- fishery: snow crab or other crab 
 	- adfg: permit number?
