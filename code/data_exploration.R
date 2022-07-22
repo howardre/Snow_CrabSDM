@@ -66,6 +66,7 @@ bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_offload <- clean_data(bycatch_retained)
 
 names(crab_survey) <- tolower(names(crab_survey))
+crab_survey <- as.data.frame(crab_survey)
 
 # Match environmental data ----
 # Everything must be a data frame, tables do not work
@@ -87,6 +88,20 @@ crab_summary[, c(31, 32)] <- as.data.frame(RANN::nn2(sst_data[, c('lat', 'lon', 
 crab_summary$sst <- sst_data[c(crab_summary$nn.idx), 4] # Match nearest temperature value
 crab_summary <- crab_summary[-c(31, 32)]
 
+# Match survey data ----
+survey_wide <- crab_survey %>%
+  pivot_wider(names_from = mat_sex, 
+              values_from = cpue)
+survey_wide <- as.data.frame(survey_wide)
+
+crab_summary[, c(32, 33)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
+                                                     crab_summary[, c('latitude', 'longitude', 'year')],
+                                                     k = 1))
+crab_summary$female_immature <- survey_wide[c(crab_summary$nn.idx), 7] # Match the cpue values
+crab_summary$male_immature <- survey_wide[c(crab_summary$nn.idx), 8]
+crab_summary$male_legal <- survey_wide[c(crab_summary$nn.idx), 9]
+crab_summary$female_mature <- survey_wide[c(crab_summary$nn.idx), 10]
+crab_summary <- crab_summary[-c(32, 33)]
 
 # Visualize ----
 par(mfrow = c(3, 4))
