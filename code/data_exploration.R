@@ -44,7 +44,7 @@ sst_data$month <- match(sst_data$month, month.abb)
 ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
 ice_data$month <- match(ice_data$month, month.abb)
 
-phi_raster <- raster(here('data', 'EBS_phi_1km.grd'))
+phi_raster <- raster(here('data', 'EBS_phi_1km.gri'))
 phi_pts <- rasterToPoints(phi_raster, spatial = T)
 proj4string(phi_pts)
 phi_prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
@@ -70,7 +70,7 @@ crab_survey <- as.data.frame(crab_survey)
 
 # Match environmental data ----
 # Everything must be a data frame, tables do not work
-crab_summary[, c(29, 30)] <- as.data.frame(RANN::nn2(phi_data[, c('x', 'y')],
+crab_summary[, c(29, 30)] <- as.data.frame(RANN::nn2(phi_data[, c('y', 'x')],
                                                      crab_summary[, c('latitude', 'longitude')],
                                                      k = 1))
 crab_summary$phi <- phi_data[c(crab_summary$nn.idx), 1] # Match nearest phi value
@@ -99,9 +99,11 @@ crab_summary[, c(32, 33)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitu
                                                      k = 1))
 crab_summary$female_immature <- survey_wide[c(crab_summary$nn.idx), 7] # Match the cpue values
 crab_summary$male_immature <- survey_wide[c(crab_summary$nn.idx), 8]
-crab_summary$male_legal <- survey_wide[c(crab_summary$nn.idx), 9]
-crab_summary$female_mature <- survey_wide[c(crab_summary$nn.idx), 10]
+crab_summary$male_mature <- survey_wide[c(crab_summary$nn.idx), 10]
+crab_summary$female_mature <- survey_wide[c(crab_summary$nn.idx), 11]
 crab_summary <- crab_summary[-c(32, 33)]
+
+saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Visualize ----
 par(mfrow = c(3, 4))
