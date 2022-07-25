@@ -9,12 +9,14 @@ library(scales)
 library(randomForest)
 
 # Load data ----
+crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
+
 crab_filtered <- crab_summary %>%
   filter_at(vars(latitude, longitude), all_vars(!is.na(.)))
 
 # Response variable has large values, which leads to issues with gbm.step() so it was rescaled
-crab_filtered$scaled_female <- rescale(crab_filtered$female)
-crab_filtered$scaled_male <- rescale(crab_filtered$male)
+crab_filtered$scaled_female <- scales::rescale(crab_filtered$female)
+crab_filtered$scaled_male <- scales::rescale(crab_filtered$male)
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -27,8 +29,12 @@ crab_test <- as.data.frame(crab_filtered %>%
 # Females
 set.seed(1993)
 rf_females1 <- randomForest(scaled_female ~ depth +
-                              soaktime +
-                              doy,
+                              phi +
+                              ice +
+                              sst +
+                              doy +
+                              female_mature +
+                              female_immature,
                             data = na.exclude(crab_train), # throws error if NAs included
                             ntree = 1000,
                             mtry = 5,
@@ -40,8 +46,8 @@ print(rf_females1)
 # Boosted regression trees ----
 # Females
 brt_females1 <- gbm.step(data = crab_train,
-                         gbm.x = c(9, 10, 26),
-                         gbm.y = 29,
+                         gbm.x = c(9, 26, 29:32, 35),
+                         gbm.y = 36,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
