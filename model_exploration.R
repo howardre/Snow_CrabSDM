@@ -158,3 +158,30 @@ brt_males1 <- gbm.step(data = crab_train,
                        learning.rate = 0.05,
                        bag.fraction = 0.5)
 summary(brt_males1)
+
+brt_males2 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:31, 33:34),
+                       gbm.y = 37,
+                       family = 'gaussian',
+                       tree.complexity = 5,
+                       learning.rate = 0.01,
+                       bag.fraction = 0.5)
+summary(brt_males2)
+
+brt_males3 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:31, 33:34),
+                       gbm.y = 37,
+                       family = 'gaussian',
+                       tree.complexity = 3,
+                       learning.rate = 0.01,
+                       bag.fraction = 0.5)
+summary(brt_males3)
+
+brt_males4 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:31, 33:34),
+                       gbm.y = 37,
+                       family = 'gaussian',
+                       tree.complexity = 10,
+                       learning.rate = 0.01,
+                       bag.fraction = 0.5)
+summary(brt_males4)
