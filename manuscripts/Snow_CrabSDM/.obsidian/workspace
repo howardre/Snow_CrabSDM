@@ -9,7 +9,7 @@
         "state": {
           "type": "markdown",
           "state": {
-            "file": "Environmental Data.md",
+            "file": "Boosted Regression Trees.md",
             "mode": "source",
             "source": false
           }
@@ -77,7 +77,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Environmental Data.md",
+                "file": "Boosted Regression Trees.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -94,7 +94,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Environmental Data.md",
+                "file": "Boosted Regression Trees.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -117,7 +117,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Environmental Data.md"
+                "file": "Boosted Regression Trees.md"
               }
             }
           }
@@ -130,6 +130,9 @@
   },
   "active": "615645d5a096e043",
   "lastOpenFiles": [
-    "Observer Data.md"
+    "Random Forests.md",
+    "Data/Environmental Data.md",
+    "Data/Observer Data.md",
+    "Boosted Regression Trees.md"
   ]
 }
