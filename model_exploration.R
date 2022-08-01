@@ -60,6 +60,11 @@ print(rf_females1)
 
 
 # Boosted regression trees ----
+# Adjust the bag fraction to a value between 0.5-0.75 as suggested by Elith et al. (2008)
+# The learning rate could range from 0.1-0.0001, higher value usually means less trees
+# Depending on the number of samples, want tree complexity to be high enough (likely using 5)
+# Want at least 1000 trees, but don't need to go way beyond it
+
 # Females
 brt_females1 <- gbm.step(data = crab_train,
                          gbm.x = c(9, 26, 29:32, 35),
@@ -185,3 +190,53 @@ brt_males4 <- gbm.step(data = crab_train,
                        learning.rate = 0.01,
                        bag.fraction = 0.5)
 summary(brt_males4)
+
+brt_males5 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:31, 33:34),
+                       gbm.y = 37,
+                       family = 'gaussian',
+                       tree.complexity = 10,
+                       learning.rate = 0.01,
+                       bag.fraction = 0.75)
+summary(brt_males5)
+
+brt_males6 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:31, 33:34),
+                       gbm.y = 37,
+                       family = 'gaussian',
+                       tree.complexity = 5,
+                       learning.rate = 0.1,
+                       bag.fraction = 0.5)
+summary(brt_males6)
+
+brt_males7 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:31, 33:34),
+                       gbm.y = 37,
+                       family = 'gaussian',
+                       tree.complexity = 5,
+                       learning.rate = 0.1,
+                       bag.fraction = 0.75)
+summary(brt_males7)
+
+# Attempt dropping variable
+males_simp <- gbm.simplify(brt_males3, n.drops = 5) # this takes forever
+summary(males_simp)
+
+# Choose final model
+males_final <- brt_males4 # Change this once decision made
+
+# Plot the variables
+windows()
+gbm.plot(males_final,
+         n.plots = 7,
+         plot.layout = c(4, 2),
+         write.title = F,
+         smooth = T,
+         common.scale = T,
+         cex.axis = 1.7,
+         cex.lab = 1.7,
+         lwd = 1.5)
+
+# Plot the fits
+males_int <- gbm.interactions(males_final)
+males_int$interactions
