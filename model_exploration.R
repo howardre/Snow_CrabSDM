@@ -56,7 +56,7 @@ rf_males1 <- randomForest(scaled_male ~ depth +
                           mtry = 5,
                           importance = T,
                           proximity = T)
-print(rf_females1)
+print(rf_males1)
 
 
 # Boosted regression trees ----
@@ -101,6 +101,24 @@ brt_females4 <- gbm.step(data = crab_train,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) # 
 summary(brt_females4)
+
+brt_females5 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:32, 35),
+                       gbm.y = 36,
+                       family = 'gaussian',
+                       tree.complexity = 5,
+                       learning.rate = 0.1,
+                       bag.fraction = 0.5)
+summary(brt_females5)
+
+brt_females6 <- gbm.step(data = crab_train,
+                       gbm.x = c(9, 26, 29:32, 35),
+                       gbm.y = 36,
+                       family = 'gaussian',
+                       tree.complexity = 5,
+                       learning.rate = 0.1,
+                       bag.fraction = 0.75)
+summary(brt_females6)
 
 # Attempt dropping variable
 females_simp <- gbm.simplify(brt_females3, n.drops = 5) # this takes forever
@@ -219,11 +237,11 @@ brt_males7 <- gbm.step(data = crab_train,
 summary(brt_males7)
 
 # Attempt dropping variable
-males_simp <- gbm.simplify(brt_males3, n.drops = 5) # this takes forever
+males_simp <- gbm.simplify(brt_males6, n.drops = 5) # this takes forever
 summary(males_simp)
 
 # Choose final model
-males_final <- brt_males4 # Change this once decision made
+males_final <- brt_males6 # Change this once decision made
 
 # Plot the variables
 windows()
