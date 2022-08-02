@@ -81,7 +81,7 @@ brt_females2 <- gbm.step(data = crab_train,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
-                         bag.fraction = 0.5) # 
+                         bag.fraction = 0.5) 
 summary(brt_females2)
 
 brt_females3 <- gbm.step(data = crab_train,
@@ -90,7 +90,7 @@ brt_females3 <- gbm.step(data = crab_train,
                          family = 'gaussian',
                          tree.complexity = 3,
                          learning.rate = 0.01,
-                         bag.fraction = 0.5) # 
+                         bag.fraction = 0.5) 
 summary(brt_females3)
 
 brt_females4 <- gbm.step(data = crab_train,
@@ -99,7 +99,7 @@ brt_females4 <- gbm.step(data = crab_train,
                          family = 'gaussian',
                          tree.complexity = 10,
                          learning.rate = 0.01,
-                         bag.fraction = 0.5) # 
+                         bag.fraction = 0.5) 
 summary(brt_females4)
 
 brt_females5 <- gbm.step(data = crab_train,
@@ -120,12 +120,21 @@ brt_females6 <- gbm.step(data = crab_train,
                        bag.fraction = 0.75)
 summary(brt_females6)
 
+brt_females7 <- gbm.step(data = crab_train,
+                         gbm.x = c(9, 26, 29:32, 35),
+                         gbm.y = 36,
+                         family = 'gaussian',
+                         tree.complexity = 5,
+                         learning.rate = 0.05,
+                         bag.fraction = 0.75)
+summary(brt_females7)
+
 # Attempt dropping variable
-females_simp <- gbm.simplify(brt_females3, n.drops = 5) # this takes forever
+females_simp <- gbm.simplify(brt_females1, n.drops = 5) # this takes forever
 summary(females_simp)
 
 # Choose final model
-females_final <- brt_females4 # Change this once decision made
+females_final <- brt_females1 # Change this once decision made
 
 # Plot the variables
 windows()
