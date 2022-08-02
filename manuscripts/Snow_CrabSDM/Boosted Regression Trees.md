@@ -2,9 +2,11 @@
 - Variables: phi, doy, ice, sst, depth, immature individuals, mature individuals
 - Gaussian
 - Scaled CPUE (due to inability to use large values in gbm package)
+- No need to drop variables for either best model
+- Want lower deviance, higher correlation
 
 **Females**
-_Model 1_
+_Model 1_ 
 - Tree complexity: 5
 - Learning rate: 0.05
 - Bag fraction: 0.5
@@ -12,6 +14,7 @@ _Model 1_
 - SE deviance: 3.81 * 10$^{-5}$
 - Mean correlation: 0.49
 - SE correlation: 0.025
+- Trees: 2050
 
 _Model 2
 - Tree complexity: 5
@@ -21,8 +24,9 @@ _Model 2
 - SE deviance: 2.98 * 10$^{-5}$
 - Mean correlation: 0.48
 - SE correlation: 0.018
+- Trees: 4700
 
-_Model 3 - Chosen due to reasonable number of trees
+_Model 3 
 - Tree complexity: 3
 - Learning rate: 0.01
 - Bag fraction: 0.5
@@ -30,6 +34,7 @@ _Model 3 - Chosen due to reasonable number of trees
 - SE deviance: 3.95 * 10$^{-5}$
 - Mean correlation: 0.47
 - SE correlation: 0.016
+- Trees: 9400
 
 _Model 4
 - Tree complexity: 10
@@ -39,6 +44,37 @@ _Model 4
 - SE deviance: 4.39 * 10$^{-5}$
 - Mean correlation: 0.49
 - SE correlation: 0.017
+- Trees: 2150
+
+_Model 5
+- Tree complexity: 5
+- Learning rate: 0.1
+- Bag fraction: 0.5
+- Mean deviance: 0.00044
+- SE deviance: 4.18 * 10$^{-5}$
+- Mean correlation: 0.48
+- SE correlation: 0.022
+- Trees: 550
+
+_Model 6
+- Tree complexity: 5
+- Learning rate: 0.1
+- Bag fraction: 0.75
+- Mean deviance: 0.00043
+- SE deviance: 2.62 * 10$^{-5}$
+- Mean correlation: 0.50
+- SE correlation: 0.017
+- Trees: 900
+
+_Model 7
+- Tree complexity: 5
+- Learning rate: 0.05
+- Bag fraction: 0.75
+- Mean deviance: 0.00043
+- SE deviance: 4.18 * 10$^{-5}$
+- Mean correlation: 0.49
+- SE correlation: 0.019
+- Trees: 1200
 
 **Males**
 _Model 1_
@@ -103,3 +139,12 @@ _Model 7
 - SE deviance: 2.17 * 10$^{-5}$
 - Mean correlation: 0.71
 - SE correlation: 0.0022
+
+**Variable Importance**
+_Females_
+See figures
+Top three are
+
+_Males_
+See figures
+Top three are phi > sst > immature males
