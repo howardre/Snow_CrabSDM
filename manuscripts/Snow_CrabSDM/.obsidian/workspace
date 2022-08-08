@@ -9,7 +9,7 @@
         "state": {
           "type": "markdown",
           "state": {
-            "file": "Data/Environmental Data.md",
+            "file": "Background/Projecting future distributions.md",
             "mode": "source",
             "source": false
           }
@@ -77,7 +77,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Data/Environmental Data.md",
+                "file": "Background/Projecting future distributions.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -94,7 +94,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Data/Environmental Data.md",
+                "file": "Background/Projecting future distributions.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -117,7 +117,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Data/Environmental Data.md"
+                "file": "Background/Projecting future distributions.md"
               }
             }
           }
@@ -130,9 +130,9 @@
   },
   "active": "615645d5a096e043",
   "lastOpenFiles": [
-    "Boosted Regression Trees.md",
-    "Random Forests.md",
     "Data/Environmental Data.md",
+    "Results/Boosted Regression Trees.md",
+    "Results/Random Forests.md",
     "Data/Observer Data.md"
   ]
 }
