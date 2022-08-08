@@ -9,6 +9,7 @@ library(lubridate)
 library(date)
 library(RANN)
 library(raster)
+library(sp)
 
 # Functions ----
 clean_data <- function(data){
@@ -22,6 +23,10 @@ clean_data <- function(data){
   data_frame <- data_frame[!is.na(data_frame$latitude), ]
   data_frame <- data_frame[!is.na(data_frame$longitude), ]
     return(data_frame)
+}
+
+lon2UTM <- function(longitude){
+  (floor((longitude + 180)/6) %% 60) + 1
 }
 
 # Load data ----
@@ -69,39 +74,79 @@ names(crab_survey) <- tolower(names(crab_survey))
 crab_survey <- as.data.frame(crab_survey)
 
 # Match environmental data ----
+# Convert to UTM in order to properly match 
+z <- lon2UTM(crab_summary[1, "longitude"])
+
+crab_survey1 <- crab_survey
+coordinates(crab_survey1) <- c("mid_longitude", "mid_latitude")
+proj4string(crab_survey1) <- CRS("+proj=longlat +datum=WGS84")
+
+crab_survey_xy <- spTransform(crab_survey1, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+crab_survey_xy <- as.data.frame(crab_survey_xy)
+
+crab_summary1 <- crab_summary
+coordinates(crab_summary1) <- c("longitude", "latitude")
+proj4string(crab_summary1) <- CRS("+proj=longlat +datum=WGS84")
+
+crab_summary_xy <- spTransform(crab_summary1, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+crab_summary_xy <- as.data.frame(crab_summary_xy)
+
+phi_data1 <- phi_data
+coordinates(phi_data1) <- c("x", "y")
+proj4string(phi_data1) <- CRS("+proj=longlat +datum=WGS84")
+
+phi_data_xy <- spTransform(phi_data1, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+phi_data_xy <- as.data.frame(phi_data_xy)
+
+ice_data1 <- ice_data
+coordinates(ice_data1) <- c("lon", "lat")
+proj4string(ice_data1) <- CRS("+proj=longlat +datum=WGS84")
+
+ice_data_xy <- spTransform(ice_data1, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+ice_data_xy <- as.data.frame(ice_data_xy)
+
+sst_data1 <- sst_data
+coordinates(sst_data1) <- c("lon", "lat")
+proj4string(sst_data1) <- CRS("+proj=longlat +datum=WGS84")
+
+sst_data_xy <- spTransform(sst_data1, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+sst_data_xy <- as.data.frame(sst_data_xy)
+
 # Everything must be a data frame, tables do not work
-crab_summary[, c(29, 30)] <- as.data.frame(RANN::nn2(phi_data[, c('y', 'x')],
-                                                     crab_summary[, c('latitude', 'longitude')],
+crab_summary_xy[, c(29, 30)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+                                                     crab_summary_xy[, c('latitude', 'longitude')],
                                                      k = 1))
-crab_summary$phi <- phi_data[c(crab_summary$nn.idx), 1] # Match nearest phi value
-crab_summary <- crab_summary[-c(29, 30)]
+crab_summary_xy$phi <- phi_data_xy[c(crab_summary_xy$nn.idx), 1] # Match nearest phi value
+crab_summary_xy <- crab_summary_xy[-c(29, 30)]
 
-crab_summary[, c(30, 31)] <- as.data.frame(RANN::nn2(ice_data[, c('lat', 'lon', 'month', 'year')],
-                                                     crab_summary[, c('latitude', 'longitude', 'month', 'year')],
+crab_summary_xy[, c(30, 31)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
+                                                     crab_summary_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                      k = 1))
-crab_summary$ice <- ice_data[c(crab_summary$nn.idx), 4] # Match nearest ice value
-crab_summary <- crab_summary[-c(30, 31)]
+crab_summary_xy$ice <- ice_data_xy[c(crab_summary_xy$nn.idx), 2] # Match nearest ice value
+crab_summary_xy <- crab_summary_xy[-c(30, 31)]
 
-crab_summary[, c(31, 32)] <- as.data.frame(RANN::nn2(sst_data[, c('lat', 'lon', 'month', 'year')],
-                                                     crab_summary[, c('latitude', 'longitude', 'month', 'year')],
+crab_summary_xy[, c(31, 32)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+                                                     crab_summary_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                      k = 1))
-crab_summary$sst <- sst_data[c(crab_summary$nn.idx), 4] # Match nearest temperature value
-crab_summary <- crab_summary[-c(31, 32)]
+crab_summary_xy$sst <- sst_data_xy[c(crab_summary_xy$nn.idx), 2] # Match nearest temperature value
+crab_summary_xy <- crab_summary_xy[-c(31, 32)]
 
 # Match survey data ----
-survey_wide <- crab_survey %>%
+survey_wide <- crab_survey_xy %>%
   pivot_wider(names_from = mat_sex, 
               values_from = cpue)
 survey_wide <- as.data.frame(survey_wide)
 
-crab_summary[, c(32, 33)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
-                                                     crab_summary[, c('latitude', 'longitude', 'year')],
+crab_summary_xy[, c(32, 33)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
+                                                     crab_summary_xy[, c('latitude', 'longitude', 'year')],
                                                      k = 1))
-crab_summary$female_immature <- survey_wide[c(crab_summary$nn.idx), 7] # Match the cpue values
-crab_summary$male_immature <- survey_wide[c(crab_summary$nn.idx), 8]
-crab_summary$male_mature <- survey_wide[c(crab_summary$nn.idx), 10]
-crab_summary$female_mature <- survey_wide[c(crab_summary$nn.idx), 11]
-crab_summary <- crab_summary[-c(32, 33)]
+crab_summary_xy$female_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 7] + 1) # Match the cpue values and transform
+crab_summary_xy$male_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 8] + 1)
+crab_summary_xy$male_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 10] + 1)
+crab_summary_xy$female_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 11] + 1)
+crab_summary_xy$bottom_temp <- survey_wide[c(crab_summary_xy$nn.idx, na.omit = T), 6] # add bottom temperature (may end up ultimately using ROMS)
+crab_summary_xy <- crab_summary_xy[-c(32, 33)]
+
 
 saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_summary.rds'))
 
