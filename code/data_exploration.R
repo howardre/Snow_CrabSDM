@@ -25,6 +25,7 @@ clean_data <- function(data){
     return(data_frame)
 }
 
+# Convert to UTM
 lon2UTM <- function(longitude){
   (floor((longitude + 180)/6) %% 60) + 1
 }
@@ -84,6 +85,8 @@ proj4string(crab_survey1) <- CRS("+proj=longlat +datum=WGS84")
 crab_survey_xy <- spTransform(crab_survey1, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
 crab_survey_xy <- as.data.frame(crab_survey_xy)
 
+# Add index to summary to match back lat, lon
+crab_summary <- tibble::rowid_to_column(crab_summary, "index")
 crab_summary1 <- crab_summary
 coordinates(crab_summary1) <- c("longitude", "latitude")
 proj4string(crab_summary1) <- CRS("+proj=longlat +datum=WGS84")
@@ -113,23 +116,23 @@ sst_data_xy <- spTransform(sst_data1, CRS(paste0("+proj=utm +zone=", z, "ellps=W
 sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
-crab_summary_xy[, c(29, 30)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+crab_summary_xy[, c(30, 31)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
                                                      crab_summary_xy[, c('latitude', 'longitude')],
                                                      k = 1))
 crab_summary_xy$phi <- phi_data_xy[c(crab_summary_xy$nn.idx), 1] # Match nearest phi value
-crab_summary_xy <- crab_summary_xy[-c(29, 30)]
+crab_summary_xy <- crab_summary_xy[-c(30, 31)]
 
-crab_summary_xy[, c(30, 31)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
+crab_summary_xy[, c(31, 32)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
                                                      crab_summary_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                      k = 1))
 crab_summary_xy$ice <- ice_data_xy[c(crab_summary_xy$nn.idx), 2] # Match nearest ice value
-crab_summary_xy <- crab_summary_xy[-c(30, 31)]
+crab_summary_xy <- crab_summary_xy[-c(31, 32)]
 
-crab_summary_xy[, c(31, 32)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+crab_summary_xy[, c(32, 33)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
                                                      crab_summary_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                      k = 1))
 crab_summary_xy$sst <- sst_data_xy[c(crab_summary_xy$nn.idx), 2] # Match nearest temperature value
-crab_summary_xy <- crab_summary_xy[-c(31, 32)]
+crab_summary_xy <- crab_summary_xy[-c(32, 33)]
 
 # Match survey data ----
 survey_wide <- crab_survey_xy %>%
@@ -137,16 +140,77 @@ survey_wide <- crab_survey_xy %>%
               values_from = cpue)
 survey_wide <- as.data.frame(survey_wide)
 
-crab_summary_xy[, c(32, 33)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
+# Plot survey data bottom temps to identify gaps (777 missing values)
+bering_sea <- map_data("world")
+
+# Maps of temperatures
+ggplot(data = crab_survey, 
+       aes(mid_longitude, mid_latitude)) +  
+  geom_point(aes(colour = cut(gear_temperature, c(-2.1, 12.5, NA))),
+             size = 3) +
+  labs(y = "Latitude",
+       x = "Longitude") +
+  geom_polygon(aes(long, lat, group = group), 
+               data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  coord_quickmap(xlim = c(-178, -156), ylim = c(53, 64)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  facet_wrap(~ akfin_survey_year) +
+  labs(colour = "Temperature Records")
+
+# Temperatures over time
+survey_wide %>%
+  mutate(year_cut = cut(akfin_survey_year, breaks = seq(1975, 2019, by = 1))) %>% 
+  ggplot() +
+  geom_boxplot(aes(year_cut, gear_temperature),
+               fill = "goldenrod1", 
+               outlier.alpha = 0.2) +  
+  labs(y = "Temperature",
+       x = "Year",
+       title = "Temperature by Year") +
+  scale_x_discrete(labels = c("1975", "1976", "1977", "1978", "1979", "1980", "1981", "1982", 
+                              "1983", "1984", "1985", "1986", "1987", "1988", "1989", "1990",
+                              "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998",
+                              "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006",
+                              "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014",
+                              "2015", "2016", "2017", "2018", "2019")) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18))
+
+
+# Match survey to observer data
+crab_summary_xy[, c(33, 34)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
                                                      crab_summary_xy[, c('latitude', 'longitude', 'year')],
                                                      k = 1))
 crab_summary_xy$female_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 7] + 1) # Match the cpue values and transform
 crab_summary_xy$male_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 8] + 1)
 crab_summary_xy$male_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 10] + 1)
 crab_summary_xy$female_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 11] + 1)
-crab_summary_xy$bottom_temp <- survey_wide[c(crab_summary_xy$nn.idx, na.omit = T), 6] # add bottom temperature (may end up ultimately using ROMS)
-crab_summary_xy <- crab_summary_xy[-c(32, 33)]
+crab_summary_xy$bottom_temp <- survey_wide[c(crab_summary_xy$nn.idx), 4] # add bottom temperature (may end up ultimately using ROMS)
+crab_summary_xy <- crab_summary_xy[-c(33, 34)]
 
+# Convert back to lat, lon
+crab_summary_xy <- crab_summary_xy[-c(28, 29)]
+crab_summary_xy$latitude <- crab_summary$latitude[match(crab_summary$index, crab_summary_xy$index)]
+crab_summary_xy$longitude <- crab_summary$longitude[match(crab_summary$index, crab_summary_xy$index)]
 
 saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_summary.rds'))
 
