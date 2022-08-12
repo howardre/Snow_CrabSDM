@@ -10,6 +10,8 @@ library(date)
 library(RANN)
 library(raster)
 library(sp)
+library(mice)
+library(multilevel)
 
 # Functions ----
 clean_data <- function(data){
@@ -25,14 +27,24 @@ clean_data <- function(data){
     return(data_frame)
 }
 
+clean_offload <- function(data){
+  data$date <- as.Date(data$sampdate, "%m-%d-%Y")
+  data_frame <- mutate(data,
+                       year = lubridate::year(date),
+                       month = lubridate::month(date),
+                       day = lubridate::day(date))
+  data_frame$doy <- as.numeric(mdy.date(data_frame$month, data_frame$day, 1960))
+  data_frame[data_frame == -9] <- NA
+  return(data_frame)
+}
+
 # Convert to UTM
 lon2UTM <- function(longitude){
   (floor((longitude + 180)/6) %% 60) + 1
 }
 
 # Match data for pot level data
-match_data <- function(data, survey, phi_data, ice_data,
-                       sst_data, survey_wide){
+match_data <- function(data, survey, phi_data, ice_data, sst_data){
   z <- lon2UTM(data[1, "longitude"])
   
   coordinates(survey) <- c("mid_longitude", "mid_latitude")
@@ -40,6 +52,11 @@ match_data <- function(data, survey, phi_data, ice_data,
   
   survey_xy <- spTransform(survey, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
   survey_xy <- as.data.frame(survey_xy)
+  
+  survey_wide <- survey_xy %>%
+    pivot_wider(names_from = mat_sex, 
+                values_from = cpue)
+  survey_wide <- as.data.frame(survey_wide)
   
   # Add index to summary to match back lat, lon
   data <- tibble::rowid_to_column(data, "index")
@@ -120,6 +137,37 @@ bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020
 
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
+crab_survey <- crab_survey %>%
+  filter(akfin_survey_year > 1987)
+
+# Impute missing temperature (and depth) values using mice package
+histogram(~ akfin_survey_year | is.na(gear_temperature), data = crab_survey) # left-tailed MAR missingness
+histogram(~ mid_latitude | is.na(gear_temperature), data = crab_survey) # no difference
+histogram(~ mid_longitude | is.na(gear_temperature), data = crab_survey) # no difference
+multilevel::ICC1(aov(gear_temperature ~ as.factor(akfin_survey_year), data = crab_survey))
+
+survey_imp <- mice(crab_survey, maxit = 0)
+method <- survey_imp$method
+method
+method[c(5, 6)] <- "norm"
+method
+prediction <- survey_imp$pred
+prediction
+
+# remove unnecessary predictors
+prediction[, "gis_station"] <- 0
+prediction[, "mat_sex"] <- 0
+prediction[, "cpue"] <- 0
+
+survey_imp1 <- mice(crab_survey, method = method, pred = prediction, print = F)
+summary(complete(survey_imp))
+summary(complete(survey_imp1)) # gives more extreme negative values
+summary(crab_survey)
+
+stripplot(survey_imp, gear_temperature, pch = 19, xlab = "Imputation number")
+survey_fit <- with(survey_imp, lm(gear_temperature ~ akfin_survey_year + mid_latitude + mid_longitude))
+summary(pool(survey_fit))
+
 
 # Environmental data
 sst_data <-as.data.frame(read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1)))
@@ -129,7 +177,7 @@ ice_data$month <- match(ice_data$month, month.abb)
 
 phi_raster <- raster(here('data', 'EBS_phi_1km.gri'))
 phi_pts <- rasterToPoints(phi_raster, spatial = T)
-proj4string(phi_pts)
+proj4string(phi_pts) # warning here related to the retirement of rgdal package
 phi_prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 phi_trans <- spTransform(phi_pts, CRS(phi_prj))
 proj4string(phi_trans)
@@ -140,30 +188,25 @@ crab_detailed <- clean_data(crab_dump)
 crab_summary <- clean_data(crab_potsum)
 crab_summary$total <- crab_summary$female + crab_summary$tot_legal + crab_summary$sublegal
 crab_summary$male <- crab_summary$tot_legal + crab_summary$sublegal
-crab_offload <- clean_data(crab_retained)
+crab_offload <- clean_offload(crab_retained)
 
 bycatch_detailed <- clean_data(bycatch_dump)
 bycatch_summary <- clean_data(bycatch_potsum)
 bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
-bycatch_offload <- clean_data(bycatch_retained)
+bycatch_offload <- clean_offload(bycatch_retained)
 
 names(crab_survey) <- tolower(names(crab_survey))
 crab_survey <- as.data.frame(crab_survey)
 
-survey_wide <- crab_survey_xy %>%
-  pivot_wider(names_from = mat_sex, 
-              values_from = cpue)
-survey_wide <- as.data.frame(survey_wide)
-
 # Match environmental data ----
 crab_final <- match_data(crab_summary, crab_survey, 
                          phi_data, ice_data,
-                         sst_data, survey_wide)
+                         sst_data)
 
 bycatch_final <- match_data(bycatch_summary, crab_survey,
                             phi_data, ice_data,
-                            sst_data, survey_wide)
+                            sst_data)
 
 
 saveRDS(crab_final, file = here('data/Snow_CrabData', 'crab_summary.rds'))
