@@ -7,6 +7,7 @@ library(gbm)
 library(dismo)
 library(scales)
 library(randomForest)
+library(here)
 
 # Load data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
@@ -14,37 +15,174 @@ crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
 crab_filtered <- crab_summary %>%
   filter_at(vars(latitude, longitude), all_vars(!is.na(.)))
 
-# Response variable has large values, which leads to issues with gbm.step() so it was rescaled
-crab_filtered$scaled_female <- scales::rescale(crab_filtered$female)
-crab_filtered$scaled_male <- scales::rescale(crab_filtered$male)
+# Transform female and male data
+crab_filtered$lncpue_female <- log(crab_filtered$female + 1)
+crab_filtered$lncpue_male <- log(crab_filtered$male + 1)
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
 crab_train <- as.data.frame(crab_filtered %>% 
-                              filter(year < 2016))
+                              filter(year < 2013))
 crab_test <- as.data.frame(crab_filtered %>% 
-                             filter(year > 2015))
+                             filter(year > 2012))
 
 # Random forests ----
 # Females
 set.seed(1993)
-rf_females1 <- randomForest(scaled_female ~ depth +
+rf_females <- randomForest(lncpue_female ~ latitude +
+                             longitude +
+                             doy,
+                            data = na.exclude(crab_train), # throws error if NAs included
+                            ntree = 1000,
+                            mtry = 2,
+                            importance = T,
+                            proximity = T)
+print(rf_females) 
+# 70.99% variance explained
+# Mean squared residuals: 0.18
+
+plot(rf_females$mse)
+
+
+
+set.seed(1993)
+rf_females1 <- randomForest(lncpue_female ~ depth +
+                              latitude +
+                              longitude +
                               phi +
                               ice +
                               sst +
                               doy +
                               female_mature +
                               female_immature,
-                            data = na.exclude(crab_train), # throws error if NAs included
+                            data = na.exclude(crab_train), 
                             ntree = 1000,
+                            mtry = 2,
+                            importance = T,
+                            proximity = T)
+print(rf_females1) 
+# 70.94% variance explained
+# Mean squared residuals: 0.18
+
+plot(rf_females1$mse)
+
+rf_females1$importance
+varImpPlot(rf_females1)
+
+
+set.seed(1993)
+rf_females2 <- randomForest(lncpue_female ~ depth +
+                              latitude +
+                              longitude +
+                              phi +
+                              ice +
+                              sst +
+                              doy +
+                              female_mature +
+                              female_immature +
+                              bottom_temp,
+                            data = na.exclude(crab_train), 
+                            ntree = 1000,
+                            mtry = 2,
+                            importance = T,
+                            proximity = T)
+print(rf_females2) 
+# 69.85% variance explained
+# Mean squared residuals: 0.18
+
+plot(rf_females2$mse) # adding bottom temp made it worse
+
+rf_females2$importance
+varImpPlot(rf_females2)
+
+
+set.seed(1993)
+rf_females3 <- randomForest(lncpue_female ~ depth +
+                              latitude +
+                              longitude +
+                              phi +
+                              ice +
+                              sst +
+                              doy +
+                              female_mature +
+                              female_immature,
+                            data = na.exclude(crab_train), 
+                            ntree = 3000,
+                            mtry = 2,
+                            importance = T,
+                            proximity = T)
+print(rf_females3) 
+# 71.12% variance explained
+# Mean squared residuals: 0.18
+
+plot(rf_females3$mse) 
+
+
+set.seed(1993)
+rf_females4 <- randomForest(lncpue_female ~ depth +
+                              latitude +
+                              longitude +
+                              phi +
+                              ice +
+                              sst +
+                              doy +
+                              female_mature +
+                              female_immature,
+                            data = na.exclude(crab_train), 
+                            ntree = 3000,
                             mtry = 5,
                             importance = T,
                             proximity = T)
-print(rf_females1)
+print(rf_females4) 
+# 70.7% variance explained
+# Mean squared residuals: 0.18
+
+plot(rf_females4$mse) 
+
+
+
+set.seed(1993)
+rf_females5 <- randomForest(lncpue_female ~ depth +
+                              latitude +
+                              longitude +
+                              phi +
+                              ice +
+                              sst +
+                              doy +
+                              female_mature +
+                              female_immature,
+                            data = na.exclude(crab_train), 
+                            ntree = 3000,
+                            mtry = 3,
+                            importance = T,
+                            proximity = T)
+print(rf_females5) 
+# 71.2% variance explained
+# Mean squared residuals: 0.18
+
+plot(rf_females5$mse) 
 
 # Males
 set.seed(1993)
-rf_males1 <- randomForest(scaled_male ~ depth +
+rf_males <- randomForest(lncpue_male ~ latitude +
+                           longitude +
+                           doy,
+                          data = na.exclude(crab_train),
+                          ntree = 1000,
+                          mtry = 2,
+                          importance = T,
+                          proximity = T)
+print(rf_males)
+# 56.96% variance explained
+# Mean squared residuals: 0.42
+
+plot(rf_males$mse)
+
+
+set.seed(1993)
+rf_males1 <- randomForest(lncpue_male ~ depth +
+                            latitude +
+                            longitude +
                             phi +
                             ice +
                             sst +
@@ -57,6 +195,13 @@ rf_males1 <- randomForest(scaled_male ~ depth +
                           importance = T,
                           proximity = T)
 print(rf_males1)
+# 56.96% variance explained
+# Mean squared residuals: 0.42
+
+plot(rf_males1$mse)
+
+rf_males1$importance
+varImpPlot(rf_males1)
 
 
 # Boosted regression trees ----
@@ -67,17 +212,17 @@ print(rf_males1)
 
 # Females
 brt_females1 <- gbm.step(data = crab_train,
-                         gbm.x = c(9, 26, 29:32, 35),
-                         gbm.y = 36,
+                         gbm.x = c(8, 25, 28:31, 34:37),
+                         gbm.y = 38,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.05,
-                         bag.fraction = 0.5) # producing too many trees
+                         bag.fraction = 0.5) 
 summary(brt_females1) 
 
 brt_females2 <- gbm.step(data = crab_train,
-                         gbm.x = c(9, 26, 29:32, 35),
-                         gbm.y = 36,
+                         gbm.x = c(8, 25, 28:31, 34:37),
+                         gbm.y = 38,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
@@ -85,8 +230,8 @@ brt_females2 <- gbm.step(data = crab_train,
 summary(brt_females2)
 
 brt_females3 <- gbm.step(data = crab_train,
-                         gbm.x = c(9, 26, 29:32, 35),
-                         gbm.y = 36,
+                         gbm.x = c(8, 25, 28:31, 34:37),
+                         gbm.y = 38,
                          family = 'gaussian',
                          tree.complexity = 3,
                          learning.rate = 0.01,
@@ -94,8 +239,8 @@ brt_females3 <- gbm.step(data = crab_train,
 summary(brt_females3)
 
 brt_females4 <- gbm.step(data = crab_train,
-                         gbm.x = c(9, 26, 29:32, 35),
-                         gbm.y = 36,
+                         gbm.x = c(8, 25, 28:31, 34:37),
+                         gbm.y = 38,
                          family = 'gaussian',
                          tree.complexity = 10,
                          learning.rate = 0.01,
@@ -103,8 +248,8 @@ brt_females4 <- gbm.step(data = crab_train,
 summary(brt_females4)
 
 brt_females5 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:32, 35),
-                       gbm.y = 36,
+                       gbm.x = c(8, 25, 28:31, 34:37),
+                       gbm.y = 38,
                        family = 'gaussian',
                        tree.complexity = 5,
                        learning.rate = 0.1,
@@ -112,8 +257,8 @@ brt_females5 <- gbm.step(data = crab_train,
 summary(brt_females5)
 
 brt_females6 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:32, 35),
-                       gbm.y = 36,
+                       gbm.x = c(8, 25, 28:31, 34:37),
+                       gbm.y = 38,
                        family = 'gaussian',
                        tree.complexity = 5,
                        learning.rate = 0.1,
@@ -121,8 +266,8 @@ brt_females6 <- gbm.step(data = crab_train,
 summary(brt_females6)
 
 brt_females7 <- gbm.step(data = crab_train,
-                         gbm.x = c(9, 26, 29:32, 35),
-                         gbm.y = 36,
+                         gbm.x = c(8, 25, 28:31, 34:37),
+                         gbm.y = 38,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.05,
@@ -183,8 +328,8 @@ females_int$interactions
 
 # Males
 brt_males1 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 5,
                        learning.rate = 0.05,
@@ -192,8 +337,8 @@ brt_males1 <- gbm.step(data = crab_train,
 summary(brt_males1)
 
 brt_males2 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 5,
                        learning.rate = 0.01,
@@ -201,8 +346,8 @@ brt_males2 <- gbm.step(data = crab_train,
 summary(brt_males2)
 
 brt_males3 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 3,
                        learning.rate = 0.01,
@@ -210,8 +355,8 @@ brt_males3 <- gbm.step(data = crab_train,
 summary(brt_males3)
 
 brt_males4 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 10,
                        learning.rate = 0.01,
@@ -219,8 +364,8 @@ brt_males4 <- gbm.step(data = crab_train,
 summary(brt_males4)
 
 brt_males5 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 10,
                        learning.rate = 0.01,
@@ -228,8 +373,8 @@ brt_males5 <- gbm.step(data = crab_train,
 summary(brt_males5)
 
 brt_males6 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 5,
                        learning.rate = 0.1,
@@ -237,8 +382,8 @@ brt_males6 <- gbm.step(data = crab_train,
 summary(brt_males6)
 
 brt_males7 <- gbm.step(data = crab_train,
-                       gbm.x = c(9, 26, 29:31, 33:34),
-                       gbm.y = 37,
+                       gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
+                       gbm.y = 39,
                        family = 'gaussian',
                        tree.complexity = 5,
                        learning.rate = 0.1,
