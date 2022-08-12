@@ -140,7 +140,56 @@ survey_wide <- crab_survey_xy %>%
               values_from = cpue)
 survey_wide <- as.data.frame(survey_wide)
 
-# Plot survey data bottom temps to identify gaps (777 missing values)
+# Match survey to observer data
+crab_summary_xy[, c(33, 34)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
+                                                        crab_summary_xy[, c('latitude', 'longitude', 'year')],
+                                                        k = 1))
+crab_summary_xy$female_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 7] + 1) # Match the cpue values and transform
+crab_summary_xy$male_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 8] + 1)
+crab_summary_xy$male_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 10] + 1)
+crab_summary_xy$female_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 11] + 1)
+crab_summary_xy$bottom_temp <- survey_wide[c(crab_summary_xy$nn.idx), 4] # add bottom temperature (may end up ultimately using ROMS)
+crab_summary_xy <- crab_summary_xy[-c(33, 34)]
+
+# Convert back to lat, lon
+crab_summary_xy <- crab_summary_xy[-c(28, 29)]
+crab_summary_xy$latitude <- crab_summary$latitude[match(crab_summary$index, crab_summary_xy$index)]
+crab_summary_xy$longitude <- crab_summary$longitude[match(crab_summary$index, crab_summary_xy$index)]
+
+crab_summary <- crab_summary_xy
+saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_summary.rds'))
+
+# Add index to the specimen data
+crab_sorted <- crab_detailed %>%
+  group_by(year, doy, adfg, trip) %>%
+  mutate(index = cur_group_id()) %>%
+  ungroup() %>%
+  arrange(index)
+
+crab_filtered <- crab_sorted[-c(1:6, 9, 12:15, 18:22)]
+
+crab_male <- crab_filtered %>%
+  filter(sex == 1) %>%
+  group_by(index, latitude, longitude, depth, 
+           soaktime, maturity, date, year, month, day, doy) %>%
+  summarise(immature = sum(size <= 90), 
+            mature = sum(size > 90),
+            total = immature + mature) 
+
+crab_female <- crab_filtered %>%
+  filter(sex != 1) %>%
+  group_by(index, latitude, longitude, depth, 
+           soaktime, date, year, month, day, doy) %>%
+  summarise(immature = sum(size <= 50), 
+            mature = sum(size > 50),
+            total = immature + mature) # do by size or maturity? maturity often not recorded in these data
+
+saveRDS(crab_male, file = here('data/Snow_CrabData', 'crab_male.rds'))
+saveRDS(crab_female, file = here('data/Snow_CrabData', 'crab_female.rds'))
+
+
+# Plot survey data bottom temps to identify gaps ----
+# (777 missing values)
 bering_sea <- map_data("world")
 
 # Maps of temperatures
@@ -196,24 +245,6 @@ survey_wide %>%
         strip.text = element_text(family = "serif", size = 18))
 
 
-# Match survey to observer data
-crab_summary_xy[, c(33, 34)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 'mid_longitude', 'akfin_survey_year')],
-                                                     crab_summary_xy[, c('latitude', 'longitude', 'year')],
-                                                     k = 1))
-crab_summary_xy$female_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 7] + 1) # Match the cpue values and transform
-crab_summary_xy$male_immature <- log(survey_wide[c(crab_summary_xy$nn.idx), 8] + 1)
-crab_summary_xy$male_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 10] + 1)
-crab_summary_xy$female_mature <- log(survey_wide[c(crab_summary_xy$nn.idx), 11] + 1)
-crab_summary_xy$bottom_temp <- survey_wide[c(crab_summary_xy$nn.idx), 4] # add bottom temperature (may end up ultimately using ROMS)
-crab_summary_xy <- crab_summary_xy[-c(33, 34)]
-
-# Convert back to lat, lon
-crab_summary_xy <- crab_summary_xy[-c(28, 29)]
-crab_summary_xy$latitude <- crab_summary$latitude[match(crab_summary$index, crab_summary_xy$index)]
-crab_summary_xy$longitude <- crab_summary$longitude[match(crab_summary$index, crab_summary_xy$index)]
-
-saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_summary.rds'))
-
 # Visualize ----
 par(mfrow = c(3, 4))
 plot(table(crab_summary$year[crab_summary$total > 0]),
@@ -264,3 +295,12 @@ plot(table(crab_summary$gearcode[crab_summary$male > 0]),
      ylab = 'Frequency',
      xlab = 'Gear',
      main = 'Males')
+
+
+test_gam <- gam(mature + 1 ~ factor(year) +
+                  s(latitude, longitude) +
+                  s(doy) +
+                  s(depth),
+                data = crab_male,
+                family = tw(link = "log"))
+summary(test_gam)
