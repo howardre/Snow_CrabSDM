@@ -12,6 +12,7 @@ library(raster)
 library(sp)
 library(mice)
 library(multilevel)
+library(lattice)
 
 # Functions ----
 clean_data <- function(data){
@@ -137,36 +138,40 @@ bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020
 
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
+names(crab_survey) <- tolower(names(crab_survey))
+crab_survey <- as.data.frame(crab_survey)
 crab_survey <- crab_survey %>%
   filter(akfin_survey_year > 1987)
 
 # Impute missing temperature (and depth) values using mice package
-histogram(~ akfin_survey_year | is.na(gear_temperature), data = crab_survey) # left-tailed MAR missingness
-histogram(~ mid_latitude | is.na(gear_temperature), data = crab_survey) # no difference
-histogram(~ mid_longitude | is.na(gear_temperature), data = crab_survey) # no difference
-multilevel::ICC1(aov(gear_temperature ~ as.factor(akfin_survey_year), data = crab_survey))
-
-survey_imp <- mice(crab_survey, maxit = 0)
-method <- survey_imp$method
-method
-method[c(5, 6)] <- "norm"
-method
-prediction <- survey_imp$pred
-prediction
-
-# remove unnecessary predictors
-prediction[, "gis_station"] <- 0
-prediction[, "mat_sex"] <- 0
-prediction[, "cpue"] <- 0
-
-survey_imp1 <- mice(crab_survey, method = method, pred = prediction, print = F)
-summary(complete(survey_imp))
-summary(complete(survey_imp1)) # gives more extreme negative values
-summary(crab_survey)
-
-stripplot(survey_imp, gear_temperature, pch = 19, xlab = "Imputation number")
-survey_fit <- with(survey_imp, lm(gear_temperature ~ akfin_survey_year + mid_latitude + mid_longitude))
-summary(pool(survey_fit))
+# histogram(~ akfin_survey_year | is.na(gear_temperature), data = crab_survey) # left-tailed MAR missingness
+# histogram(~ mid_latitude | is.na(gear_temperature), data = crab_survey) # no difference
+# histogram(~ mid_longitude | is.na(gear_temperature), data = crab_survey) # no difference
+# multilevel::ICC1(aov(gear_temperature ~ as.factor(akfin_survey_year), data = crab_survey))
+# 
+# survey_imp <- mice(crab_survey, maxit = 0)
+# method <- survey_imp$method
+# method
+# method[c(5, 6)] <- "norm"
+# method
+# prediction <- survey_imp$pred
+# prediction
+# 
+# # remove unnecessary predictors
+# prediction[, "gis_station"] <- 0
+# prediction[, "mat_sex"] <- 0
+# prediction[, "cpue"] <- 0
+# 
+# survey_imp1 <- mice(crab_survey, method = method, pred = prediction, print = F)
+# summary(complete(survey_imp))
+# summary(complete(survey_imp1)) # gives more extreme negative values
+# summary(crab_survey)
+# 
+# plot(survey_imp, c("gear_temperature", "mid_latitude", "mid_longitude", "akfin_survey_year", "gear_depth"))
+# 
+# stripplot(survey_imp, gear_temperature, pch = 19, xlab = "Imputation number")
+# survey_fit <- with(survey_imp, lm(gear_temperature ~ akfin_survey_year + mid_latitude + mid_longitude))
+# summary(pool(survey_fit))
 
 
 # Environmental data
@@ -195,9 +200,6 @@ bycatch_summary <- clean_data(bycatch_potsum)
 bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_offload <- clean_offload(bycatch_retained)
-
-names(crab_survey) <- tolower(names(crab_survey))
-crab_survey <- as.data.frame(crab_survey)
 
 # Match environmental data ----
 crab_final <- match_data(crab_summary, crab_survey, 
@@ -300,6 +302,7 @@ survey_wide %>%
 
 
 # Visualize ----
+# Plots for the targeted fishery data set
 par(mfrow = c(3, 4))
 plot(table(crab_final$year[crab_final$total > 0]),
      ylab = 'Frequency',
@@ -350,11 +353,137 @@ plot(table(crab_final$gearcode[crab_final$male > 0]),
      xlab = 'Gear',
      main = 'Males')
 
+# Plots for bycatch in other crab fisheries
+par(mfrow = c(3, 4))
+plot(table(bycatch_final$year[bycatch_final$total > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'All')
+plot(table(bycatch_final$month[bycatch_final$total > 0]),
+     ylab = 'Frequency',
+     xlab = 'Month',
+     main = 'All')
+plot(table(bycatch_final$soaktime[bycatch_final$total > 0]),
+     ylab = 'Frequency',
+     xlab = 'Soak Time',
+     main = 'All')
+plot(table(bycatch_final$gearcode[bycatch_final$total > 0]),
+     ylab = 'Frequency',
+     xlab = 'Gear',
+     main = 'All')
+plot(table(bycatch_final$year[bycatch_final$female > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Females')
+plot(table(bycatch_final$month[bycatch_final$female > 0]),
+     ylab = 'Frequency',
+     xlab = 'Month',
+     main = 'Females')
+plot(table(bycatch_final$soaktime[bycatch_final$female > 0]),
+     ylab = 'Frequency',
+     xlab = 'Soak Time',
+     main = 'Females')
+plot(table(bycatch_final$gearcode[bycatch_final$female > 0]),
+     ylab = 'Frequency',
+     xlab = 'Gear',
+     main = 'Females')
+plot(table(bycatch_final$year[bycatch_final$male > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Males')
+plot(table(bycatch_final$month[bycatch_final$male > 0]),
+     ylab = 'Frequency',
+     xlab = 'Month',
+     main = 'Males')
+plot(table(bycatch_final$soaktime[bycatch_final$male > 0]),
+     ylab = 'Frequency',
+     xlab = 'Soak Time',
+     main = 'Males')
+plot(table(bycatch_final$gearcode[bycatch_final$male > 0]),
+     ylab = 'Frequency',
+     xlab = 'Gear',
+     main = 'Males')
 
-test_gam <- gam(mature + 1 ~ factor(year) +
-                  s(latitude, longitude) +
-                  s(doy) +
-                  s(depth),
-                data = crab_male,
-                family = tw(link = "log"))
-summary(test_gam)
+
+# Plot the survey data
+par(mfrow = c(5, 4))
+plot(table(crab_survey$akfin_survey_year[crab_survey$mat_sex == "Mature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Mature Females')
+plot(table(crab_survey$gis_station[crab_survey$mat_sex == "Mature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Station',
+     main = 'Mature Females')
+plot(table(crab_survey$gear_temperature[crab_survey$mat_sex == "Mature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Temperature',
+     main = 'Mature Females')
+plot(table(crab_survey$gear_depth[crab_survey$mat_sex == "Mature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Depth',
+     main = 'Mature Females')
+plot(table(crab_survey$akfin_survey_year[crab_survey$mat_sex == "Immature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Immature Females')
+plot(table(crab_survey$gis_station[crab_survey$mat_sex == "Immature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Station',
+     main = 'Immature Females')
+plot(table(crab_survey$gear_temperature[crab_survey$mat_sex == "Immature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Temperature',
+     main = 'Immature Females')
+plot(table(crab_survey$gear_depth[crab_survey$mat_sex == "Immature Female" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Depth',
+     main = 'Immature Females')
+plot(table(crab_survey$akfin_survey_year[crab_survey$mat_sex == "Legal Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Legal Males')
+plot(table(crab_survey$gis_station[crab_survey$mat_sex == "Legal Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Station',
+     main = 'Legal Males')
+plot(table(crab_survey$gear_temperature[crab_survey$mat_sex == "Legal Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Temperature',
+     main = 'Legal Males')
+plot(table(crab_survey$gear_depth[crab_survey$mat_sex == "Legal Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Depth',
+     main = 'Legal Males')
+plot(table(crab_survey$akfin_survey_year[crab_survey$mat_sex == "Mature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Mature Males')
+plot(table(crab_survey$gis_station[crab_survey$mat_sex == "Mature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Station',
+     main = 'Mature Males')
+plot(table(crab_survey$gear_temperature[crab_survey$mat_sex == "Mature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Temperature',
+     main = 'Mature Males')
+plot(table(crab_survey$gear_depth[crab_survey$mat_sex == "Mature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Depth',
+     main = 'Mature Males')
+plot(table(crab_survey$akfin_survey_year[crab_survey$mat_sex == "Immature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Year',
+     main = 'Immature Males')
+plot(table(crab_survey$gis_station[crab_survey$mat_sex == "Immature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Station',
+     main = 'Immature Males')
+plot(table(crab_survey$gear_temperature[crab_survey$mat_sex == "Immature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Temperature',
+     main = 'Immature Males')
+plot(table(crab_survey$gear_depth[crab_survey$mat_sex == "Immature Male" & crab_survey$cpue > 0]),
+     ylab = 'Frequency',
+     xlab = 'Depth',
+     main = 'Immature Males')
