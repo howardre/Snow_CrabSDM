@@ -9,6 +9,7 @@ library(scales)
 library(randomForest)
 library(here)
 library(mgcv)
+library(dplyr)
 
 # Load data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
@@ -22,17 +23,21 @@ crab_filtered$lncpue_male <- log(crab_filtered$male + 1)
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
-crab_train <- a(lncpues.data.frame(crab_filtered %>% 
+crab_train <-as.data.frame(crab_filtered %>% 
                               filter(year < 2013))
 crab_test <- as.data.frame(crab_filtered %>% 
                              filter(year > 2012))
 
 # GAMs ----
-female_gam_base <- gam_female ~ s(latitude, longitude) +
-                    s(doy),
-                    data = crab_train[crab_train$lncpue_female > 0, ])
-summary(female_gam_base)
+hist(crab_train$lncpue_female) # zero-inflated
 
+female_gam_base <- gam(lncpue_female ~ s(latitude, longitude) +
+                         s(doy) +
+                         s(depth),
+                       data = crab_train[crab_train$lncpue_female > 0, ])
+summary(female_gam_base) # 28.6% explained
+
+# Add environmental data
 female_gam1 <- gam(lncpue_female ~ s(latitude, longitude) +
                      s(doy) +
                      s(phi) +
@@ -40,7 +45,80 @@ female_gam1 <- gam(lncpue_female ~ s(latitude, longitude) +
                      s(ice) +
                      s(depth),
                    data = crab_train[crab_train$lncpue_female > 0, ])
-summary(female_gam1)
+summary(female_gam1) # 32.3% explained
+
+# Add survey data
+female_gam2 <- gam(lncpue_female ~ s(latitude, longitude) +
+                     s(doy) +
+                     s(phi) +
+                     s(sst) +
+                     s(ice) +
+                     s(depth) +
+                     s(female_immature) +
+                     s(female_mature),
+                   data = crab_train[crab_train$lncpue_female > 0, ])
+summary(female_gam2) # 32.4% explained, added variables not significant
+par(mfrow = c(2, 2))
+gam.check(female_gam2)
+
+## Tweedie
+# Base model
+female_tweedie <- gam(female + 1 ~ s(latitude, longitude) +
+                        s(doy) +
+                        s(depth),
+                      data = crab_train,
+                      family = tw(link = "log"),
+                      method = "REML")
+summary(female_tweedie) # 54.9% explained
+
+# Add environmental data
+female_tweedie1 <- gam(female + 1 ~ s(latitude, longitude) +
+                         s(doy) +
+                         s(phi) +
+                         s(sst) +
+                         s(ice) +
+                         s(depth),
+                       data = crab_train,
+                       family = tw(link = "log"),
+                       method = "REML")
+summary(female_tweedie1) # 56.6% explained
+
+# Add survey data
+female_tweedie2 <- gam(female + 1 ~ s(latitude, longitude) +
+                         s(doy) +
+                         s(phi) +
+                         s(sst) +
+                         s(ice) +
+                         s(depth) +
+                         s(female_immature) +
+                         s(female_mature),
+                       data = crab_train,
+                       family = tw(link = "log"),
+                       method = "REML")
+summary(female_tweedie2) # 56.9%
+
+par(mfrow = c(2, 2))
+gam.check(female_tweedie2)
+
+par(mfrow = c(2, 4))
+plot(female_tweedie2)
+
+
+
+## ZIPLSS
+female_ziplss <- gam(list(female ~ s(latitude, longitude) +
+                            s(doy) +
+                            s(phi) +
+                            s(sst) +
+                            s(ice) +
+                            s(depth) +
+                            s(female_immature) +
+                            s(female_mature),
+                          ~ s(latitude, longitude) +
+                            s(doy)),
+                     data = crab_train,
+                     family = ziplss())
+summary(female_ziplss) #33.8%
 
 # Random forests ----
 # Females
