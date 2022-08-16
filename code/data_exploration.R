@@ -303,6 +303,7 @@ survey_wide %>%
 
 # Visualize ----
 # Plots for the targeted fishery data set
+windows(width = 15, height = 10)
 par(mfrow = c(3, 4))
 plot(table(crab_final$year[crab_final$total > 0]),
      ylab = 'Frequency',
@@ -354,6 +355,7 @@ plot(table(crab_final$gearcode[crab_final$male > 0]),
      main = 'Males')
 
 # Plots for bycatch in other crab fisheries
+windows(width = 15, height = 10)
 par(mfrow = c(3, 4))
 plot(table(bycatch_final$year[bycatch_final$total > 0]),
      ylab = 'Frequency',
