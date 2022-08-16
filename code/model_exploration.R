@@ -8,6 +8,7 @@ library(dismo)
 library(scales)
 library(randomForest)
 library(here)
+library(mgcv)
 
 # Load data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
@@ -21,10 +22,25 @@ crab_filtered$lncpue_male <- log(crab_filtered$male + 1)
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
-crab_train <- as.data.frame(crab_filtered %>% 
+crab_train <- a(lncpues.data.frame(crab_filtered %>% 
                               filter(year < 2013))
 crab_test <- as.data.frame(crab_filtered %>% 
                              filter(year > 2012))
+
+# GAMs ----
+female_gam_base <- gam_female ~ s(latitude, longitude) +
+                    s(doy),
+                    data = crab_train[crab_train$lncpue_female > 0, ])
+summary(female_gam_base)
+
+female_gam1 <- gam(lncpue_female ~ s(latitude, longitude) +
+                     s(doy) +
+                     s(phi) +
+                     s(sst) +
+                     s(ice) +
+                     s(depth),
+                   data = crab_train[crab_train$lncpue_female > 0, ])
+summary(female_gam1)
 
 # Random forests ----
 # Females
