@@ -10,6 +10,11 @@ library(randomForest)
 library(here)
 library(mgcv)
 library(dplyr)
+library(colorspace)
+library(maps)
+library(mapdata)
+library(fields)
+source(here('code/functions', 'vis_gam_COLORS.R'))
 
 # Load data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
@@ -29,6 +34,8 @@ crab_test <- as.data.frame(crab_filtered %>%
                              filter(year > 2012))
 
 # GAMs ----
+# Female
+# Gaussian
 hist(crab_train$lncpue_female) # zero-inflated
 
 female_gam_base <- gam(lncpue_female ~ s(latitude, longitude) +
@@ -61,7 +68,7 @@ summary(female_gam2) # 32.4% explained, added variables not significant
 par(mfrow = c(2, 2))
 gam.check(female_gam2)
 
-## Tweedie
+# Tweedie
 # Base model
 female_tweedie <- gam(female + 1 ~ s(latitude, longitude) +
                         s(doy) +
@@ -104,6 +111,47 @@ par(mfrow = c(2, 4))
 plot(female_tweedie2)
 
 
+contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
+jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+
+windows(width = 12, height = 10)
+par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
+    oma = c(1, 1, 1, 1),
+    mgp = c(5, 2, 0))
+myvis_gam(female_tweedie2,
+          view = c('longitude', 'latitude'),
+          too.far = 0.07,
+          plot.type = 'contour',
+          contour.col = contour_col,
+          color = "jet" ,
+          type = 'link',
+          xlim = c(-181, -156),
+          ylim = range(crab_train$latitude, na.rm = TRUE) + c(-.4, .5),
+          family = "serif",
+          xlab = "Longitude",
+          ylab = "Latitude",
+          main = " ",
+          cex.lab = 1.7,
+          cex.axis =  1.7)
+maps::map('worldHires',
+          add = T,
+          col = 'antiquewhite4',
+          fill = T)
+image.plot(legend.only = T,
+           col = jet.colors(100),
+           legend.shrink = 0.2,
+           smallplot = c(.28, .31, .27, .42),
+           legend.cex = 1,
+           axis.args = list(cex.axis = 1.3,
+                            family = "serif"),
+           legend.width = 0.8,
+           legend.mar = 6,
+           zlim = c(min(female_tweedie2$linear.predictors),
+                    max(female_tweedie2$linear.predictors)),
+           legend.args = list("log(cpue+1)",
+                              side = 2,
+                              cex = 1.5,
+                              family =  "serif"))
 
 ## ZIPLSS
 female_ziplss <- gam(list(female ~ s(latitude, longitude) +
@@ -119,6 +167,137 @@ female_ziplss <- gam(list(female ~ s(latitude, longitude) +
                      data = crab_train,
                      family = ziplss())
 summary(female_ziplss) #33.8%
+
+# Male
+# Gaussian
+hist(crab_train$lncpue_male) # right skewed 
+
+male_gam_base <- gam(lncpue_male ~ s(latitude, longitude) +
+                         s(doy) +
+                         s(depth),
+                       data = crab_train[crab_train$lncpue_male > 0, ])
+summary(male_gam_base) # 13.9% explained
+
+# Add environmental data
+male_gam1 <- gam(lncpue_male ~ s(latitude, longitude) +
+                     s(doy) +
+                     s(phi) +
+                     s(sst) +
+                     s(ice) +
+                     s(depth),
+                   data = crab_train[crab_train$lncpue_male > 0, ])
+summary(male_gam1) # 16.9% explained
+
+# Add survey data
+male_gam2 <- gam(lncpue_male ~ s(latitude, longitude) +
+                     s(doy) +
+                     s(phi) +
+                     s(sst) +
+                     s(ice) +
+                     s(depth) +
+                     s(male_immature) +
+                     s(male_mature),
+                   data = crab_train[crab_train$lncpue_male > 0, ])
+summary(male_gam2) # 17.1% explained, added variables not significant
+par(mfrow = c(2, 2))
+gam.check(male_gam2)
+
+# Tweedie
+# Base model
+male_tweedie <- gam(male + 1 ~ s(latitude, longitude) +
+                        s(doy) +
+                        s(depth),
+                      data = crab_train,
+                      family = tw(link = "log"),
+                      method = "REML")
+summary(male_tweedie) # % explained
+
+# Add environmental data
+male_tweedie1 <- gam(male + 1 ~ s(latitude, longitude) +
+                         s(doy) +
+                         s(phi) +
+                         s(sst) +
+                         s(ice) +
+                         s(depth),
+                       data = crab_train,
+                       family = tw(link = "log"),
+                       method = "REML")
+summary(male_tweedie1) # % explained
+
+# Add survey data
+male_tweedie2 <- gam(male + 1 ~ s(latitude, longitude) +
+                         s(doy) +
+                         s(phi) +
+                         s(sst) +
+                         s(ice) +
+                         s(depth) +
+                         s(male_immature) +
+                         s(male_mature),
+                       data = crab_train,
+                       family = tw(link = "log"),
+                       method = "REML")
+summary(male_tweedie2) # %
+
+par(mfrow = c(2, 2))
+gam.check(male_tweedie2)
+
+par(mfrow = c(2, 4))
+plot(male_tweedie2)
+
+
+windows(width = 12, height = 10)
+par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
+    oma = c(1, 1, 1, 1),
+    mgp = c(5, 2, 0))
+myvis_gam(male_tweedie2,
+          view = c('longitude', 'latitude'),
+          too.far = 0.07,
+          plot.type = 'contour',
+          contour.col = contour_col,
+          color = "jet" ,
+          type = 'link',
+          xlim = c(-181, -156),
+          ylim = range(crab_train$latitude, na.rm = TRUE) + c(-.4, .5),
+          family = "serif",
+          xlab = "Longitude",
+          ylab = "Latitude",
+          main = " ",
+          cex.lab = 1.7,
+          cex.axis =  1.7)
+maps::map('worldHires',
+          add = T,
+          col = 'antiquewhite4',
+          fill = T)
+image.plot(legend.only = T,
+           col = jet.colors(100),
+           legend.shrink = 0.2,
+           smallplot = c(.28, .31, .27, .42),
+           legend.cex = 1,
+           axis.args = list(cex.axis = 1.3,
+                            family = "serif"),
+           legend.width = 0.8,
+           legend.mar = 6,
+           zlim = c(min(male_tweedie2$linear.predictors),
+                    max(male_tweedie2$linear.predictors)),
+           legend.args = list("log(cpue+1)",
+                              side = 2,
+                              cex = 1.5,
+                              family =  "serif"))
+
+## ZIPLSS
+male_ziplss <- gam(list(male ~ s(latitude, longitude) +
+                            s(doy) +
+                            s(phi) +
+                            s(sst) +
+                            s(ice) +
+                            s(depth) +
+                            s(male_immature) +
+                            s(male_mature),
+                          ~ s(latitude, longitude) +
+                            s(doy)),
+                     data = crab_train,
+                     family = ziplss())
+summary(male_ziplss) #33.8%
 
 # Random forests ----
 # Females
