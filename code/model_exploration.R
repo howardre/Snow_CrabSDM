@@ -170,7 +170,7 @@ summary(female_ziplss) #33.8%
 
 # Male
 # Gaussian
-hist(crab_train$lncpue_male) # right skewed 
+hist(crab_train$lncpue_male) # left skewed 
 
 male_gam_base <- gam(lncpue_male ~ s(latitude, longitude) +
                          s(doy) +
@@ -210,7 +210,7 @@ male_tweedie <- gam(male + 1 ~ s(latitude, longitude) +
                       data = crab_train,
                       family = tw(link = "log"),
                       method = "REML")
-summary(male_tweedie) # % explained
+summary(male_tweedie) # 11.4% explained
 
 # Add environmental data
 male_tweedie1 <- gam(male + 1 ~ s(latitude, longitude) +
@@ -222,7 +222,7 @@ male_tweedie1 <- gam(male + 1 ~ s(latitude, longitude) +
                        data = crab_train,
                        family = tw(link = "log"),
                        method = "REML")
-summary(male_tweedie1) # % explained
+summary(male_tweedie1) # 14.5% explained
 
 # Add survey data
 male_tweedie2 <- gam(male + 1 ~ s(latitude, longitude) +
@@ -236,7 +236,7 @@ male_tweedie2 <- gam(male + 1 ~ s(latitude, longitude) +
                        data = crab_train,
                        family = tw(link = "log"),
                        method = "REML")
-summary(male_tweedie2) # %
+summary(male_tweedie2) # 14.5%
 
 par(mfrow = c(2, 2))
 gam.check(male_tweedie2)
@@ -297,7 +297,7 @@ male_ziplss <- gam(list(male ~ s(latitude, longitude) +
                             s(doy)),
                      data = crab_train,
                      family = ziplss())
-summary(male_ziplss) #33.8%
+summary(male_ziplss) # 16.7%
 
 # Random forests ----
 # Females
@@ -492,6 +492,11 @@ brt_females1 <- gbm.step(data = crab_train,
                          learning.rate = 0.05,
                          bag.fraction = 0.5) 
 summary(brt_females1) 
+# 4250 trees
+# dev: 0.353
+# res dev: 0.107
+# corr: 0.838
+# cv corr: 0.7
 
 brt_females2 <- gbm.step(data = crab_train,
                          gbm.x = c(8, 25, 28:31, 34:37),
@@ -501,6 +506,11 @@ brt_females2 <- gbm.step(data = crab_train,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) 
 summary(brt_females2)
+# 8300 trees
+# dev: 0.353
+# res dev: 0.139
+# corr: 0.783
+# cv corr: 0.688
 
 brt_females3 <- gbm.step(data = crab_train,
                          gbm.x = c(8, 25, 28:31, 34:37),
@@ -510,6 +520,11 @@ brt_females3 <- gbm.step(data = crab_train,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) 
 summary(brt_females3)
+# 10000 trees
+# dev: 0.353
+# res dev: 0.164
+# corr: 0.735
+# cv corr: 0671
 
 brt_females4 <- gbm.step(data = crab_train,
                          gbm.x = c(8, 25, 28:31, 34:37),
@@ -519,6 +534,11 @@ brt_females4 <- gbm.step(data = crab_train,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) 
 summary(brt_females4)
+# 6800 trees
+# dev: 0.353
+# res dev: 0.11
+# corr: 0.835
+# cv corr: 0.703
 
 brt_females5 <- gbm.step(data = crab_train,
                        gbm.x = c(8, 25, 28:31, 34:37),
@@ -608,6 +628,11 @@ brt_males1 <- gbm.step(data = crab_train,
                        learning.rate = 0.05,
                        bag.fraction = 0.5)
 summary(brt_males1)
+# 10000 trees
+# dev: 1.706
+# res dev: 0.492
+# corr: 0.851
+# cv corr: 0.693
 
 brt_males2 <- gbm.step(data = crab_train,
                        gbm.x = c(8, 25, 28:30, 32, 33, 35:37),
@@ -668,7 +693,7 @@ males_simp <- gbm.simplify(brt_males6, n.drops = 5) # this takes forever
 summary(males_simp)
 
 # Choose final model
-males_final <- brt_males6 # Change this once decision made
+males_final <- brt_males1 # Change this once decision made
 
 # Plot the variables
 windows()
