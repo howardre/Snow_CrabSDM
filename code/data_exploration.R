@@ -489,3 +489,127 @@ plot(table(crab_survey$gear_depth[crab_survey$mat_sex == "Immature Male" & crab_
      ylab = 'Frequency',
      xlab = 'Depth',
      main = 'Immature Males')
+
+# Maps of data
+# Male
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_final, 
+             aes(longitude, latitude,
+                 size = male),
+             alpha = 0.2,
+             color = "salmon") +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14))
+
+ggplot(data = crab_final, 
+       aes(longitude, latitude)) +  
+  geom_point(aes(size = male),
+             alpha = 0.2,
+             color = "salmon") +
+  labs(y = "Latitude",
+       x = "Longitude") +
+  geom_polygon(aes(long, lat, group = group), 
+               data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  facet_wrap(~ year)
+
+ggplot(data = crab_final, 
+       aes(longitude, latitude)) +  
+  geom_point(aes(size = male,
+                 color = cut(sst, breaks = seq(-1.7, 6.4, by = 1))),
+             alpha = 0.2) +
+  labs(y = "Latitude",
+       x = "Longitude") +
+  geom_polygon(aes(long, lat, group = group), 
+               data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  facet_wrap(~ year) +
+  labs(colour = "SST")
+
+# Female
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_final, 
+             aes(longitude, latitude,
+                 size = female),
+             alpha = 0.2,
+             color = "salmon") +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14))
+
+
+ggplot(data = crab_final, 
+       aes(longitude, latitude)) +  
+  geom_point(aes(size = female),
+             alpha = 0.2,
+             color = "salmon") +
+  labs(y = "Latitude",
+       x = "Longitude") +
+  geom_polygon(aes(long, lat, group = group), 
+               data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  facet_wrap(~ year)
