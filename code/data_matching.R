@@ -161,6 +161,20 @@ survey_wide <- crab_survey %>%
               values_from = cpue)
 survey_wide <- as.data.frame(survey_wide)
 
+
+# Reformat data (summarize males, split up dates)
+crab_detailed <- clean_data(crab_dump)
+crab_summary <- clean_data(crab_potsum)
+crab_summary$total <- crab_summary$female + crab_summary$tot_legal + crab_summary$sublegal
+crab_summary$male <- crab_summary$tot_legal + crab_summary$sublegal
+crab_offload <- clean_offload(crab_retained)
+
+bycatch_detailed <- clean_data(bycatch_dump)
+bycatch_summary <- clean_data(bycatch_potsum)
+bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + bycatch_summary$sublegal
+bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
+bycatch_offload <- clean_offload(bycatch_retained)
+
 # Need to match up observer data with the survey data
 # Group observer data for each season (Nov - Mar)
 # Match closest observer data from preceding season to a station for a year
@@ -178,6 +192,15 @@ ggplot() +
   scale_y_continuous(name = "Latitude", 
                      breaks = EBS$lat.breaks) + 
   theme_bw()
+
+EBS_grid <- EBS$survey.grid
+EBS_poly <- EBS_grid %>% st_cast("POLYGON")
+EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
+
+crab_sf <- st_as_sf(crab_summary, 
+                    coords = c("longitude", "latitude"),crs = 4269)
+test_df <- st_join(crab_sf, EBS_trans, left = FALSE)
+
 
 
 
@@ -203,18 +226,7 @@ phi_data <- as.data.frame(phi_trans)
 
 
 
-# Reformat data (summarize males, split up dates)
-crab_detailed <- clean_data(crab_dump)
-crab_summary <- clean_data(crab_potsum)
-crab_summary$total <- crab_summary$female + crab_summary$tot_legal + crab_summary$sublegal
-crab_summary$male <- crab_summary$tot_legal + crab_summary$sublegal
-crab_offload <- clean_offload(crab_retained)
 
-bycatch_detailed <- clean_data(bycatch_dump)
-bycatch_summary <- clean_data(bycatch_potsum)
-bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + bycatch_summary$sublegal
-bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
-bycatch_offload <- clean_offload(bycatch_retained)
 
 # Match environmental data ----
 crab_final <- match_data(crab_summary, crab_survey, 
