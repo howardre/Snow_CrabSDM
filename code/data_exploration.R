@@ -138,40 +138,22 @@ bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020
 
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
+crab_dates <- read_csv(here('data/Snow_CrabData', 'year_station_julian_day.csv'))
 names(crab_survey) <- tolower(names(crab_survey))
 crab_survey <- as.data.frame(crab_survey)
+# Add the julian days
+crab_survey <- merge(crab_survey, 
+                     crab_dates,
+                     by.x = c("akfin_survey_year", "gis_station"),
+                     by.y = c("year", "station"))
 crab_survey <- crab_survey %>%
-  filter(akfin_survey_year > 1987)
+  filter(akfin_survey_year >= 1995) # observer data only available until this date
 
-# Impute missing temperature (and depth) values using mice package
-# histogram(~ akfin_survey_year | is.na(gear_temperature), data = crab_survey) # left-tailed MAR missingness
-# histogram(~ mid_latitude | is.na(gear_temperature), data = crab_survey) # no difference
-# histogram(~ mid_longitude | is.na(gear_temperature), data = crab_survey) # no difference
-# multilevel::ICC1(aov(gear_temperature ~ as.factor(akfin_survey_year), data = crab_survey))
-# 
-# survey_imp <- mice(crab_survey, maxit = 0)
-# method <- survey_imp$method
-# method
-# method[c(5, 6)] <- "norm"
-# method
-# prediction <- survey_imp$pred
-# prediction
-# 
-# # remove unnecessary predictors
-# prediction[, "gis_station"] <- 0
-# prediction[, "mat_sex"] <- 0
-# prediction[, "cpue"] <- 0
-# 
-# survey_imp1 <- mice(crab_survey, method = method, pred = prediction, print = F)
-# summary(complete(survey_imp))
-# summary(complete(survey_imp1)) # gives more extreme negative values
-# summary(crab_survey)
-# 
-# plot(survey_imp, c("gear_temperature", "mid_latitude", "mid_longitude", "akfin_survey_year", "gear_depth"))
-# 
-# stripplot(survey_imp, gear_temperature, pch = 19, xlab = "Imputation number")
-# survey_fit <- with(survey_imp, lm(gear_temperature ~ akfin_survey_year + mid_latitude + mid_longitude))
-# summary(pool(survey_fit))
+# Pivot to wide format
+survey_wide <- crab_survey %>%
+  pivot_wider(names_from = mat_sex, 
+              values_from = cpue)
+survey_wide <- as.data.frame(survey_wide)
 
 
 # Environmental data
