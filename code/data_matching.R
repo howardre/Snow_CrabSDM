@@ -13,6 +13,8 @@ library(sp)
 library(mice)
 library(multilevel)
 library(lattice)
+library(sf)
+library(akgfmaps)
 
 # Functions ----
 clean_data <- function(data){
@@ -53,12 +55,7 @@ match_data <- function(data, survey, phi_data, ice_data, sst_data){
   
   survey_xy <- spTransform(survey, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
   survey_xy <- as.data.frame(survey_xy)
-  
-  survey_wide <- survey_xy %>%
-    pivot_wider(names_from = mat_sex, 
-                values_from = cpue)
-  survey_wide <- as.data.frame(survey_wide)
-  
+
   # Add index to summary to match back lat, lon
   data <- tibble::rowid_to_column(data, "index")
   coordinates(data) <- c("longitude", "latitude")
@@ -160,7 +157,16 @@ survey_wide <- crab_survey %>%
   pivot_wider(names_from = mat_sex, 
               values_from = cpue)
 survey_wide <- as.data.frame(survey_wide)
-
+survey_wide$date <- date.mmddyy(survey_wide$julian)
+survey_wide$date <- as.Date(survey_wide$date, "%m/%d/%Y")
+survey_wide <- survey_wide %>% 
+  mutate(month = lubridate::month(date)) %>% # needed to match sst & ice
+  rename(immature_male = 'Immature Male',
+         mature_male = 'Mature Male',
+         legal_male = 'Legal Male',
+         immature_female = 'Immature Female',
+         mature_female = 'Mature Female')
+survey_wide <- survey_wide[, -13]
 
 # Reformat data (summarize males, split up dates)
 crab_detailed <- clean_data(crab_dump)
@@ -178,11 +184,11 @@ bycatch_offload <- clean_offload(bycatch_retained)
 # Need to match up observer data with the survey data
 # Group observer data for each season (Nov - Mar)
 # Match closest observer data from preceding season to a station for a year
-library(sf)
-library(akgfmaps)
 # Get the survey grid
 EBS <- get_base_layers(select.region = 'sebs', set.crs = 'auto')
 class(EBS)
+
+# Plot the survey grid
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
   coord_sf(xlim = EBS$plot.boundary$x,
@@ -193,18 +199,66 @@ ggplot() +
                      breaks = EBS$lat.breaks) + 
   theme_bw()
 
+# Convert to lat/lon, match catches to station polygons
 EBS_grid <- EBS$survey.grid
 EBS_poly <- EBS_grid %>% st_cast("POLYGON")
 EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
 
 crab_sf <- st_as_sf(crab_summary, 
                     coords = c("longitude", "latitude"),crs = 4269)
-test_df <- st_join(crab_sf, EBS_trans, left = FALSE)
+observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
+
+ggplot() +
+  geom_sf(data = EBS$survey.grid) +
+  geom_sf(data = observer_df,
+          aes(color = STATIONID))
+  coord_sf(xlim = EBS$plot.boundary$x,
+           ylim = EBS$plot.boundary$y) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks) + 
+  theme_bw() # shows that they are grouped into the polygons
+
+
+# Separate male and female specimen data ----
+# Add index to the specimen data
+# Calculate average observer CPUE for each station for each season for each group
+# Males 102 and above, < 102 for second group
+  
+  
+  
+# Females all together
+crab_sorted <- crab_detailed %>%
+  group_by(year, doy, adfg, trip) %>%
+  mutate(index = cur_group_id()) %>%
+  ungroup() %>%
+  arrange(index)
+
+crab_filtered <- crab_sorted[-c(1:6, 9, 12:15, 18:22)]
+
+crab_male <- crab_filtered %>%
+  filter(sex == 1) %>%
+  group_by(index, latitude, longitude, depth, 
+           soaktime, maturity, date, year, month, day, doy) %>%
+  summarise(immature = sum(size <= 101), 
+            mature = sum(size > 101),
+            total = immature + mature) 
+
+crab_female <- crab_filtered %>%
+  filter(sex != 1) %>%
+  group_by(index, latitude, longitude, depth, 
+           soaktime, date, year, month, day, doy)  %>%
+  summarise(immature = sum(size <= 50), 
+            mature = sum(size > 50),
+            total = immature + mature)
 
 
 
 
 # Environmental data
+# Needs to be matched to the survey data 
+# Currently matching the SST and ice to the time period of the survey
 sst_data <-as.data.frame(read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1)))
 sst_data$month <- match(sst_data$month, month.abb)
 ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
@@ -220,52 +274,3 @@ phi_data <- as.data.frame(phi_trans)
 
 
 
-
-
-
-
-
-
-
-
-# Match environmental data ----
-crab_final <- match_data(crab_summary, crab_survey, 
-                         phi_data, ice_data,
-                         sst_data)
-
-bycatch_final <- match_data(bycatch_summary, crab_survey,
-                            phi_data, ice_data,
-                            sst_data)
-
-
-saveRDS(crab_final, file = here('data/Snow_CrabData', 'crab_summary.rds'))
-saveRDS(bycatch_final, file = here('data/Snow_CrabData', 'bycatch_summary.rds'))
-
-# Separate male and female specimen data ----
-# Add index to the specimen data
-crab_sorted <- crab_detailed %>%
-  group_by(year, doy, adfg, trip) %>%
-  mutate(index = cur_group_id()) %>%
-  ungroup() %>%
-  arrange(index)
-
-crab_filtered <- crab_sorted[-c(1:6, 9, 12:15, 18:22)]
-
-crab_male <- crab_filtered %>%
-  filter(sex == 1) %>%
-  group_by(index, latitude, longitude, depth, 
-           soaktime, maturity, date, year, month, day, doy) %>%
-  summarise(immature = sum(size <= 90), 
-            mature = sum(size > 90),
-            total = immature + mature) 
-
-crab_female <- crab_filtered %>%
-  filter(sex != 1) %>%
-  group_by(index, latitude, longitude, depth, 
-           soaktime, date, year, month, day, doy) %>%
-  summarise(immature = sum(size <= 50), 
-            mature = sum(size > 50),
-            total = immature + mature) # do by size or maturity? maturity often not recorded in these data
-
-saveRDS(crab_male, file = here('data/Snow_CrabData', 'crab_male.rds'))
-saveRDS(crab_female, file = here('data/Snow_CrabData', 'crab_female.rds'))
