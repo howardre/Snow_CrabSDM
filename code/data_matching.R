@@ -129,9 +129,9 @@ crab_potsum <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2020', 'snowcrab-
 crab_retained <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2020', 'snowcrab-1995-2020_retained_size_freq.csv'))
 
 # Bycatch of snow crab in other crab fisheries
-# bycatch_dump <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_crab_dump.csv'))
-# bycatch_potsum <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_potsum.csv'))
-# bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_retained_size_freq.csv'))
+bycatch_dump <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_crab_dump.csv'))
+bycatch_potsum <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_potsum.csv'))
+bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_retained_size_freq.csv'))
 
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
@@ -175,11 +175,11 @@ crab_summary$total <- crab_summary$female + crab_summary$tot_legal + crab_summar
 crab_summary$male <- crab_summary$tot_legal + crab_summary$sublegal
 crab_offload <- clean_offload(crab_retained)
 
-# bycatch_detailed <- clean_data(bycatch_dump)
-# bycatch_summary <- clean_data(bycatch_potsum)
-# bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + bycatch_summary$sublegal
-# bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
-# bycatch_offload <- clean_offload(bycatch_retained)
+bycatch_detailed <- clean_data(bycatch_dump)
+bycatch_summary <- clean_data(bycatch_potsum)
+bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + bycatch_summary$sublegal
+bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
+bycatch_offload <- clean_offload(bycatch_retained)
 
 # Need to match up observer data with the survey data
 # Group observer data for each season (Nov - Mar)
@@ -206,8 +206,14 @@ EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
 EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
 
 crab_sf <- st_as_sf(crab_summary, 
-                    coords = c("longitude", "latitude"),crs = 4269)
+                    coords = c("longitude", "latitude"), 
+                    crs = 4269)
+bycatch_sf <- st_as_sf(bycatch_summary, 
+                       coords = c("longitude", "latitude"), 
+                       crs = 4269)
+
 observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
+bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
 
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
@@ -220,9 +226,12 @@ ggplot() +
   scale_y_continuous(name = "Latitude", 
                      breaks = EBS$lat.breaks)  # shows that they are grouped into the polygons
 
+# Combine the observer data
+observer_combined <- rbind(observer_df, bycatch_df)
+
 # Average the female and male CPUE by season and nearest station
 # Need to include previous year when grouping by season (months 11 and 12)
-observer_dates <- mutate(observer_df,
+observer_dates <- mutate(observer_combined,
                          date_lag = ymd(date) %m+% - months(-2),
                          year_lag = year(date_lag)) # lag to group by season
 observer_summarized <- observer_dates %>%
@@ -235,7 +244,7 @@ observer_summarized <- observer_dates %>%
 survey_combined <- merge(survey_wide, observer_summarized,
                          by.x = c("year", "station"),
                          by.y = c("year_lag", "STATIONID"),
-                         all.x = T)[, -17] # only 1320 rows
+                         all.x = T)[, -17] # only 1455 rows with observer data
 
 # Separate male and female specimen data ----
 # Add index to the specimen data
