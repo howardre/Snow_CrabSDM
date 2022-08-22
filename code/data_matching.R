@@ -220,15 +220,29 @@ ggplot() +
   scale_y_continuous(name = "Latitude", 
                      breaks = EBS$lat.breaks)  # shows that they are grouped into the polygons
 
+# Average the female and male CPUE by season and nearest station
+# Need to include previous year when grouping by season (months 11 and 12)
+observer_dates <- mutate(observer_df,
+                         date_lag = ymd(date) %m+% - months(-2),
+                         year_lag = year(date_lag)) # lag to group by season
+observer_summarized <- observer_dates %>%
+  group_by(year_lag, STATIONID) %>%
+  summarise(obs_male_legal = mean(tot_legal),
+            obs_male_sub = mean(sublegal),
+            obs_female = mean(female))
+
+# Match to the survey data
+survey_combined <- merge(survey_wide, observer_summarized,
+                         by.x = c("year", "station"),
+                         by.y = c("year_lag", "STATIONID"),
+                         all.x = T)[, -17] # only 1320 rows
 
 # Separate male and female specimen data ----
 # Add index to the specimen data
 # Calculate average observer CPUE for each station for each season for each group
 # Males 102 and above, < 102 for second group
-  
-  
-  
-# Females all together
+# Females all together?
+
 crab_sorted <- crab_detailed %>%
   group_by(year, doy, adfg, trip) %>%
   mutate(index = cur_group_id()) %>%
@@ -252,6 +266,7 @@ crab_female <- crab_filtered %>%
   summarise(immature = sum(size <= 50), 
             mature = sum(size > 50),
             total = immature + mature)
+
 
 
 
