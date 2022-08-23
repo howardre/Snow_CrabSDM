@@ -46,82 +46,6 @@ lon2UTM <- function(longitude){
   (floor((longitude + 180)/6) %% 60) + 1
 }
 
-# Match data for pot level data
-match_data <- function(data, survey, phi_data, ice_data, sst_data){
-  z <- lon2UTM(data[1, "longitude"])
-  
-  coordinates(survey) <- c("mid_longitude", "mid_latitude")
-  proj4string(survey) <- CRS("+proj=longlat +datum=WGS84")
-  
-  survey_xy <- spTransform(survey, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
-  survey_xy <- as.data.frame(survey_xy)
-
-  # Add index to summary to match back lat, lon
-  data <- tibble::rowid_to_column(data, "index")
-  coordinates(data) <- c("longitude", "latitude")
-  proj4string(data) <- CRS("+proj=longlat +datum=WGS84")
-  
-  data_xy <- spTransform(data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
-  data_xy <- as.data.frame(data_xy)
-  
-  coordinates(phi_data) <- c("x", "y")
-  proj4string(phi_data) <- CRS("+proj=longlat +datum=WGS84")
-  
-  phi_data_xy <- spTransform(phi_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
-  phi_data_xy <- as.data.frame(phi_data_xy)
-  
-  coordinates(ice_data) <- c("lon", "lat")
-  proj4string(ice_data) <- CRS("+proj=longlat +datum=WGS84")
-  
-  ice_data_xy <- spTransform(ice_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
-  ice_data_xy <- as.data.frame(ice_data_xy)
-  
-  coordinates(sst_data) <- c("lon", "lat")
-  proj4string(sst_data) <- CRS("+proj=longlat +datum=WGS84")
-  
-  sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
-  sst_data_xy <- as.data.frame(sst_data_xy)
-  
-  # Everything must be a data frame, tables do not work
-  data_xy[, c(30, 31)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
-                                                  data_xy[, c('latitude', 'longitude')],
-                                                  k = 1))
-  data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
-  data_xy <- data_xy[-c(30, 31)]
-  
-  data_xy[, c(31, 32)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
-                                                  data_xy[, c('latitude', 'longitude', 'month', 'year')],
-                                                  k = 1))
-  data_xy$ice <- ice_data_xy[c(data_xy$nn.idx), 2] # Match nearest ice value
-  data_xy <- data_xy[-c(31, 32)]
-  
-  data_xy[, c(32, 33)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
-                                                  data_xy[, c('latitude', 'longitude', 'month', 'year')],
-                                                  k = 1))
-  data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
-  data_xy <- data_xy[-c(32, 33)]
-  
-  data_xy[, c(33, 34)] <- as.data.frame(RANN::nn2(survey_wide[, c('mid_latitude', 
-                                                                  'mid_longitude', 
-                                                                  'akfin_survey_year')],
-                                                  data_xy[, c('latitude', 
-                                                              'longitude', 
-                                                              'year')],
-                                                  k = 1))
-  data_xy$female_immature <- log(survey_wide[c(data_xy$nn.idx), 7] + 1) # Match the cpue values and transform
-  data_xy$male_immature <- log(survey_wide[c(data_xy$nn.idx), 8] + 1)
-  data_xy$male_mature <- log(survey_wide[c(data_xy$nn.idx), 10] + 1)
-  data_xy$female_mature <- log(survey_wide[c(data_xy$nn.idx), 11] + 1)
-  data_xy$bottom_temp <- survey_wide[c(data_xy$nn.idx), 4] # add bottom temperature (may end up ultimately using ROMS)
-  data_xy <- data_xy[-c(33, 34)]
-  
-  # Convert back to lat, lon
-  data_xy <- data_xy[-c(28, 29)]
-  data_xy$latitude <- data$latitude[match(data$index, data_xy$index)]
-  data_xy$longitude <- data$longitude[match(data$index, data_xy$index)]
-  return(data_xy)
-}
-
 # Load data ----
 # Catch of snow crab in directed fishery
 crab_dump <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2020', 'snowcrab-1995-2020_crab_dump.csv'))
@@ -166,7 +90,7 @@ survey_wide <- survey_wide %>%
          legal_male = 'Legal Male',
          immature_female = 'Immature Female',
          mature_female = 'Mature Female')
-survey_wide <- survey_wide[, -13]
+survey_wide <- survey_wide
 
 # Reformat data (summarize males, split up dates)
 crab_detailed <- clean_data(crab_dump)
@@ -211,14 +135,17 @@ crab_sf <- st_as_sf(crab_summary,
 bycatch_sf <- st_as_sf(bycatch_summary, 
                        coords = c("longitude", "latitude"), 
                        crs = 4269)
+survey_sf <- st_as_sf(survey_wide,
+                      coords = c("longitude", "latitude"), 
+                      crs = 4269)
 
 observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
 bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
 
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
-  geom_sf(data = observer_df,
-          aes(color = STATIONID)) +
+  geom_sf(data = survey_sf,
+          aes(color = station)) +
   coord_sf(xlim = EBS$plot.boundary$x,
            ylim = EBS$plot.boundary$y) +
   scale_x_continuous(name = "Longitude", 
@@ -246,12 +173,83 @@ survey_combined <- merge(survey_wide, observer_summarized,
                          by.y = c("year_lag", "STATIONID"),
                          all.x = T)[, -17] # only 1455 rows with observer data
 
+# Add environmental data ----
+# Load data
+sst_data <- as.data.frame(read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1)))
+sst_data$month <- match(sst_data$month, month.abb)
+ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
+ice_data$month <- match(ice_data$month, month.abb)
+
+phi_raster <- raster(here('data', 'EBS_phi_1km.gri'))
+phi_pts <- rasterToPoints(phi_raster, spatial = T)
+proj4string(phi_pts) # warning here related to the retirement of rgdal package
+phi_prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+phi_trans <- spTransform(phi_pts, CRS(phi_prj))
+proj4string(phi_trans)
+phi_data <- as.data.frame(phi_trans)
+
+# Needs to be matched to the survey data 
+# Currently matching the SST and ice to the time period of the survey
+z <- lon2UTM(survey_combined[1, "longitude"])
+survey_combined <- tibble::rowid_to_column(survey_combined, "index")
+survey_data <- survey_combined
+
+# Add index to summary to match back lat, lon
+coordinates(survey_data) <- c("longitude", "latitude")
+proj4string(survey_data) <- CRS("+proj=longlat +datum=WGS84")
+
+data_xy <- spTransform(survey_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+data_xy <- as.data.frame(data_xy)
+
+coordinates(phi_data) <- c("x", "y")
+proj4string(phi_data) <- CRS("+proj=longlat +datum=WGS84")
+
+phi_data_xy <- spTransform(phi_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+phi_data_xy <- as.data.frame(phi_data_xy)
+
+coordinates(ice_data) <- c("lon", "lat")
+proj4string(ice_data) <- CRS("+proj=longlat +datum=WGS84")
+
+ice_data_xy <- spTransform(ice_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+ice_data_xy <- as.data.frame(ice_data_xy)
+
+coordinates(sst_data) <- c("lon", "lat")
+proj4string(sst_data) <- CRS("+proj=longlat +datum=WGS84")
+
+sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+sst_data_xy <- as.data.frame(sst_data_xy)
+
+# Everything must be a data frame, tables do not work
+data_xy[, c(18, 19)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+                                                data_xy[, c('latitude', 'longitude')],
+                                                k = 1))
+data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
+data_xy <- data_xy[-c(18, 19)]
+
+data_xy[, c(19, 20)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
+                                                data_xy[, c('latitude', 'longitude', 'month', 'year')],
+                                                k = 1))
+data_xy$ice <- ice_data_xy[c(data_xy$nn.idx), 2] # Match nearest ice value
+data_xy <- data_xy[-c(19, 20)]
+
+data_xy[, c(20, 21)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+                                                data_xy[, c('latitude', 'longitude', 'month', 'year')],
+                                                k = 1))
+data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
+data_xy <- data_xy[-c(20, 21)]
+
+# Convert back to lat, lon
+data_xy <- data_xy[-c(16, 17)]
+data_xy$latitude <- survey_combined$latitude[match(survey_combined$index, data_xy$index)]
+data_xy$longitude <- survey_combined$longitude[match(survey_combined$index, data_xy$index)]
+
+saveRDS(data_xy, file = here('data/Snow_CrabData', 'crab_summary.rds'))
+
 # Separate male and female specimen data ----
 # Add index to the specimen data
 # Calculate average observer CPUE for each station for each season for each group
 # Males 102 and above, < 102 for second group
 # Females all together?
-
 crab_sorted <- crab_detailed %>%
   group_by(year, doy, adfg, trip) %>%
   mutate(index = cur_group_id()) %>%
@@ -275,26 +273,3 @@ crab_female <- crab_filtered %>%
   summarise(immature = sum(size <= 50), 
             mature = sum(size > 50),
             total = immature + mature)
-
-
-
-
-
-# Environmental data
-# Needs to be matched to the survey data 
-# Currently matching the SST and ice to the time period of the survey
-sst_data <-as.data.frame(read_csv(here('data', 'sst_latlon.csv'), col_select = -c(1)))
-sst_data$month <- match(sst_data$month, month.abb)
-ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
-ice_data$month <- match(ice_data$month, month.abb)
-
-phi_raster <- raster(here('data', 'EBS_phi_1km.gri'))
-phi_pts <- rasterToPoints(phi_raster, spatial = T)
-proj4string(phi_pts) # warning here related to the retirement of rgdal package
-phi_prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-phi_trans <- spTransform(phi_pts, CRS(phi_prj))
-proj4string(phi_trans)
-phi_data <- as.data.frame(phi_trans)
-
-
-
