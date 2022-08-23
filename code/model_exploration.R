@@ -19,68 +19,71 @@ source(here('code/functions', 'vis_gam_COLORS.R'))
 # Load data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
 
-crab_filtered <- crab_summary %>%
-  filter_at(vars(latitude, longitude), all_vars(!is.na(.)))
-
 # Transform female and male data
-crab_filtered$lncpue_female <- log(crab_filtered$female + 1)
-crab_filtered$lncpue_male <- log(crab_filtered$male + 1)
+crab_trans <- mutate(crab_summary,
+                     lncpue_mat_female = log(mature_female + 1),
+                     lncpue_imm_female = log(immature_female + 1),
+                     lncpue_leg_male = log(legal_male + 1),
+                     lncpue_sub_male = log(immature_male + 1),
+                     lncpue_obs_female = log(obs_female + 1),
+                     lncpue_obs_sub_male = log(obs_male_sub + 1),
+                     lncpue_obs_leg_male = log(obs_male_legal + 1))
+
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
-crab_train <-as.data.frame(crab_filtered %>% 
-                              filter(year < 2013))
-crab_test <- as.data.frame(crab_filtered %>% 
-                             filter(year > 2012))
+crab_train <- as.data.frame(crab_trans %>% 
+                              filter(year < 2015))
+crab_test <- as.data.frame(crab_trans %>% 
+                             filter(year > 2014))
 
 # GAMs ----
-# Female
+# Mature Female
 # Gaussian
-hist(crab_train$lncpue_female) # zero-inflated
+hist(crab_train$lncpue_mat_female) # zero-inflated
 
-female_gam_base <- gam(lncpue_female ~ s(latitude, longitude) +
-                         s(doy) +
+mat_female_gam_base <- gam(lncpue_mat_female ~ s(latitude, longitude) +
+                         s(julian) +
                          s(depth),
-                       data = crab_train[crab_train$lncpue_female > 0, ])
-summary(female_gam_base) # 28.6% explained
+                       data = crab_train[crab_train$lncpue_mat_female > 0, ])
+summary(mat_female_gam_base) # 30.4% explained
 
 # Add environmental data
-female_gam1 <- gam(lncpue_female ~ s(latitude, longitude) +
-                     s(doy) +
+mat_female_gam1 <- gam(lncpue_mat_female ~ s(latitude, longitude) +
+                     s(julian) +
                      s(phi) +
                      s(sst) +
                      s(ice) +
                      s(depth),
-                   data = crab_train[crab_train$lncpue_female > 0, ])
-summary(female_gam1) # 32.3% explained
+                   data = crab_train[crab_train$lncpue_mat_female > 0, ])
+summary(mat_female_gam1) # 32.9% explained
 
 # Add survey data
-female_gam2 <- gam(lncpue_female ~ s(latitude, longitude) +
-                     s(doy) +
+mat_female_gam2 <- gam(lncpue_mat_female ~ s(latitude, longitude) +
+                     s(julian) +
                      s(phi) +
                      s(sst) +
                      s(ice) +
                      s(depth) +
-                     s(female_immature) +
-                     s(female_mature),
-                   data = crab_train[crab_train$lncpue_female > 0, ])
-summary(female_gam2) # 32.4% explained, added variables not significant
+                     s(lncpue_obs_female),
+                   data = crab_train[crab_train$lncpue_mat_female > 0, ])
+summary(mat_female_gam2) # not working unless reduce number of terms
 par(mfrow = c(2, 2))
-gam.check(female_gam2)
+gam.check(mat_female_gam2)
 
 # Tweedie
 # Base model
-female_tweedie <- gam(female + 1 ~ s(latitude, longitude) +
-                        s(doy) +
+mat_female_tweedie <- gam(mature_female + 1 ~ s(latitude, longitude) +
+                        s(julian) +
                         s(depth),
                       data = crab_train,
                       family = tw(link = "log"),
                       method = "REML")
-summary(female_tweedie) # 54.9% explained
+summary(mat_female_tweedie) # 56.5% explained
 
 # Add environmental data
-female_tweedie1 <- gam(female + 1 ~ s(latitude, longitude) +
-                         s(doy) +
+mat_female_tweedie1 <- gam(mature_female + 1 ~ s(latitude, longitude) +
+                         s(julian) +
                          s(phi) +
                          s(sst) +
                          s(ice) +
@@ -88,27 +91,26 @@ female_tweedie1 <- gam(female + 1 ~ s(latitude, longitude) +
                        data = crab_train,
                        family = tw(link = "log"),
                        method = "REML")
-summary(female_tweedie1) # 56.6% explained
+summary(mat_female_tweedie1) # 57.6% explained
 
 # Add survey data
-female_tweedie2 <- gam(female + 1 ~ s(latitude, longitude) +
-                         s(doy) +
+mat_female_tweedie2 <- gam(mature_female + 1 ~ s(latitude, longitude) +
+                         s(julian) +
                          s(phi) +
                          s(sst) +
                          s(ice) +
                          s(depth) +
-                         s(female_immature) +
-                         s(female_mature),
+                         s(lncpue_obs_female),
                        data = crab_train,
                        family = tw(link = "log"),
                        method = "REML")
-summary(female_tweedie2) # 56.9%
+summary(mat_female_tweedie2) # not working
 
 par(mfrow = c(2, 2))
-gam.check(female_tweedie2)
+gam.check(mat_female_tweedie2)
 
 par(mfrow = c(2, 4))
-plot(female_tweedie2)
+plot(mat_female_tweedie2)
 
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
@@ -118,7 +120,7 @@ windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0))
-myvis_gam(female_tweedie2,
+myvis_gam(mat_female_tweedie2,
           view = c('longitude', 'latitude'),
           too.far = 0.07,
           plot.type = 'contour',
@@ -146,75 +148,73 @@ image.plot(legend.only = T,
                             family = "serif"),
            legend.width = 0.8,
            legend.mar = 6,
-           zlim = c(min(female_tweedie2$linear.predictors),
-                    max(female_tweedie2$linear.predictors)),
+           zlim = c(min(mat_female_tweedie2$linear.predictors),
+                    max(mat_female_tweedie2$linear.predictors)),
            legend.args = list("log(cpue+1)",
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
 
 ## ZIPLSS
-female_ziplss <- gam(list(female ~ s(latitude, longitude) +
-                            s(doy) +
+mat_female_ziplss <- gam(list(mature_female ~ s(latitude, longitude) +
+                            s(julian) +
                             s(phi) +
                             s(sst) +
                             s(ice) +
                             s(depth) +
-                            s(female_immature) +
-                            s(female_mature),
+                            s(lncpue_obs_female),
                           ~ s(latitude, longitude) +
-                            s(doy)),
+                            s(julian)),
                      data = crab_train,
                      family = ziplss())
-summary(female_ziplss) #33.8%
+summary(female_ziplss) # not working
 
 # Male
 # Gaussian
-hist(crab_train$lncpue_male) # left skewed 
+hist(crab_train$lncpue_leg_male) # left skewed 
 
-male_gam_base <- gam(lncpue_male ~ s(latitude, longitude) +
-                         s(doy) +
+leg_male_gam_base <- gam(lncpue_leg_male ~ s(latitude, longitude) +
+                         s(julian) +
                          s(depth),
-                       data = crab_train[crab_train$lncpue_male > 0, ])
-summary(male_gam_base) # 13.9% explained
+                       data = crab_train[crab_train$lncpue_leg_male > 0, ])
+summary(leg_male_gam_base) # 39.6% explained
 
 # Add environmental data
-male_gam1 <- gam(lncpue_male ~ s(latitude, longitude) +
-                     s(doy) +
+leg_male_gam1 <- gam(lncpue_leg_male ~ s(latitude, longitude) +
+                     s(julian) +
                      s(phi) +
                      s(sst) +
                      s(ice) +
                      s(depth),
-                   data = crab_train[crab_train$lncpue_male > 0, ])
-summary(male_gam1) # 16.9% explained
+                   data = crab_train[crab_train$lncpue_leg_male > 0, ])
+summary(leg_male_gam1) # 41.3% explained
 
 # Add survey data
-male_gam2 <- gam(lncpue_male ~ s(latitude, longitude) +
-                     s(doy) +
+leg_male_gam2 <- gam(lncpue_leg_male ~ s(latitude, longitude) +
+                     s(julian) +
                      s(phi) +
                      s(sst) +
                      s(ice) +
                      s(depth) +
-                     s(male_immature) +
-                     s(male_mature),
-                   data = crab_train[crab_train$lncpue_male > 0, ])
-summary(male_gam2) # 17.1% explained, added variables not significant
+                     s(obs_male_legal),
+                   data = crab_train[crab_train$lncpue_leg_male > 0, ])
+summary(leg_male_gam2) # 
 par(mfrow = c(2, 2))
-gam.check(male_gam2)
+gam.check(leg_male_gam2)
 
 # Tweedie
 # Base model
-male_tweedie <- gam(male + 1 ~ s(latitude, longitude) +
-                        s(doy) +
+leg_male_tweedie <- gam(legal_male + 1 ~ s(latitude, longitude) +
+                        s(julian) +
                         s(depth),
                       data = crab_train,
                       family = tw(link = "log"),
                       method = "REML")
-summary(male_tweedie) # 11.4% explained
+summary(leg_male_tweedie) # 55% explained
 
 # Add environmental data
-male_tweedie1 <- gam(male + 1 ~ s(latitude, longitude) +
-                         s(doy) +
+leg_male_tweedie1 <- gam(legal_male + 1 ~ s(latitude, longitude) +
+                         s(julian) +
                          s(phi) +
                          s(sst) +
                          s(ice) +
@@ -222,27 +222,26 @@ male_tweedie1 <- gam(male + 1 ~ s(latitude, longitude) +
                        data = crab_train,
                        family = tw(link = "log"),
                        method = "REML")
-summary(male_tweedie1) # 14.5% explained
+summary(leg_male_tweedie1) # 56% explained
 
 # Add survey data
-male_tweedie2 <- gam(male + 1 ~ s(latitude, longitude) +
-                         s(doy) +
+leg_male_tweedie2 <- gam(legal_male + 1 ~ s(latitude, longitude) +
+                         s(julian) +
                          s(phi) +
                          s(sst) +
                          s(ice) +
                          s(depth) +
-                         s(male_immature) +
-                         s(male_mature),
+                         s(obs_male_legal),
                        data = crab_train,
                        family = tw(link = "log"),
                        method = "REML")
-summary(male_tweedie2) # 14.5%
+summary(leg_male_tweedie2) # 14.5%
 
 par(mfrow = c(2, 2))
-gam.check(male_tweedie2)
+gam.check(leg_male_tweedie2)
 
 par(mfrow = c(2, 4))
-plot(male_tweedie2)
+plot(leg_male_tweedie2)
 
 
 windows(width = 12, height = 10)
@@ -286,7 +285,7 @@ image.plot(legend.only = T,
 
 ## ZIPLSS
 male_ziplss <- gam(list(male ~ s(latitude, longitude) +
-                            s(doy) +
+                            s(julian) +
                             s(phi) +
                             s(sst) +
                             s(ice) +
@@ -294,7 +293,7 @@ male_ziplss <- gam(list(male ~ s(latitude, longitude) +
                             s(male_immature) +
                             s(male_mature),
                           ~ s(latitude, longitude) +
-                            s(doy)),
+                            s(julian)),
                      data = crab_train,
                      family = ziplss())
 summary(male_ziplss) # 16.7%
@@ -304,7 +303,7 @@ summary(male_ziplss) # 16.7%
 set.seed(1993)
 rf_females <- randomForest(lncpue_female ~ latitude +
                              longitude +
-                             doy,
+                             julian,
                             data = na.exclude(crab_train), # throws error if NAs included
                             ntree = 1000,
                             mtry = 2,
@@ -325,7 +324,7 @@ rf_females1 <- randomForest(lncpue_female ~ depth +
                               phi +
                               ice +
                               sst +
-                              doy +
+                              julian +
                               female_mature +
                               female_immature,
                             data = na.exclude(crab_train), 
@@ -350,7 +349,7 @@ rf_females2 <- randomForest(lncpue_female ~ depth +
                               phi +
                               ice +
                               sst +
-                              doy +
+                              julian +
                               female_mature +
                               female_immature +
                               bottom_temp,
@@ -376,7 +375,7 @@ rf_females3 <- randomForest(lncpue_female ~ depth +
                               phi +
                               ice +
                               sst +
-                              doy +
+                              julian +
                               female_mature +
                               female_immature,
                             data = na.exclude(crab_train), 
@@ -398,7 +397,7 @@ rf_females4 <- randomForest(lncpue_female ~ depth +
                               phi +
                               ice +
                               sst +
-                              doy +
+                              julian +
                               female_mature +
                               female_immature,
                             data = na.exclude(crab_train), 
@@ -421,7 +420,7 @@ rf_females5 <- randomForest(lncpue_female ~ depth +
                               phi +
                               ice +
                               sst +
-                              doy +
+                              julian +
                               female_mature +
                               female_immature,
                             data = na.exclude(crab_train), 
@@ -439,7 +438,7 @@ plot(rf_females5$mse)
 set.seed(1993)
 rf_males <- randomForest(lncpue_male ~ latitude +
                            longitude +
-                           doy,
+                           julian,
                           data = na.exclude(crab_train),
                           ntree = 1000,
                           mtry = 2,
@@ -459,7 +458,7 @@ rf_males1 <- randomForest(lncpue_male ~ depth +
                             phi +
                             ice +
                             sst +
-                            doy +
+                            julian +
                             male_mature +
                             male_immature,
                           data = na.exclude(crab_train),
