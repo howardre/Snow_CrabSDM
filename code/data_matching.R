@@ -171,7 +171,7 @@ observer_summarized <- observer_dates %>%
 survey_combined <- merge(survey_wide, observer_summarized,
                          by.x = c("year", "station"),
                          by.y = c("year_lag", "STATIONID"),
-                         all.x = T)[, -17] # only 1455 rows with observer data
+                         all.x = T)[, -18] # only 1455 rows with observer data
 
 # Add environmental data ----
 # Load data
@@ -220,30 +220,29 @@ sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WG
 sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
-data_xy[, c(18, 19)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+data_xy[, c(19, 20)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
                                                 data_xy[, c('latitude', 'longitude')],
                                                 k = 1))
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
-data_xy <- data_xy[-c(18, 19)]
+data_xy <- data_xy[-c(19, 20)]
 
-data_xy[, c(19, 20)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
+data_xy[, c(20, 21)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
                                                 data_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                 k = 1))
 data_xy$ice <- ice_data_xy[c(data_xy$nn.idx), 2] # Match nearest ice value
-data_xy <- data_xy[-c(19, 20)]
+data_xy <- data_xy[-c(20, 21)]
 
-data_xy[, c(20, 21)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+data_xy[, c(21, 22)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
                                                 data_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                 k = 1))
 data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
-data_xy <- data_xy[-c(20, 21)]
 
 # Convert back to lat, lon
-data_xy <- data_xy[-c(16, 17)]
-data_xy$latitude <- survey_combined$latitude[match(survey_combined$index, data_xy$index)]
-data_xy$longitude <- survey_combined$longitude[match(survey_combined$index, data_xy$index)]
+crab_final <- data_xy[-c(1, 12, 13, 17, 18, 21, 22)]
+crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
+crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
-saveRDS(data_xy, file = here('data/Snow_CrabData', 'crab_summary.rds'))
+saveRDS(crab_final, file = here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Separate male and female specimen data ----
 # Add index to the specimen data
