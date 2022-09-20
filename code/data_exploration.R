@@ -28,6 +28,7 @@ ggplot() +
                  size = lncpue_leg_male),
              alpha = 0.2,
              color = "salmon") +
+  scale_size_area() +
   coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
@@ -51,9 +52,10 @@ ggplot() +
                colour = "black") +
   geom_point(data = crab_trans, 
              aes(longitude, latitude,
-                 size = lncpue_leg_male),
+                 color = lncpue_leg_male),
              alpha = 0.2,
-             color = "salmon") +
+             size = 3) +
+  scale_color_distiller(palette = "PuOr", direction = -1) +
   coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
@@ -69,7 +71,7 @@ ggplot() +
   labs(title = "Legal Males",
        x = "Longitude",
        y = "Latitude",
-       size = "ln(catch+1)") +
+       color = "ln(catch+1)") +
   facet_wrap(~ year)
 
 # Sublegal Males
@@ -82,6 +84,7 @@ ggplot() +
                  size = lncpue_sub_male),
              alpha = 0.2,
              color = "salmon") +
+  scale_size_area() +
   coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
@@ -98,3 +101,143 @@ ggplot() +
        x = "Longitude",
        y = "Latitude",
        size = "ln(catch+1)") 
+
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_trans, 
+             aes(longitude, latitude,
+                 color = lncpue_sub_male),
+             alpha = 0.2,
+             size = 3) +
+  scale_color_distiller(palette = "PuOr", direction = -1) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  labs(title = "Sublegal Males",
+       x = "Longitude",
+       y = "Latitude",
+       color = "ln(catch+1)") +
+  facet_wrap(~ year)
+
+# Mature Females
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_trans, 
+             aes(longitude, latitude,
+                 size = lncpue_mat_female),
+             alpha = 0.2,
+             color = "salmon") +
+  scale_size_area() +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  labs(title = "Mature Females",
+       x = "Longitude",
+       y = "Latitude",
+       size = "ln(catch+1)") 
+
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_trans, 
+             aes(longitude, latitude,
+                 color = lncpue_mat_female),
+             alpha = 0.2,
+             size = 3) +
+  scale_color_distiller(palette = "PuOr", direction = -1) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  labs(title = "Mature Females",
+       x = "Longitude",
+       y = "Latitude",
+       color = "ln(catch+1)") +
+  facet_wrap(~ year)
+
+# Immature Females
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_trans, 
+             aes(longitude, latitude,
+                 size = lncpue_imm_female),
+             alpha = 0.2,
+             color = "salmon") +
+  scale_size_area() +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  labs(title = "Immature Females",
+       x = "Longitude",
+       y = "Latitude",
+       size = "ln(catch+1)") 
+
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = crab_trans, 
+             aes(longitude, latitude,
+                 color = lncpue_imm_female),
+             alpha = 0.2,
+             size = 3) +
+  scale_color_distiller(palette = "PuOr", direction = -1) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  labs(title = "Immature Females",
+       x = "Longitude",
+       y = "Latitude",
+       color = "ln(catch+1)") +
+  facet_wrap(~ year)
