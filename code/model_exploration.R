@@ -307,140 +307,114 @@ male_ziplss <- gam(list(male ~ s(latitude, longitude) +
 summary(male_ziplss) # 16.7%
 
 # Random forests ----
-# Females
+# Mature females
 set.seed(1993)
-rf_females <- randomForest(lncpue_female ~ latitude +
-                             longitude +
-                             julian,
-                            data = na.exclude(crab_train), # throws error if NAs included
-                            ntree = 1000,
-                            mtry = 2,
-                            importance = T,
-                            proximity = T)
-print(rf_females) 
-# 70.99% variance explained
-# Mean squared residuals: 0.18
+rf_mat_females <- randomForest(lncpue_mat_female ~ year + 
+                                 latitude +
+                                 julian,
+                               data = na.exclude(crab_train), # throws error if NAs included
+                               ntree = 1000,
+                               mtry = 2,
+                               importance = T,
+                               proximity = T)
+print(rf_mat_females) 
+# 34.13% variance explained
+# Mean squared residuals: 11.69
 
-plot(rf_females$mse)
-
-
-
-set.seed(1993)
-rf_females1 <- randomForest(lncpue_female ~ depth +
-                              latitude +
-                              longitude +
-                              phi +
-                              ice +
-                              temperature +
-                              julian +
-                              female_mature +
-                              female_immature,
-                            data = na.exclude(crab_train), 
-                            ntree = 1000,
-                            mtry = 2,
-                            importance = T,
-                            proximity = T)
-print(rf_females1) 
-# 70.94% variance explained
-# Mean squared residuals: 0.18
-
-plot(rf_females1$mse)
-
-rf_females1$importance
-varImpPlot(rf_females1)
-
-
-set.seed(1993)
-rf_females2 <- randomForest(lncpue_female ~ depth +
-                              latitude +
-                              longitude +
-                              phi +
-                              ice +
-                              temperature +
-                              julian +
-                              female_mature +
-                              female_immature +
-                              bottom_temp,
-                            data = na.exclude(crab_train), 
-                            ntree = 1000,
-                            mtry = 2,
-                            importance = T,
-                            proximity = T)
-print(rf_females2) 
-# 69.85% variance explained
-# Mean squared residuals: 0.18
-
-plot(rf_females2$mse) # adding bottom temp made it worse
-
-rf_females2$importance
-varImpPlot(rf_females2)
-
-
-set.seed(1993)
-rf_females3 <- randomForest(lncpue_female ~ depth +
-                              latitude +
-                              longitude +
-                              phi +
-                              ice +
-                              temperature +
-                              julian +
-                              female_mature +
-                              female_immature,
-                            data = na.exclude(crab_train), 
-                            ntree = 3000,
-                            mtry = 2,
-                            importance = T,
-                            proximity = T)
-print(rf_females3) 
-# 71.12% variance explained
-# Mean squared residuals: 0.18
-
-plot(rf_females3$mse) 
-
-
-set.seed(1993)
-rf_females4 <- randomForest(lncpue_female ~ depth +
-                              latitude +
-                              longitude +
-                              phi +
-                              ice +
-                              temperature +
-                              julian +
-                              female_mature +
-                              female_immature,
-                            data = na.exclude(crab_train), 
-                            ntree = 3000,
-                            mtry = 5,
-                            importance = T,
-                            proximity = T)
-print(rf_females4) 
-# 70.7% variance explained
-# Mean squared residuals: 0.18
-
-plot(rf_females4$mse) 
+plot(rf_mat_females$mse)
 
 
 
 set.seed(1993)
-rf_females5 <- randomForest(lncpue_female ~ depth +
-                              latitude +
-                              longitude +
-                              phi +
-                              ice +
-                              temperature +
-                              julian +
-                              female_mature +
-                              female_immature,
-                            data = na.exclude(crab_train), 
-                            ntree = 3000,
-                            mtry = 3,
-                            importance = T,
-                            proximity = T)
-print(rf_females5) 
-# 71.2% variance explained
-# Mean squared residuals: 0.18
+rf_mat_females1 <- randomForest(lncpue_mat_female ~ year + 
+                                  latitude +
+                                  julian +
+                                  depth +
+                                  phi +
+                                  sst +
+                                  temperature +
+                                  lncpue_obs_female,
+                                data = na.exclude(crab_train),
+                                ntree = 1000,
+                                mtry = 2,
+                                importance = T,
+                                proximity = T)
+print(rf_mat_females1) 
+# 50.22% variance explained
+# Mean squared residuals: 8.83
 
-plot(rf_females5$mse) 
+plot(rf_mat_females1$mse)
+
+rf_mat_females1$importance
+varImpPlot(rf_mat_females1)
+
+
+
+set.seed(1993)
+rf_mat_females2 <- randomForest(lncpue_mat_female ~ year + 
+                                  latitude +
+                                  julian +
+                                  depth +
+                                  phi +
+                                  sst +
+                                  temperature +
+                                  lncpue_obs_female,
+                                data = na.exclude(crab_train),
+                                ntree = 3000,
+                                mtry = 2,
+                                importance = T,
+                                proximity = T)
+print(rf_mat_females2) 
+# 50.29% variance explained
+# Mean squared residuals: 8.82
+
+plot(rf_mat_females2$mse) 
+
+
+set.seed(1993)
+rf_mat_females3 <- randomForest(lncpue_mat_female ~ year + 
+                                  latitude +
+                                  julian +
+                                  depth +
+                                  phi +
+                                  sst +
+                                  temperature +
+                                  lncpue_obs_female,
+                                data = na.exclude(crab_train),
+                                ntree = 3000,
+                                mtry = 5,
+                                importance = T,
+                                proximity = T)
+print(rf_mat_females3) 
+# 50.06% variance explained
+# Mean squared residuals: 8.86
+
+plot(rf_mat_females3$mse) 
+
+
+
+set.seed(1993)
+rf_mat_females4 <- randomForest(lncpue_mat_female ~ year + 
+                                  latitude +
+                                  julian +
+                                  depth +
+                                  phi +
+                                  sst +
+                                  temperature +
+                                  lncpue_obs_female,
+                                data = na.exclude(crab_train),
+                                ntree = 3000,
+                                mtry = 3,
+                                importance = T,
+                                proximity = T)
+print(rf_mat_females4) 
+# 50.38% variance explained
+# Mean squared residuals: 8.81
+
+plot(rf_mat_females4$mse) 
+
+rf_mat_females4$importance
+varImpPlot(rf_mat_females4)
 
 # Males
 set.seed(1993)
