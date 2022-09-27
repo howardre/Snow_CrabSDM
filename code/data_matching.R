@@ -48,20 +48,30 @@ lon2UTM <- function(longitude){
 
 # Load data ----
 # Catch of snow crab in directed fishery
-crab_dump <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2020', 'snowcrab-1995-2020_crab_dump.csv'))
-crab_potsum <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2020', 'snowcrab-1995-2020_potsum.csv'))
-crab_retained <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2020', 'snowcrab-1995-2020_retained_size_freq.csv'))
+crab_dump_most <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-1995-2020_crab_dump.csv'))
+crab_potsum_most <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-1995-2020_potsum.csv'))
+crab_retained_most <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-1995-2020_retained_size_freq.csv'))
+crab_dump_21 <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-2021_crab_dump.csv'))
+crab_potsum_21 <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-2021_potsum.csv'))
+crab_retained_21 <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-2021_retained_size_freq.csv'))
+
+crab_dump <- rbind(crab_dump_most, crab_dump_21)
+crab_potsum <- rbind(crab_potsum_most, crab_potsum_21)
+crab_retained <- rbind(crab_retained_most, crab_retained_21)
+
+rm(crab_dump_most, crab_dump_21, crab_potsum_most, crab_potsum_21, crab_retained_most, crab_retained_21)
 
 # Bycatch of snow crab in other crab fisheries
-bycatch_dump <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_crab_dump.csv'))
-bycatch_potsum <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_potsum.csv'))
-bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2020', 'snowcrab_bycatch-1995-2020_retained_size_freq.csv'))
+bycatch_dump <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2021', 'snowcrab_bycatch-1995-2021_crab_dump.csv'))
+bycatch_potsum <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2021', 'snowcrab_bycatch-1995-2021_potsum.csv'))
+bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2021', 'snowcrab_bycatch-1995-2021_retained_size_freq.csv'))
 
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
 crab_dates <- read_csv(here('data/Snow_CrabData', 'year_station_julian_day.csv'))
 names(crab_survey) <- tolower(names(crab_survey))
 crab_survey <- as.data.frame(crab_survey)
+
 # Add the julian days
 crab_survey <- merge(crab_survey, 
                      crab_dates,
@@ -105,7 +115,7 @@ bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + by
 bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_offload <- clean_offload(bycatch_retained)
 
-# Need to match up observer data with the survey data
+# Need to match up observer data with the survey data or make PCA
 # Group observer data for each season (Nov - Mar)
 # Match closest observer data from preceding season to a station for a year
 # Get the survey grid
@@ -142,6 +152,9 @@ survey_sf <- st_as_sf(survey_wide,
 observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
 bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
 
+saveRDS(observer_df, file = here('data/Snow_CrabData', 'observer_df.rds'))
+saveRDS(bycatch_df, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
+
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
   geom_sf(data = survey_sf,
@@ -154,11 +167,11 @@ ggplot() +
                      breaks = EBS$lat.breaks)  # shows that they are grouped into the polygons
 
 # Combine the observer data
-observer_combined <- rbind(observer_df, bycatch_df)
+# observer_combined <- rbind(observer_df, bycatch_df)
 
 # Average the female and male CPUE by season and nearest station
 # Need to include previous year when grouping by season (months 11 and 12)
-observer_dates <- mutate(observer_combined,
+observer_dates <- mutate(observer_df,
                          date_lag = ymd(date) %m+% - months(-2),
                          year_lag = year(date_lag)) # lag to group by season
 observer_summarized <- observer_dates %>%
