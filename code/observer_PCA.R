@@ -22,6 +22,44 @@ legal_male_df <- na.omit(select(observer_df, year, doy, tot_legal, latitude, lon
 sublegal_male_df <- na.omit(select(observer_df, year, doy, sublegal, latitude, longitude, depth))
 female_df <- na.omit(select(observer_df, year, doy, female, latitude, longitude, depth))
 
+# Add index for haul ID
+legal_male_df$index <- 1:nrow(legal_male_df)
+legal_male_df$anomalies <- legal_male_df$tot_legal - mean(legal_male_df$tot_legal)
+
+# Create matrices
+legal_male <- as.data.frame(legal_male_df[order(legal_male_df$index), ])
+legal_male_mat <- fossil::create.matrix(legal_male,
+                                        tax.name = "index",
+                                        locality = "doy",
+                                        time.col = NULL,
+                                        time = NULL,
+                                        abund = T,
+                                        abund.col = "anomalies")
+
+# PCA
+legal_male_pca <- prcomp(legal_male_mat,
+                         scale = F,
+                         center = F)
+summary(legal_male_pca)
+plot(summary(legal_male_pca)$importance[2, ], 
+     type = "h", 
+     ylab = "Proportion of variance", 
+     xlab = "PC")
+barplot(-legal_male_pca$rotation[, 1],
+        col = "red",
+        ylim= range(-legal_male_pca$rotation[, 1]),
+        main = "Legal Males",
+        xlab = "doy",
+        ylab = "Magnitude",
+        las = 2)
+
+# Try with vegan
+legal_male_pca <- princomp(legal_male_mat, cor = F)
+summary(legal_male_pca, loadings = T)
+head(summary(legal_male_pca))
+
+biplot(legal_male_mat)
+
 # Outlier evaluation
 legal_male_df <- filter(legal_male_df, depth < 400, tot_legal > 0)
 sublegal_male_df <- filter(sublegal_male_df, depth < 400, sublegal > 0)
