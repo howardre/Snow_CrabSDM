@@ -29,40 +29,61 @@ legal_male_mat <- fossil::create.matrix(as.data.frame(observer_df),
                                         abund = T,
                                         abund.col = "lncpue_male_legal")
 
+sublegal_male_mat <- fossil::create.matrix(as.data.frame(observer_df),
+                                           tax.name = "STATIONID",
+                                           locality = "year",
+                                           time.col = NULL,
+                                           time = NULL,
+                                           abund = T,
+                                           abund.col = "lncpue_male_sublegal")
+
+female_mat <- fossil::create.matrix(as.data.frame(observer_df),
+                                        tax.name = "STATIONID",
+                                        locality = "year",
+                                        time.col = NULL,
+                                        time = NULL,
+                                        abund = T,
+                                        abund.col = "lncpue_female")
+
 # Create matrices
 corrplot(cor(legal_male_mat), is.corr = FALSE)
+corrplot(cor(sublegal_male_mat), is.corr = FALSE)
+corrplot(cor(female_mat), is.corr = FALSE)
+
+# Scale values
 legal_male_scaled <- scale(legal_male_mat)
-
-
+sublegal_male_scaled <- scale(sublegal_male_mat)
+female_scaled <- scale(female_mat)
 
 # PCA
-legal_male_pca <- prcomp(legal_male_scaled,
-                         scale = F,
-                         center = F)
-summary(legal_male_pca)
+# prcomp version, using vegan below
+# legal_male_pca <- prcomp(legal_male_scaled,
+#                          scale = F,
+#                          center = F)
+# summary(legal_male_pca)
+# 
+# legal_male_pca$sdev # eigenvalues
+# legal_male_pca$x[, 1][1:10] # first 10 values of pca 1
+# legal_male_pca$rotation[, 1] # loadings for first pca
+# 
+# # Checks
+# legal_male_pca1_1 <- legal_male_pca$rotation[, 1]%*%legal_male_scaled[1, ]
+# legal_male_pca1_1;legal_male_pca$x[1, ][1]
+# 
+# # Plots
+# plot(legal_male_pca$sdev, 
+#      type = 'h',
+#      ylab = 'Standard Deviation',
+#      xlab = 'PC')
+# plot(legal_male_pca$x[, 1],
+#      xlab = 'Values',
+#      ylab = 'PC1',
+#      type = 'b')
+# plot(legal_male_pca$rotation[, 1],
+#      ylab = 'Loadings',
+#      xlab = 'Values')
 
-legal_male_pca$sdev # eigenvalues
-legal_male_pca$x[, 1][1:10] # first 10 values of pca 1
-legal_male_pca$rotation[, 1] # loadings for first pca
-
-# Checks
-legal_male_pca1_1 <- legal_male_pca$rotation[, 1]%*%legal_male_scaled[1, ]
-legal_male_pca1_1;legal_male_pca$x[1, ][1]
-
-# Plots
-plot(legal_male_pca$sdev, 
-     type = 'h',
-     ylab = 'Standard Deviation',
-     xlab = 'PC')
-plot(legal_male_pca$x[, 1],
-     xlab = 'Values',
-     ylab = 'PC1',
-     type = 'b')
-plot(legal_male_pca$rotation[, 1],
-     ylab = 'Loadings',
-     xlab = 'Values')
-
-# Try with vegan
+# Vegan version
 legal_male_pca <- princomp(legal_male_scaled, cor = TRUE)
 summary(legal_male_pca)
 head(summary(legal_male_pca))
@@ -73,8 +94,37 @@ legal_male_pca$scores[, 1]
 legal_male_pca$scale
 legal_male_pca$center
 
+sublegal_male_pca <- princomp(sublegal_male_scaled, cor = TRUE)
+summary(sublegal_male_pca)
+head(summary(sublegal_male_pca))
+
+sublegal_male_pca$sdev
+sublegal_male_pca$loadings[, 1] # Use these in the model
+sublegal_male_pca$scores[, 1]
+sublegal_male_pca$scale
+sublegal_male_pca$center
+
+female_pca <- princomp(female_scaled, cor = TRUE)
+summary(female_pca)
+head(summary(female_pca))
+
+female_pca$sdev
+female_pca$loadings[, 1] # Use these in the model
+female_pca$scores[, 1]
+female_pca$scale
+female_pca$center
+
 # Plot
-biplot(legal_male_pca)
+biplot(legal_male_pca, 
+       xlim = c(-0.1, 0.42),
+       ylim = c(-0.8, 0.1))
+
+biplot(sublegal_male_pca,
+       xlim = c(-0.1, 0.5))
+
+biplot(female_pca, 
+       xlim = c(-0.15, 0.7),
+       ylim = c(-0.7, 0.25))
 
 ## Match to data frame
 
