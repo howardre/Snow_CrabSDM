@@ -152,9 +152,6 @@ survey_sf <- st_as_sf(survey_wide,
 observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
 bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
 
-saveRDS(observer_df, file = here('data/Snow_CrabData', 'observer_df.rds'))
-saveRDS(bycatch_df, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
-
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
   geom_sf(data = survey_sf,
@@ -179,6 +176,9 @@ observer_summarized <- observer_dates %>%
   summarise(obs_male_legal = mean(tot_legal),
             obs_male_sub = mean(sublegal),
             obs_female = mean(female))
+
+saveRDS(observer_summarized, file = here('data/Snow_CrabData', 'observer_summarized.rds'))
+#saveRDS(bycatch_summarized, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
 
 # Match to the survey data
 survey_combined <- merge(survey_wide, observer_summarized,
