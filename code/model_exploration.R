@@ -47,7 +47,7 @@ hist(crab_train$lncpue_mat_female) # zero-inflated
 hist(crab_train$lncpue_mat_female[crab_train$lncpue_mat_female > 0])
 
 mat_female_gam_base <- gam(lncpue_mat_female ~ factor(year) +
-                             s(latitude, longitude) +
+                             s(longitude, latitude) +
                              s(julian) +
                              s(depth),
                            data = crab_train[crab_train$lncpue_mat_female > 0, ])
@@ -55,7 +55,7 @@ summary(mat_female_gam_base) # 34.1% explained
 
 # Add environmental data
 mat_female_gam1 <- gam(lncpue_mat_female ~ factor(year) + 
-                         s(latitude, longitude) +
+                         s(longitude, latitude) +
                          s(julian) +
                          s(phi) +
                          s(temperature) +
@@ -65,22 +65,25 @@ summary(mat_female_gam1) # 32.9% explained
 
 # Add survey data
 mat_female_gam2 <- gam(lncpue_mat_female ~ factor(year) +
-                         s(latitude, longitude) +
+                         s(longitude, latitude) +
                          s(julian) +
                          s(phi) +
                          s(temperature) +
                          s(depth) +
-                         s(lncpue_obs_female),
+                         s(longitude, latitude, by = female_loading),
                        data = crab_train[crab_train$lncpue_mat_female > 0, ])
 summary(mat_female_gam2) # 46.4
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam2)
 
+par(mfrow = c(3, 2))
+plot(mat_female_gam2)
+
 # Tweedie
 # Base model
 mat_female_tweedie <- gam(mature_female + 1 ~ factor(year) +
-                            s(latitude, longitude) +
+                            s(longitude, latitude) +
                             s(julian) +
                             s(depth),
                           data = crab_train,
@@ -90,7 +93,7 @@ summary(mat_female_tweedie) # 49.9% explained
 
 # Add environmental data
 mat_female_tweedie1 <- gam(mature_female + 1 ~ factor(year) +
-                             s(latitude, longitude) +
+                             s(longitude, latitude) +
                              s(julian) +
                              s(phi) +
                              s(temperature) +
@@ -102,16 +105,16 @@ summary(mat_female_tweedie1) # 51.9% explained
 
 # Add survey data
 mat_female_tweedie2 <- gam(mature_female + 1 ~ factor(year) +
-                             s(latitude, longitude) +
+                             s(longitude, latitude) +
                              s(julian) +
                              s(phi) +
                              s(temperature) +
                              s(depth) +
-                             s(lncpue_obs_female),
+                             s(longitude, latitude, by = female_loading),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(mat_female_tweedie2) # 
+summary(mat_female_tweedie2) # 55.4%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_tweedie2)
@@ -164,14 +167,14 @@ image.plot(legend.only = T,
 
 ## ZIPLSS
 mat_female_ziplss <- gam(list(mature_female ~ factor(year) +
-                                s(latitude, longitude) +
+                                s(longitude, latitude) +
                                 s(julian) +
                                 s(phi) +
                                 s(temperature) +
                                 s(depth) +
                                 s(lncpue_obs_female),
                               ~ factor(year) +
-                                s(latitude, longitude) +
+                                s(longitude, latitude) +
                                 s(julian)),
                          data = crab_train,
                          family = ziplss())
@@ -181,28 +184,26 @@ summary(female_ziplss) # not working because counts are needed
 # Gaussian
 hist(crab_train$lncpue_leg_male) # left skewed 
 
-leg_male_gam_base <- gam(lncpue_leg_male ~ s(latitude, longitude) +
+leg_male_gam_base <- gam(lncpue_leg_male ~ s(longitude, latitude) +
                          s(julian) +
                          s(depth),
                        data = crab_train[crab_train$lncpue_leg_male > 0, ])
 summary(leg_male_gam_base) # 39.6% explained
 
 # Add environmental data
-leg_male_gam1 <- gam(lncpue_leg_male ~ s(latitude, longitude) +
+leg_male_gam1 <- gam(lncpue_leg_male ~ s(longitude, latitude) +
                      s(julian) +
                      s(phi) +
                      s(temperature) +
-                     
                      s(depth),
                    data = crab_train[crab_train$lncpue_leg_male > 0, ])
 summary(leg_male_gam1) # 41.3% explained
 
 # Add survey data
-leg_male_gam2 <- gam(lncpue_leg_male ~ s(latitude, longitude) +
+leg_male_gam2 <- gam(lncpue_leg_male ~ s(longitude, latitude) +
                      s(julian) +
                      s(phi) +
                      s(temperature) +
-                     
                      s(depth) +
                      s(obs_male_legal),
                    data = crab_train[crab_train$lncpue_leg_male > 0, ])
@@ -212,7 +213,7 @@ gam.check(leg_male_gam2)
 
 # Tweedie
 # Base model
-leg_male_tweedie <- gam(legal_male + 1 ~ s(latitude, longitude) +
+leg_male_tweedie <- gam(legal_male + 1 ~ s(longitude, latitude) +
                         s(julian) +
                         s(depth),
                       data = crab_train,
@@ -221,11 +222,10 @@ leg_male_tweedie <- gam(legal_male + 1 ~ s(latitude, longitude) +
 summary(leg_male_tweedie) # 55% explained
 
 # Add environmental data
-leg_male_tweedie1 <- gam(legal_male + 1 ~ s(latitude, longitude) +
+leg_male_tweedie1 <- gam(legal_male + 1 ~ s(longitude, latitude) +
                          s(julian) +
                          s(phi) +
                          s(temperature) +
-                         
                          s(depth),
                        data = crab_train,
                        family = tw(link = "log"),
@@ -233,17 +233,16 @@ leg_male_tweedie1 <- gam(legal_male + 1 ~ s(latitude, longitude) +
 summary(leg_male_tweedie1) # 56% explained
 
 # Add survey data
-leg_male_tweedie2 <- gam(legal_male + 1 ~ s(latitude, longitude) +
-                         s(julian) +
-                         s(phi) +
-                         s(temperature) +
-                         
-                         s(depth) +
-                         s(obs_male_legal),
-                       data = crab_train,
-                       family = tw(link = "log"),
-                       method = "REML")
-summary(leg_male_tweedie2) # 14.5%
+leg_male_tweedie2 <- gam(legal_male + 1 ~ te(longitude, latitude) +
+                           s(julian) +
+                           s(phi) +
+                           s(temperature) +
+                           s(depth) +
+                           s(longitude, latitude, by = legal_male_loading),
+                         data = crab_train,
+                         family = tw(link = "log"),
+                         method = "REML")
+summary(leg_male_tweedie2) # 38.5%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_tweedie2)
@@ -256,7 +255,7 @@ windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0))
-myvis_gam(male_tweedie2,
+myvis_gam(leg_male_tweedie2,
           view = c('longitude', 'latitude'),
           too.far = 0.07,
           plot.type = 'contour',
@@ -292,15 +291,14 @@ image.plot(legend.only = T,
                               family =  "serif"))
 
 ## ZIPLSS
-male_ziplss <- gam(list(male ~ s(latitude, longitude) +
+male_ziplss <- gam(list(male ~ s(longitude, latitude) +
                             s(julian) +
                             s(phi) +
                             s(temperature) +
-                            
                             s(depth) +
                             s(male_immature) +
                             s(male_mature),
-                          ~ s(latitude, longitude) +
+                          ~ s(longitude, latitude) +
                             s(julian)),
                      data = crab_train,
                      family = ziplss())
