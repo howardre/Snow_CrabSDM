@@ -115,9 +115,6 @@ bycatch_summary$total <- bycatch_summary$female + bycatch_summary$tot_legal + by
 bycatch_summary$male <- bycatch_summary$tot_legal + bycatch_summary$sublegal
 bycatch_offload <- clean_offload(bycatch_retained)
 
-saveRDS(crab_summary, file = here('data/Snow_CrabData', 'observer_df.rds'))
-saveRDS(bycatch_summary, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
-
 # Need to match up observer data with the survey data or make PCA
 # Group observer data for each season (Nov - Mar)
 # Match closest observer data from preceding season to a station for a year
@@ -154,6 +151,9 @@ survey_sf <- st_as_sf(survey_wide,
 
 observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
 bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
+
+saveRDS(observer_df, file = here('data/Snow_CrabData', 'observer_df.rds'))
+saveRDS(bycatch_df, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
 
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
