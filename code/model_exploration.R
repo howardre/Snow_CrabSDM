@@ -17,6 +17,9 @@ library(fields)
 library(ggplot2)
 source(here('code/functions', 'vis_gam_COLORS.R'))
 
+contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
+jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+
 # Load data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))
 
@@ -41,7 +44,7 @@ crab_test <- as.data.frame(crab_final %>%
                              filter(year > 2014))
 
 # GAMs ----
-# Mature Female
+## Mature Female ----
 # Gaussian
 hist(crab_train$lncpue_mat_female) # zero-inflated
 hist(crab_train$lncpue_mat_female[crab_train$lncpue_mat_female > 0])
@@ -126,10 +129,7 @@ gam.check(mat_female_tweedie2)
 par(mfrow = c(3, 3))
 plot(mat_female_tweedie2)
 
-
-contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
-jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
-
+# Make map
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
@@ -168,8 +168,133 @@ image.plot(legend.only = T,
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
+## Immature Female ----
+# Gaussian
+hist(crab_train$lncpue_imm_female) # zero-inflated
+hist(crab_train$lncpue_imm_female[crab_train$lncpue_imm_female > 0])
 
-# Male
+imm_female_gam_base <- gam(lncpue_imm_female ~ factor(year) +
+                             s(longitude, latitude) +
+                             s(julian) +
+                             s(depth),
+                           data = crab_train[crab_train$lncpue_imm_female > 0, ])
+summary(imm_female_gam_base) # 22% explained
+
+# Add environmental data
+imm_female_gam1 <- gam(lncpue_imm_female ~ factor(year) + 
+                         s(longitude, latitude) +
+                         s(julian) +
+                         s(depth) +
+                         s(phi) +
+                         s(temperature) +
+                         s(ice),
+                       data = crab_train[crab_train$lncpue_imm_female > 0, ])
+summary(imm_female_gam1) # 28.3% explained
+
+# Add obs data
+imm_female_gam2 <- gam(lncpue_imm_female ~ factor(year) +
+                         s(longitude, latitude) +
+                         s(julian) +
+                         s(depth) +
+                         s(phi) +
+                         s(temperature) +
+                         s(ice) +
+                         s(longitude, latitude, by = female_loading),
+                       data = crab_train[crab_train$lncpue_imm_female > 0, ])
+summary(imm_female_gam2) # 28.4%
+
+par(mfrow = c(2, 2))
+gam.check(imm_female_gam2)
+
+par(mfrow = c(3, 3))
+plot(imm_female_gam2)
+
+# Tweedie
+# Base model
+imm_female_tweedie <- gam(immature_female + 1 ~ factor(year) +
+                            s(longitude, latitude) +
+                            s(julian) +
+                            s(depth),
+                          data = crab_train,
+                          family = tw(link = "log"),
+                          method = "REML")
+summary(imm_female_tweedie) # 41.6% explained
+
+# Add environmental data
+imm_female_tweedie1 <- gam(immature_female + 1 ~ factor(year) +
+                             s(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice),
+                           data = crab_train,
+                           family = tw(link = "log"),
+                           method = "REML")
+summary(imm_female_tweedie1) # 43% explained
+
+# Add obs data
+imm_female_tweedie2 <- gam(immature_female + 1 ~ factor(year) +
+                             s(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice) +
+                             s(longitude, latitude, by = female_loading),
+                           data = crab_train,
+                           family = tw(link = "log"),
+                           method = "REML")
+summary(imm_female_tweedie2) # 43%
+
+par(mfrow = c(2, 2))
+gam.check(imm_female_tweedie2)
+
+par(mfrow = c(3, 3))
+plot(imm_female_tweedie2)
+
+
+windows(width = 12, height = 10)
+par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
+    oma = c(1, 1, 1, 1),
+    mgp = c(5, 2, 0))
+myvis_gam(imm_female_tweedie2,
+          view = c('longitude', 'latitude'),
+          too.far = 0.07,
+          plot.type = 'contour',
+          contour.col = contour_col,
+          color = "jet" ,
+          type = 'link',
+          xlim = c(-181, -156),
+          ylim = range(crab_train$latitude, na.rm = TRUE) + c(-.4, .5),
+          family = "serif",
+          xlab = "Longitude",
+          ylab = "Latitude",
+          main = " ",
+          cex.lab = 1.7,
+          cex.axis =  1.7)
+maps::map('worldHires',
+          add = T,
+          col = 'antiquewhite4',
+          fill = T)
+image.plot(legend.only = T,
+           col = jet.colors(100),
+           legend.shrink = 0.2,
+           smallplot = c(.28, .31, .27, .42),
+           legend.cex = 1,
+           axis.args = list(cex.axis = 1.3,
+                            family = "serif"),
+           legend.width = 0.8,
+           legend.mar = 6,
+           zlim = c(min(imm_female_tweedie2$linear.predictors),
+                    max(imm_female_tweedie2$linear.predictors)),
+           legend.args = list("log(cpue+1)",
+                              side = 2,
+                              cex = 1.5,
+                              family =  "serif"))
+
+
+## Legal Male ----
 # Gaussian
 hist(crab_train$lncpue_leg_male) 
 hist(crab_train$lncpue_leg_male[crab_train$lncpue_leg_male > 0])
@@ -234,7 +359,7 @@ leg_male_tweedie1 <- gam(legal_male + 1 ~ factor(year) +
                            method = "REML")
 summary(leg_male_tweedie1) # 43.1% explained
 
-# Add survey data
+# Add obs data
 leg_male_tweedie2 <- gam(legal_male + 1 ~ factor(year) +
                              s(longitude, latitude) +
                              s(julian) +
@@ -292,6 +417,134 @@ image.plot(legend.only = T,
            legend.mar = 6,
            zlim = c(min(leg_male_tweedie2$linear.predictors),
                     max(leg_male_tweedie2$linear.predictors)),
+           legend.args = list("log(cpue+1)",
+                              side = 2,
+                              cex = 1.5,
+                              family =  "serif"))
+
+## Sublegal Male ----
+# Gaussian
+hist(crab_train$lncpue_sub_male) 
+hist(crab_train$lncpue_sub_male[crab_train$lncpue_sub_male > 0])
+
+sub_male_gam_base <- gam(lncpue_sub_male ~ factor(year) +
+                           s(longitude, latitude) +
+                           s(julian) +
+                           s(depth),
+                         data = crab_train[crab_train$lncpue_sub_male > 0, ])
+summary(sub_male_gam_base) # 52.9% explained
+
+# Add environmental data
+sub_male_gam1 <- gam(lncpue_sub_male ~ factor(year) + 
+                       s(longitude, latitude) +
+                       s(julian) +
+                       s(depth) +
+                       s(phi) +
+                       s(temperature) +
+                       s(ice),
+                     data = crab_train[crab_train$lncpue_sub_male > 0, ])
+summary(sub_male_gam1) # 55.2% explained
+
+# Add obs data
+sub_male_gam2 <- gam(lncpue_sub_male ~ factor(year) +
+                       s(longitude, latitude) +
+                       s(julian) +
+                       s(depth) +
+                       s(phi) +
+                       s(temperature) +
+                       s(ice) +
+                       s(longitude, latitude, by = sublegal_male_loading),
+                     data = crab_train[crab_train$lncpue_sub_male > 0, ])
+summary(sub_male_gam2) # 57.2% explained
+
+par(mfrow = c(2, 2))
+gam.check(sub_male_gam2)
+
+par(mfrow = c(3, 3))
+plot(sub_male_gam2)
+
+# Tweedie
+# Base model
+sub_male_tweedie <- gam(immature_male + 1 ~ factor(year) +
+                          s(longitude, latitude) +
+                          s(julian) +
+                          s(depth),
+                        data = crab_train,
+                        family = tw(link = "log"),
+                        method = "REML")
+summary(sub_male_tweedie) # 45.9% explained
+
+# Add environmental data
+sub_male_tweedie1 <- gam(immature_male + 1 ~ factor(year) +
+                           s(longitude, latitude) +
+                           s(julian) +
+                           s(depth) +
+                           s(phi) +
+                           s(temperature) +
+                           s(ice),
+                         data = crab_train,
+                         family = tw(link = "log"),
+                         method = "REML")
+summary(sub_male_tweedie1) # 48.4% explained
+
+# Add obs data
+sub_male_tweedie2 <- gam(immature_male + 1 ~ factor(year) +
+                           s(longitude, latitude) +
+                           s(julian) +
+                           s(depth) +
+                           s(phi) +
+                           s(temperature) +
+                           s(ice) +
+                           s(longitude, latitude, by = sublegal_male_loading),
+                         data = crab_train,
+                         family = tw(link = "log"),
+                         method = "REML")
+summary(sub_male_tweedie2) # 50.4%
+
+par(mfrow = c(2, 2))
+gam.check(sub_male_tweedie2)
+
+par(mfrow = c(3, 3))
+plot(sub_male_tweedie2)
+
+
+contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
+jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+
+windows(width = 12, height = 10)
+par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
+    oma = c(1, 1, 1, 1),
+    mgp = c(5, 2, 0))
+myvis_gam(sub_male_tweedie2,
+          view = c('longitude', 'latitude'),
+          too.far = 0.07,
+          plot.type = 'contour',
+          contour.col = contour_col,
+          color = "jet" ,
+          type = 'link',
+          xlim = c(-181, -156),
+          ylim = range(crab_train$latitude, na.rm = TRUE) + c(-.4, .5),
+          family = "serif",
+          xlab = "Longitude",
+          ylab = "Latitude",
+          main = " ",
+          cex.lab = 1.7,
+          cex.axis =  1.7)
+maps::map('worldHires',
+          add = T,
+          col = 'antiquewhite4',
+          fill = T)
+image.plot(legend.only = T,
+           col = jet.colors(100),
+           legend.shrink = 0.2,
+           smallplot = c(.28, .31, .27, .42),
+           legend.cex = 1,
+           axis.args = list(cex.axis = 1.3,
+                            family = "serif"),
+           legend.width = 0.8,
+           legend.mar = 6,
+           zlim = c(min(sub_male_tweedie2$linear.predictors),
+                    max(sub_male_tweedie2$linear.predictors)),
            legend.args = list("log(cpue+1)",
                               side = 2,
                               cex = 1.5,
