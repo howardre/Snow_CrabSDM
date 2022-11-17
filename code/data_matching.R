@@ -239,49 +239,32 @@ data_xy[, c(19, 20)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
 data_xy <- data_xy[-c(19, 20)]
 
-data_xy[, c(20, 21)] <- as.data.frame(RANN::nn2(ice_data_xy[, c('lat', 'lon', 'month', 'year')],
-                                                data_xy[, c('latitude', 'longitude', 'month', 'year')],
-                                                k = 1))
-data_xy$ice <- ice_data_xy[c(data_xy$nn.idx), 2] # Match nearest ice value
-data_xy <- data_xy[-c(20, 21)]
-
-data_xy[, c(21, 22)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+data_xy[, c(20, 21)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
                                                 data_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                 k = 1))
 data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
+data_xy <- data_xy[-c(20, 21)]
+
+# Get avg spatial value of ice in March, April and annual coverage overall for same months
+ice_data_filtered <- filter(ice_data_xy, month == c(3, 4))
+ice_data_avg <- ice_data_filtered %>%
+  group_by(year, lat, lon) %>%
+  summarise(spatial_ice = mean(ice, na.rm = T))
+
+ice_means <- ice_data_filtered %>%
+  group_by(year) %>%
+  summarise(spatial_ice = mean(ice, na.rm = T))
+
+data_xy[, c(21, 22)] <- as.data.frame(RANN::nn2(ice_data_avg[, c('lat', 'lon', 'year')],
+                                                data_xy[, c('latitude', 'longitude', 'year')],
+                                                k = 1))
+data_xy$ice <- as.data.frame(ice_data_avg)[c(data_xy$nn.idx), 4] 
+data_xy$ice_index <- ice_means$spatial_ice[match(data_xy$year, ice_means$year)]
+
 
 # Convert back to lat, lon
-crab_final <- data_xy[-c(1, 12, 13, 17, 18, 21, 22)]
+crab_final <- data_xy[-c(12, 13, 17, 18, 21, 22)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
 saveRDS(crab_final, file = here('data/Snow_CrabData', 'crab_summary.rds'))
-
-# Separate male and female specimen data ----
-# Add index to the specimen data
-# Calculate average observer CPUE for each station for each season for each group
-# Males 102 and above, < 102 for second group
-# Females all together?
-crab_sorted <- crab_detailed %>%
-  group_by(year, doy, adfg, trip) %>%
-  mutate(index = cur_group_id()) %>%
-  ungroup() %>%
-  arrange(index)
-
-crab_filtered <- crab_sorted[-c(1:6, 9, 12:15, 18:22)]
-
-crab_male <- crab_filtered %>%
-  filter(sex == 1) %>%
-  group_by(index, latitude, longitude, depth, 
-           soaktime, maturity, date, year, month, day, doy) %>%
-  summarise(immature = sum(size <= 101), 
-            mature = sum(size > 101),
-            total = immature + mature) 
-
-crab_female <- crab_filtered %>%
-  filter(sex != 1) %>%
-  group_by(index, latitude, longitude, depth, 
-           soaktime, date, year, month, day, doy)  %>%
-  summarise(immature = sum(size <= 50), 
-            mature = sum(size > 50),
-            total = immature + mature)
