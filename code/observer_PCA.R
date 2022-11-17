@@ -11,7 +11,6 @@ library(dplyr)
 
 # Load data ----
 observer_df <- readRDS(here('data/Snow_CrabData', 'observer_summarized.rds'))
-bycatch_df <- readRDS(here('data/Snow_CrabData', 'bycatch_df.rds'))
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Filter to groups
