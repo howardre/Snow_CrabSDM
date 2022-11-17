@@ -137,3 +137,6 @@ colnames(female_loadings)[2] <- "female_loadings"
 crab_summary$legal_male_loading <- legal_male_loadings$legal_male_loadings[match(crab_summary$year, legal_male_loadings$year)]
 crab_summary$sublegal_male_loading <- sublegal_male_loadings$sublegal_male_loadings[match(crab_summary$year, sublegal_male_loadings$year)]
 crab_summary$female_loading <- female_loadings$female_loadings[match(crab_summary$year, female_loadings$year)]
+
+# Save data
+saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_pca.rds'))
