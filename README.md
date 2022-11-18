@@ -1,4 +1,4 @@
-# Modeling the Distribution of Northern Bering Sea Snow Crab
+# Modeling the Distribution of Bering Sea Snow Crab
 
 This is part of a NOAA funded project that will create updated species distribution maps for snow crab in the northern Bering Sea. Portions of this work will comprise a chapter in my PhD dissertation.
 
