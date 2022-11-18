@@ -8,7 +8,7 @@
 /Snow_CrabData
 manuscripts/
 presentations_reports/
-results/
+results/confidential/
 # Example code in package build process
 *-Ex.R
 # Output files from R CMD build
