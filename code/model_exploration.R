@@ -33,6 +33,8 @@ crab_trans <- mutate(crab_summary,
                      lncpue_obs_sub_male = log(obs_male_sub + 1),
                      lncpue_obs_leg_male = log(obs_male_legal + 1))
 
+# Look at correlation
+pairs(crab_trans[, c(4, 5, 15, 17)], cex = 0.3)
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -46,7 +48,9 @@ crab_test <- as.data.frame(crab_final %>%
 # GAMs ----
 ## Mature Female ----
 # Gaussian
-hist(crab_train$lncpue_mat_female) # zero-inflated
+hist(crab_train$lncpue_mat_female,
+     main = "Mature Female Catch",
+     xlab = "log(CPUE+1)") # zero-inflated
 hist(crab_train$lncpue_mat_female[crab_train$lncpue_mat_female > 0])
 
 mat_female_gam_base <- gam(lncpue_mat_female ~ factor(year) +
@@ -170,7 +174,9 @@ image.plot(legend.only = T,
                               family =  "serif"))
 ## Immature Female ----
 # Gaussian
-hist(crab_train$lncpue_imm_female) # zero-inflated
+hist(crab_train$lncpue_imm_female,
+     main = "Immature Female Catch",
+     xlab = "log(CPUE+1)") # zero-inflated
 hist(crab_train$lncpue_imm_female[crab_train$lncpue_imm_female > 0])
 
 imm_female_gam_base <- gam(lncpue_imm_female ~ factor(year) +
@@ -253,7 +259,7 @@ gam.check(imm_female_tweedie2)
 par(mfrow = c(3, 3))
 plot(imm_female_tweedie2)
 
-
+# Make maps
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
@@ -296,7 +302,9 @@ image.plot(legend.only = T,
 
 ## Legal Male ----
 # Gaussian
-hist(crab_train$lncpue_leg_male) 
+hist(crab_train$lncpue_leg_male,
+     main = "Legal Male Catch",
+     xlab = "log(CPUE+1)") 
 hist(crab_train$lncpue_leg_male[crab_train$lncpue_leg_male > 0])
 
 leg_male_gam_base <- gam(lncpue_leg_male ~ factor(year) +
@@ -379,10 +387,7 @@ gam.check(leg_male_tweedie2)
 par(mfrow = c(3, 3))
 plot(leg_male_tweedie2)
 
-
-contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
-jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
-
+# Make maps
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
@@ -424,7 +429,9 @@ image.plot(legend.only = T,
 
 ## Sublegal Male ----
 # Gaussian
-hist(crab_train$lncpue_sub_male) 
+hist(crab_train$lncpue_sub_male,
+     main = "Sublegal Male Catch",
+     xlab = "log(CPUE+1)") 
 hist(crab_train$lncpue_sub_male[crab_train$lncpue_sub_male > 0])
 
 sub_male_gam_base <- gam(lncpue_sub_male ~ factor(year) +
@@ -507,10 +514,7 @@ gam.check(sub_male_tweedie2)
 par(mfrow = c(3, 3))
 plot(sub_male_tweedie2)
 
-
-contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
-jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
-
+# Make maps
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
@@ -551,23 +555,21 @@ image.plot(legend.only = T,
                               family =  "serif"))
 
 # Random forests ----
-# Mature females
+## Mature females ----
 set.seed(1993)
 rf_mat_females <- randomForest(lncpue_mat_female ~ year + 
-                                 latitude +
+                                 
                                  julian,
-                               data = na.exclude(crab_train), # throws error if NAs included
+                               data = crab_train, # throws error if NAs included
                                ntree = 1000,
                                mtry = 2,
                                importance = T,
                                proximity = T)
 print(rf_mat_females) 
-# 34.13% variance explained
-# Mean squared residuals: 11.69
+# 33.12% variance explained
+# Mean squared residuals: 12.24
 
 plot(rf_mat_females$mse)
-
-
 
 set.seed(1993)
 rf_mat_females1 <- randomForest(lncpue_mat_female ~ year + 
@@ -575,23 +577,21 @@ rf_mat_females1 <- randomForest(lncpue_mat_female ~ year +
                                   julian +
                                   depth +
                                   phi +
-                                  sst +
                                   temperature +
-                                  lncpue_obs_female,
-                                data = na.exclude(crab_train),
+                                  ice,
+                                data = crab_train,
                                 ntree = 1000,
                                 mtry = 2,
                                 importance = T,
                                 proximity = T)
 print(rf_mat_females1) 
-# 50.22% variance explained
-# Mean squared residuals: 8.83
+# 48.3% variance explained
+# Mean squared residuals: 9.4
 
 plot(rf_mat_females1$mse)
 
 rf_mat_females1$importance
 varImpPlot(rf_mat_females1)
-
 
 
 set.seed(1993)
@@ -600,19 +600,22 @@ rf_mat_females2 <- randomForest(lncpue_mat_female ~ year +
                                   julian +
                                   depth +
                                   phi +
-                                  sst +
                                   temperature +
-                                  lncpue_obs_female,
-                                data = na.exclude(crab_train),
+                                  ice +
+                                  female_loading,
+                                data = crab_train,
                                 ntree = 3000,
                                 mtry = 2,
                                 importance = T,
                                 proximity = T)
 print(rf_mat_females2) 
-# 50.29% variance explained
-# Mean squared residuals: 8.82
+# 48.3% variance explained
+# Mean squared residuals: 9.5
 
 plot(rf_mat_females2$mse) 
+
+rf_mat_females2$importance
+varImpPlot(rf_mat_females2)
 
 
 set.seed(1993)
@@ -708,103 +711,79 @@ varImpPlot(rf_males1)
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
 
-# Mature females
+## Mature females ----
 brt_mat_females1 <- gbm.step(data = crab_train,
-                         gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                         gbm.y = 19,
-                         family = 'gaussian',
-                         tree.complexity = 5,
-                         learning.rate = 0.05,
-                         bag.fraction = 0.5) 
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 24,
+                             family = 'gaussian',
+                             tree.complexity = 5,
+                             learning.rate = 0.05,
+                             bag.fraction = 0.5) 
 summary(brt_mat_females1) 
-# 550 trees
-# dev: 17.746
-# res dev: 3.637
-# corr: 0.897
-# cv corr: 0.719
+
 
 brt_mat_females2 <- gbm.step(data = crab_train,
-                         gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                         gbm.y = 19,
+                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) 
 summary(brt_mat_females2)
-# 1900 trees
-# dev: 17.746
-# res dev: 4.342
-# corr: 0.875
-# cv corr: 0.715
+
 
 brt_mat_females3 <- gbm.step(data = crab_train,
-                         gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                         gbm.y = 19,
+                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 3,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) 
 summary(brt_mat_females3)
-# 3250 trees
-# dev: 17.746
-# res dev: 4.724
-# corr: 0.862
-# cv corr: 0.718
+
 
 brt_mat_females4 <- gbm.step(data = crab_train,
-                         gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                         gbm.y = 19,
+                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 10,
                          learning.rate = 0.01,
                          bag.fraction = 0.5) 
 summary(brt_mat_females4)
-# 700 trees
-# dev: 17.746
-# res dev: 4.612
-# corr: 0.867
-# cv corr: 0.722
+
 
 brt_mat_females5 <- gbm.step(data = crab_train,
-                         gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                         gbm.y = 19,
+                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
                          bag.fraction = 0.75)
 summary(brt_mat_females5)
-# 1300 trees
-# dev: 17.746
-# res dev: 5.041
-# corr: 0.852
-# cv corr: 0.713
+
 
 brt_mat_females6 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 19,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 24,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.25)
-summary(brt_mat_females5)
-# 1300 trees
-# dev: 17.746
-# res dev: 4.905
-# corr: 0.855
-# cv corr: 0.719
+summary(brt_mat_females6)
+
 
 # Attempt dropping variable
-females_mat_simp <- gbm.simplify(brt_mat_females1, n.drops = 5) # this takes forever
-summary(females_simp)
+females_mat_simp <- gbm.simplify(brt_mat_females4, n.drops = 5) # this takes forever
+summary(females_mat_simp)
 
 # Choose final model
-females_mat_final <- brt_mat_females2 # Change this once decision made
+females_mat_final <- brt_mat_females4 # Change this once decision made
 
 # Plot the variables
 windows()
 gbm.plot(females_mat_final,
-         n.plots = 7,
-         plot.layout = c(4, 2),
+         n.plots = 9,
+         plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
          common.scale = T,
@@ -860,90 +839,66 @@ females_mat_int$interactions
 #             cex.lab = 1,
 #             ticktype = "detailed")
 
-# Immature females
+## Immature females ----
 brt_imm_females1 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 20,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
                              bag.fraction = 0.5) 
 summary(brt_imm_females1) 
-# 200 trees
-# dev: 
-# res dev: 
-# corr: 
-# cv corr: 
+
 
 brt_imm_females2 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 20,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.5) 
 summary(brt_imm_females2)
-# 750 trees
-# dev: 5.505
-# res dev: 3.102
-# corr: 0.693
-# cv corr: 0.425
+
 
 brt_imm_females3 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 20,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 3,
                              learning.rate = 0.01,
                              bag.fraction = 0.5) 
 summary(brt_imm_females3)
-# 1000 trees
-# dev: 5.505
-# res dev: 3.46
-# corr: 0.637
-# cv corr: 0.418
+
 
 brt_imm_females4 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 20,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 10,
                              learning.rate = 0.01,
                              bag.fraction = 0.5) 
 summary(brt_imm_females4)
-# 450 trees
-# dev: 5.505
-# res dev: 2.856
-# corr: 0.734
-# cv corr: 0.44
+
 
 brt_imm_females5 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 20,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.75)
 summary(brt_imm_females5)
-# 850 trees
-# dev: 5.505
-# res dev: 2.992
-# corr: 0.713
-# cv corr: 0.421
+
 
 brt_imm_females6 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 23),
-                             gbm.y = 20,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.25)
-summary(brt_imm_females5)
-# 900 trees
-# dev: 5.505
-# res dev: 3.184
-# corr: 0.674
-# cv corr: 0.417
+summary(brt_imm_females6)
+
 
 # Attempt dropping variable
 females_imm_simp <- gbm.simplify(brt_imm_females1, n.drops = 5) # this takes forever
@@ -955,8 +910,8 @@ females_imm_final <- brt_imm_females5 # Change this once decision made
 # Plot the variables
 windows()
 gbm.plot(females_imm_final,
-         n.plots = 7,
-         plot.layout = c(4, 2),
+         n.plots = 9,
+         plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
          common.scale = T,
@@ -984,103 +939,79 @@ female_imm_effects %>% arrange(desc(rel.inf)) %>%
 females_imm_int <- gbm.interactions(females_imm_final)
 females_imm_int$interactions
 
-# Legal Males
+## Legal Males ----
 brt_leg_males1 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 25),
-                             gbm.y = 21,
+                             gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                             gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
                              bag.fraction = 0.5) 
 summary(brt_leg_males1) 
-# 200 trees
-# dev: 
-# res dev: 
-# corr: 
-# cv corr: 
+
 
 brt_leg_males2 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 25),
-                             gbm.y = 21,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.5) 
 summary(brt_leg_males2)
-# 1000 trees
-# dev: 9.102
-# res dev: 2.747
-# corr: 0.841
-# cv corr: 0.716
+
 
 brt_leg_males3 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 25),
-                             gbm.y = 21,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 3,
                              learning.rate = 0.01,
                              bag.fraction = 0.5) 
 summary(brt_leg_males3)
-# 1350 trees
-# dev: 9.102
-# res dev: 3.147
-# corr: 0.813
-# cv corr: 0.708
+
 
 brt_leg_males4 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 25),
-                             gbm.y = 21,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 10,
                              learning.rate = 0.01,
                              bag.fraction = 0.5) 
 summary(brt_leg_males4)
-# 700 trees
-# dev: 9.102
-# res dev: 2.205
-# corr: 0.877
-# cv corr: 0.724
+
 
 brt_leg_males5 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 25),
-                             gbm.y = 21,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.75)
 summary(brt_leg_males5)
-# 950 trees
-# dev: 9.102
-# res dev: 2.744
-# corr: 0.842
-# cv corr: 0.719
+
 
 brt_leg_males6 <- gbm.step(data = crab_train,
-                             gbm.x = c(1, 3:5, 14, 16, 17, 25),
-                             gbm.y = 21,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
                              bag.fraction = 0.25)
-summary(brt_leg_males5)
-# 1650 trees
-# dev: 9.102
-# res dev: 2.5
-# corr: 0.856
-# cv corr: 0.719
+summary(brt_leg_males6)
+
 
 # Attempt dropping variable
 males_leg_simp <- gbm.simplify(brt_leg_males1, n.drops = 5) # this takes forever
 summary(females_simp)
 
 # Choose final model
-males_leg_final <- brt_leg_males6 # Change this once decision made
+males_leg_final <- brt_leg_males5 # Change this once decision made
 
 # Plot the variables
 windows()
 gbm.plot(males_leg_final,
-         n.plots = 7,
-         plot.layout = c(4, 2),
+         n.plots = 9,
+         plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
          common.scale = T,
@@ -1108,103 +1039,79 @@ male_leg_effects %>% arrange(desc(rel.inf)) %>%
 males_leg_int <- gbm.interactions(males_leg_final)
 males_leg_int$interactions
 
-# Sublegal Males
+## Sublegal Males ----
 brt_sub_males1 <- gbm.step(data = crab_train,
-                           gbm.x = c(1, 3:5, 14, 16, 17, 24),
-                           gbm.y = 22,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
                            learning.rate = 0.05,
                            bag.fraction = 0.5) 
 summary(brt_sub_males1) 
-# 300 trees
-# dev: 
-# res dev: 
-# corr: 
-# cv corr: 
+
 
 brt_sub_males2 <- gbm.step(data = crab_train,
-                           gbm.x = c(1, 3:5, 14, 16, 17, 24),
-                           gbm.y = 22,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
                            learning.rate = 0.01,
                            bag.fraction = 0.5) 
 summary(brt_sub_males2)
-# 1050 trees
-# dev: 9.089
-# res dev: 3.029
-# corr: 0.822
-# cv corr: 0.686
+
 
 brt_sub_males3 <- gbm.step(data = crab_train,
-                           gbm.x = c(1, 3:5, 14, 16, 17, 24),
-                           gbm.y = 22,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 3,
                            learning.rate = 0.01,
                            bag.fraction = 0.5) 
 summary(brt_sub_males3)
-# 1500 trees
-# dev: 9.089
-# res dev: 3.332
-# corr: 0.8
-# cv corr: 0.686
+
 
 brt_sub_males4 <- gbm.step(data = crab_train,
-                           gbm.x = c(1, 3:5, 14, 16, 17, 24),
-                           gbm.y = 22,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 10,
                            learning.rate = 0.01,
                            bag.fraction = 0.5) 
 summary(brt_sub_males4)
-# 750 trees
-# dev: 9.089
-# res dev: 2.448
-# corr: 0.862
-# cv corr: 0.69
+
 
 brt_sub_males5 <- gbm.step(data = crab_train,
-                           gbm.x = c(1, 3:5, 14, 16, 17, 24),
-                           gbm.y = 22,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
                            learning.rate = 0.01,
                            bag.fraction = 0.75)
 summary(brt_sub_males5)
-# 1100 trees
-# dev: 9.089
-# res dev: 2.921
-# corr: 0.83
-# cv corr: 0.686
+
 
 brt_sub_males6 <- gbm.step(data = crab_train,
-                           gbm.x = c(1, 3:5, 14, 16, 17, 24),
-                           gbm.y = 22,
+                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
                            learning.rate = 0.01,
                            bag.fraction = 0.25)
-summary(brt_sub_males5)
-# 1400 trees
-# dev: 9.089
-# res dev: 2.909
-# corr: 0.83
-# cv corr: 0.693
+summary(brt_sub_males6)
+
 
 # Attempt dropping variable
 males_sub_simp <- gbm.simplify(brt_sub_males1, n.drops = 5) # this takes forever
 summary(females_simp)
 
 # Choose final model
-males_sub_final <- brt_sub_males4 # Change this once decision made
+males_sub_final <- brt_sub_males5 # Change this once decision made
 
 # Plot the variables
 windows()
 gbm.plot(males_sub_final,
-         n.plots = 7,
-         plot.layout = c(4, 2),
+         n.plots = 9,
+         plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
          common.scale = T,
