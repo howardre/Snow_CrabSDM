@@ -7,7 +7,7 @@
 .Ruserdata
 /Snow_CrabData
 manuscripts/
-presentations/
+presentations_reports/
 results/
 # Example code in package build process
 *-Ex.R
