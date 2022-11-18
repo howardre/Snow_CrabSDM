@@ -125,13 +125,25 @@ legal_male_loadings <- as.data.frame(legal_male_pca$loadings[, 1])
 legal_male_loadings <- tibble::rownames_to_column(legal_male_loadings, "year")
 colnames(legal_male_loadings)[2] <- "legal_male_loadings"
 
+plot(legal_male_loadings,
+     main = "Legal Male Loadings",
+     ylab = "value")
+
 sublegal_male_loadings <- as.data.frame(sublegal_male_pca$loadings[, 1])
 sublegal_male_loadings <- tibble::rownames_to_column(sublegal_male_loadings, "year")
 colnames(sublegal_male_loadings)[2] <- "sublegal_male_loadings"
 
+plot(sublegal_male_loadings,
+     main = "Sublegal Male Loadings",
+     ylab = "value")
+
 female_loadings <- as.data.frame(female_pca$loadings[, 1])
 female_loadings <- tibble::rownames_to_column(female_loadings, "year")
 colnames(female_loadings)[2] <- "female_loadings"
+
+plot(female_loadings,
+     main = "Female Loadings",
+     ylab = "value")
 
 crab_summary$legal_male_loading <- legal_male_loadings$legal_male_loadings[match(crab_summary$year, legal_male_loadings$year)]
 crab_summary$sublegal_male_loading <- sublegal_male_loadings$sublegal_male_loadings[match(crab_summary$year, sublegal_male_loadings$year)]
