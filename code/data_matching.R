@@ -268,3 +268,8 @@ crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, cra
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
 saveRDS(crab_final, file = here('data/Snow_CrabData', 'crab_summary.rds'))
+
+# Plot ice index
+plot(ice_means,
+     main = "Ice Index",
+     ylab = "value")
