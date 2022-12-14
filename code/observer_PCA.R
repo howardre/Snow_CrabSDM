@@ -7,19 +7,35 @@ library(here)
 library(vegan)
 library(dplyr)
 library(corrplot)
+library(ggplot2)
 
 # Functions ----
 
 # Load data ----
-observer_df <- readRDS(here('data/Snow_CrabData', 'observer_summarized.rds'))
+observer_all <- readRDS(here('data/Snow_CrabData', 'observer_all.rds'))
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
+
+# Convert to lat lon, group
+observer_locs <- observer_all %>% tidyr::extract(geometry, c('lon', 'lat'), '\\((.*), (.*)\\)', convert = TRUE)
+
+observer_df <- observer_locs %>%
+  group_by(year_lag, STATIONID) %>%
+  summarise(obs_male_legal = mean(tot_legal),
+            obs_male_sub = mean(sublegal),
+            obs_female = mean(female),
+            latitude = mean(lat),
+            longitude = mean(lon))
 
 # Filter to groups
 observer_df$lncpue_male_legal <- log(observer_df$obs_male_legal + 1)
 observer_df$lncpue_male_sublegal <- log(observer_df$obs_male_sub + 1)
 observer_df$lncpue_female <- log(observer_df$obs_female + 1)
 
-# Average values for the stations and years
+# 
+
+test_mat <- matrix(observer_df$lncpue_male_legal,
+                   nrow = dim(observer_df$longitude) * dim(observer_df$latitude), 
+                   ncol = observer_df$year_lag)
 
 # Make matrices with year and station ID for each group
 # Sites as rows, years as columns?
@@ -122,6 +138,10 @@ biplot(sublegal_male_pca)
 biplot(female_pca)
 
 ## Match to data frame
+legal_male_scores <- as.data.frame(legal_male_pca$scores[, 1])
+legal_male_scores <- tibble::rownames_to_column(legal_male_scores, "station")
+colnames(legal_male_scores)[2] <- "legal_male_scores"
+
 legal_male_loadings <- as.data.frame(legal_male_pca$loadings[, 1])
 legal_male_loadings <- tibble::rownames_to_column(legal_male_loadings, "year")
 colnames(legal_male_loadings)[2] <- "legal_male_loadings"
@@ -130,6 +150,10 @@ plot(legal_male_loadings,
      main = "Legal Male Loadings",
      ylab = "value")
 
+sublegal_male_scores <- as.data.frame(sublegal_male_pca$scores[, 1])
+sublegal_male_scores <- tibble::rownames_to_column(sublegal_male_scores, "station")
+colnames(sublegal_male_scores)[2] <- "sublegal_male_scores"
+
 sublegal_male_loadings <- as.data.frame(sublegal_male_pca$loadings[, 1])
 sublegal_male_loadings <- tibble::rownames_to_column(sublegal_male_loadings, "year")
 colnames(sublegal_male_loadings)[2] <- "sublegal_male_loadings"
@@ -137,6 +161,10 @@ colnames(sublegal_male_loadings)[2] <- "sublegal_male_loadings"
 plot(sublegal_male_loadings,
      main = "Sublegal Male Loadings",
      ylab = "value")
+
+female_scores <- as.data.frame(female_pca$scores[, 1])
+female_scores <- tibble::rownames_to_column(female_scores, "station")
+colnames(female_scores)[2] <- "female_scores"
 
 female_loadings <- as.data.frame(female_pca$loadings[, 1])
 female_loadings <- tibble::rownames_to_column(female_loadings, "year")
@@ -152,3 +180,36 @@ crab_summary$female_loading <- female_loadings$female_loadings[match(crab_summar
 
 # Save data
 saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_pca.rds'))
+
+# Plot spatially
+legal_male_scores$latitude <- observer_df$latitude[match(legal_male_scores$station, observer_df$STATIONID)]
+legal_male_scores$longitude <- observer_df$longitude[match(legal_male_scores$station, observer_df$STATIONID)]
+sublegal_male_scores$latitude <- observer_df$latitude[match(sublegal_male_scores$station, observer_df$STATIONID)]
+sublegal_male_scores$longitude <- observer_df$longitude[match(sublegal_male_scores$station, observer_df$STATIONID)]
+female_scores$latitude <- observer_df$latitude[match(female_scores$station, observer_df$STATIONID)]
+female_scores$longitude <- observer_df$longitude[match(female_scores$station, observer_df$STATIONID)]
+
+legal_male_sf <- st_as_sf(legal_male_scores,
+                          coords = c("longitude", "latitude"), 
+                          crs = 4269)
+sublegal_male_sf <- st_as_sf(sublegal_male_scores,
+                             coords = c("longitude", "latitude"), 
+                             crs = 4269)
+female_sf <- st_as_sf(female_scores,
+                      coords = c("longitude", "latitude"), 
+                      crs = 4269)
+
+ggplot() +
+  geom_sf(data = legal_male_sf,
+          aes(color = legal_male_scores),
+          size = 4) 
+
+ggplot() +
+  geom_sf(data = sublegal_male_sf,
+          aes(color = sublegal_male_scores),
+          size = 4) 
+
+ggplot() +
+  geom_sf(data = female_sf,
+          aes(color = female_scores),
+          size = 4) 
