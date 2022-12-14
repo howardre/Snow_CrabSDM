@@ -9,8 +9,6 @@ library(dplyr)
 library(corrplot)
 library(ggplot2)
 
-# Functions ----
-
 # Load data ----
 observer_all <- readRDS(here('data/Snow_CrabData', 'observer_all.rds'))
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
@@ -31,14 +29,8 @@ observer_df$lncpue_male_legal <- log(observer_df$obs_male_legal + 1)
 observer_df$lncpue_male_sublegal <- log(observer_df$obs_male_sub + 1)
 observer_df$lncpue_female <- log(observer_df$obs_female + 1)
 
-# 
-
-test_mat <- matrix(observer_df$lncpue_male_legal,
-                   nrow = dim(observer_df$longitude) * dim(observer_df$latitude), 
-                   ncol = observer_df$year_lag)
-
-# Make matrices with year and station ID for each group
-# Sites as rows, years as columns?
+# Make matrices ----
+# Year and station ID for each group
 legal_male_mat <- fossil::create.matrix(as.data.frame(observer_df),
                                         tax.name = "STATIONID",
                                         locality = "year_lag",
@@ -63,7 +55,7 @@ female_mat <- fossil::create.matrix(as.data.frame(observer_df),
                                         abund = T,
                                         abund.col = "lncpue_female")
 
-# Create matrices
+# Correlation plots
 corrplot(cor(legal_male_mat), is.corr = FALSE)
 corrplot(cor(sublegal_male_mat), is.corr = FALSE)
 corrplot(cor(female_mat), is.corr = FALSE)
@@ -73,7 +65,7 @@ legal_male_scaled <- scale(legal_male_mat)
 sublegal_male_scaled <- scale(sublegal_male_mat)
 female_scaled <- scale(female_mat)
 
-# PCA
+# PCA ----
 # prcomp version, using vegan below
 # legal_male_pca <- prcomp(legal_male_scaled,
 #                          scale = F,
@@ -137,7 +129,7 @@ biplot(legal_male_pca)
 biplot(sublegal_male_pca)
 biplot(female_pca)
 
-## Match to data frame
+# Match to data ----
 legal_male_scores <- as.data.frame(legal_male_pca$scores[, 1])
 legal_male_scores <- tibble::rownames_to_column(legal_male_scores, "station")
 colnames(legal_male_scores)[2] <- "legal_male_scores"
@@ -181,7 +173,7 @@ crab_summary$female_loading <- female_loadings$female_loadings[match(crab_summar
 # Save data
 saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_pca.rds'))
 
-# Plot spatially
+# Plot ----
 legal_male_scores$latitude <- observer_df$latitude[match(legal_male_scores$station, observer_df$STATIONID)]
 legal_male_scores$longitude <- observer_df$longitude[match(legal_male_scores$station, observer_df$STATIONID)]
 sublegal_male_scores$latitude <- observer_df$latitude[match(sublegal_male_scores$station, observer_df$STATIONID)]
