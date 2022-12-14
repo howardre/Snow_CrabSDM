@@ -177,6 +177,7 @@ observer_summarized <- observer_dates %>%
             obs_male_sub = mean(sublegal),
             obs_female = mean(female))
 
+saveRDS(observer_dates, file = here('data/Snow_CrabData', 'observer_all.rds'))
 saveRDS(observer_summarized, file = here('data/Snow_CrabData', 'observer_summarized.rds'))
 #saveRDS(bycatch_summarized, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
 
