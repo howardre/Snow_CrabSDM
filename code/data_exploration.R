@@ -4,7 +4,7 @@ library(dplyr)
 library(ggplot2)
 
 # Load data ----
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
+crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))
 bering_sea <- map_data("world")
 
 # Transform female and male data
@@ -328,3 +328,40 @@ ggplot() +
        y = "Latitude",
        color = "ln(catch+1)") +
   facet_wrap(~ year)
+
+# PCA
+# Group values by bins
+crab_grouped <- crab_trans %>%
+  group_by(station) %>%
+  summarise(legal_male_loading = mean(legal_male_loading),
+            sublegal_male_loading = mean(sublegal_male_loading),
+            female_loading = mean(female_loading),
+            latitude = mean(latitude),
+            longitude = mean(longitude))
+
+ggplot() +  
+  geom_polygon(aes(long, lat, group = group), data = bering_sea,
+               fill = "lightyellow4", 
+               colour = "black") +
+  geom_point(data = subset(crab_grouped, !is.na(female_loading)), 
+             aes(longitude, latitude,
+                 color = female_loading),
+             alpha = 0.2,
+             size = 3) +
+  scale_color_distiller(palette = "RdBu", direction = 1) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14)) +
+  labs(title = "Legal Male Loadings",
+       x = "Longitude",
+       y = "Latitude",
+       color = "loading values")
