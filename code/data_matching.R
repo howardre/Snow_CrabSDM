@@ -154,14 +154,97 @@ bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
 
 ggplot() +
   geom_sf(data = EBS$survey.grid) +
-  geom_sf(data = survey_sf,
-          aes(color = station)) +
+  geom_sf(data = observer_df,
+          aes(color = STATIONID)) +
   coord_sf(xlim = EBS$plot.boundary$x,
            ylim = EBS$plot.boundary$y) +
   scale_x_continuous(name = "Longitude", 
                      breaks = EBS$lon.breaks) + 
   scale_y_continuous(name = "Latitude", 
                      breaks = EBS$lat.breaks)  # shows that they are grouped into the polygons
+
+# Check for zeros
+observer_df$legal_presence <- ifelse(observer_df$tot_legal > 0, 1, 0)
+observer_df$sublegal_presence <- ifelse(observer_df$sublegal > 0, 1, 0)
+observer_df$female_presence <- ifelse(observer_df$female > 0, 1, 0)
+
+ggplot() +
+  geom_sf(data = EBS$survey.grid) +
+  geom_sf(data = observer_df,
+          aes(color = factor(legal_presence)),
+          size = 1.5) +
+  coord_sf(xlim = EBS$plot.boundary$x,
+           ylim = EBS$plot.boundary$y) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks) +
+  scale_fill_manual(values = c("red", "blue")) +
+  labs(title = "Legal Male Presence",
+       color = "Presence") +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14))
+
+ggplot() +
+  geom_sf(data = EBS$survey.grid) +
+  geom_sf(data = observer_df,
+          aes(color = factor(sublegal_presence)),
+          size = 1.5) +
+  coord_sf(xlim = EBS$plot.boundary$x,
+           ylim = EBS$plot.boundary$y) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks) +
+  scale_fill_manual(values = c("red", "blue")) +
+  labs(title = "Sublegal Male Presence",
+       color = "Presence") +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14))
+
+ggplot() +
+  geom_sf(data = EBS$survey.grid) +
+  geom_sf(data = observer_df,
+          aes(color = factor(female_presence)),
+          size = 1.5) +
+  coord_sf(xlim = EBS$plot.boundary$x,
+           ylim = EBS$plot.boundary$y) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks) +
+  scale_fill_manual(values = c("red", "blue")) +
+  labs(title = "Female Presence",
+       color = "Presence") +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 14),
+        axis.title = element_text(family = "serif", size = 18),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 18),
+        legend.title = element_text(family = "serif", size = 16),
+        legend.text = element_text(family = "serif", size = 14))
 
 # Combine the observer data
 # observer_combined <- rbind(observer_df, bycatch_df)
