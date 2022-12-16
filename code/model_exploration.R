@@ -31,7 +31,11 @@ crab_trans <- mutate(crab_summary,
                      lncpue_sub_male = log(immature_male + 1),
                      lncpue_obs_female = log(obs_female + 1),
                      lncpue_obs_sub_male = log(obs_male_sub + 1),
-                     lncpue_obs_leg_male = log(obs_male_legal + 1))
+                     lncpue_obs_leg_male = log(obs_male_legal + 1),
+                     pres_imm_female = ifelse(mature_female > 0, 1, 0),
+                     pres_mat_female = ifelse(immature_female > 0, 1, 0),
+                     pres_leg_male = ifelse(legal_male > 0, 1, 0),
+                     pres_sub_male = ifelse(immature_male > 0, 1, 0))
 
 # Look at correlation
 pairs(crab_trans[, c(4, 5, 15, 17)], cex = 0.3)
@@ -79,7 +83,7 @@ mat_female_gam2 <- gam(lncpue_mat_female ~ factor(year) +
                          s(phi) +
                          s(temperature) +
                          s(ice) +
-                         s(longitude, latitude, by = felegal_male_loading),
+                         s(longitude, latitude, by = female_loading),
                        data = crab_train[crab_train$lncpue_mat_female > 0, ])
 summary(mat_female_gam2) # 46.4
 
@@ -121,7 +125,7 @@ mat_female_tweedie2 <- gam(mature_female + 1 ~ factor(year) +
                              s(phi) +
                              s(temperature) +
                              s(ice) +
-                             s(longitude, latitude, by = felegal_male_loading),
+                             s(longitude, latitude, by = female_loading),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
@@ -554,155 +558,6 @@ image.plot(legend.only = T,
                               cex = 1.5,
                               family =  "serif"))
 
-# Random forests ----
-## Mature females ----
-set.seed(1993)
-rf_mat_females <- randomForest(lncpue_mat_female ~ year + 
-                                 
-                                 julian,
-                               data = crab_train, # throws error if NAs included
-                               ntree = 1000,
-                               mtry = 2,
-                               importance = T,
-                               proximity = T)
-print(rf_mat_females) 
-# 33.12% variance explained
-# Mean squared residuals: 12.24
-
-plot(rf_mat_females$mse)
-
-set.seed(1993)
-rf_mat_females1 <- randomForest(lncpue_mat_female ~ year + 
-                                  latitude +
-                                  julian +
-                                  depth +
-                                  phi +
-                                  temperature +
-                                  ice,
-                                data = crab_train,
-                                ntree = 1000,
-                                mtry = 2,
-                                importance = T,
-                                proximity = T)
-print(rf_mat_females1) 
-# 48.3% variance explained
-# Mean squared residuals: 9.4
-
-plot(rf_mat_females1$mse)
-
-rf_mat_females1$importance
-varImpPlot(rf_mat_females1)
-
-
-set.seed(1993)
-rf_mat_females2 <- randomForest(lncpue_mat_female ~ year + 
-                                  latitude +
-                                  julian +
-                                  depth +
-                                  phi +
-                                  temperature +
-                                  ice +
-                                  female_loading,
-                                data = crab_train,
-                                ntree = 3000,
-                                mtry = 2,
-                                importance = T,
-                                proximity = T)
-print(rf_mat_females2) 
-# 48.3% variance explained
-# Mean squared residuals: 9.5
-
-plot(rf_mat_females2$mse) 
-
-rf_mat_females2$importance
-varImpPlot(rf_mat_females2)
-
-
-set.seed(1993)
-rf_mat_females3 <- randomForest(lncpue_mat_female ~ year + 
-                                  latitude +
-                                  julian +
-                                  depth +
-                                  phi +
-                                  sst +
-                                  temperature +
-                                  lncpue_obs_female,
-                                data = na.exclude(crab_train),
-                                ntree = 3000,
-                                mtry = 5,
-                                importance = T,
-                                proximity = T)
-print(rf_mat_females3) 
-# 50.06% variance explained
-# Mean squared residuals: 8.86
-
-plot(rf_mat_females3$mse) 
-
-
-
-set.seed(1993)
-rf_mat_females4 <- randomForest(lncpue_mat_female ~ year + 
-                                  latitude +
-                                  julian +
-                                  depth +
-                                  phi +
-                                  sst +
-                                  temperature +
-                                  lncpue_obs_female,
-                                data = na.exclude(crab_train),
-                                ntree = 3000,
-                                mtry = 3,
-                                importance = T,
-                                proximity = T)
-print(rf_mat_females4) 
-# 50.38% variance explained
-# Mean squared residuals: 8.81
-
-plot(rf_mat_females4$mse) 
-
-rf_mat_females4$importance
-varImpPlot(rf_mat_females4)
-
-# Males
-set.seed(1993)
-rf_males <- randomForest(lncpue_male ~ latitude +
-                           longitude +
-                           julian,
-                          data = na.exclude(crab_train),
-                          ntree = 1000,
-                          mtry = 2,
-                          importance = T,
-                          proximity = T)
-print(rf_males)
-# 56.96% variance explained
-# Mean squared residuals: 0.42
-
-plot(rf_males$mse)
-
-
-set.seed(1993)
-rf_males1 <- randomForest(lncpue_male ~ depth +
-                            latitude +
-                            longitude +
-                            phi +
-                            ice +
-                            temperature +
-                            julian +
-                            male_mature +
-                            male_immature,
-                          data = na.exclude(crab_train),
-                          ntree = 1000,
-                          mtry = 5,
-                          importance = T,
-                          proximity = T)
-print(rf_males1)
-# 56.96% variance explained
-# Mean squared residuals: 0.42
-
-plot(rf_males1$mse)
-
-rf_males1$importance
-varImpPlot(rf_males1)
 
 
 # Boosted regression trees ----
@@ -713,7 +568,7 @@ varImpPlot(rf_males1)
 
 ## Mature females ----
 brt_mat_females1 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 24,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -723,7 +578,7 @@ summary(brt_mat_females1)
 
 
 brt_mat_females2 <- gbm.step(data = crab_train,
-                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.x = c(4:6, 15, 17, 19:20, 23),
                          gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 5,
@@ -733,7 +588,7 @@ summary(brt_mat_females2)
 
 
 brt_mat_females3 <- gbm.step(data = crab_train,
-                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.x = c(4:6, 15, 17, 19:20, 23),
                          gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 3,
@@ -743,7 +598,7 @@ summary(brt_mat_females3)
 
 
 brt_mat_females4 <- gbm.step(data = crab_train,
-                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.x = c(4:6, 15, 17, 19:20, 23),
                          gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 10,
@@ -753,7 +608,7 @@ summary(brt_mat_females4)
 
 
 brt_mat_females5 <- gbm.step(data = crab_train,
-                         gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                         gbm.x = c(4:6, 15, 17, 19:20, 23),
                          gbm.y = 24,
                          family = 'gaussian',
                          tree.complexity = 5,
@@ -763,7 +618,7 @@ summary(brt_mat_females5)
 
 
 brt_mat_females6 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 24,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -771,9 +626,8 @@ brt_mat_females6 <- gbm.step(data = crab_train,
                              bag.fraction = 0.25)
 summary(brt_mat_females6)
 
-
 # Attempt dropping variable
-females_mat_simp <- gbm.simplify(brt_mat_females4, n.drops = 5) # this takes forever
+females_mat_simp <- gbm.simplify(brt_mat_females4, n.drops = 8) # this takes forever
 summary(females_mat_simp)
 
 # Choose final model
@@ -782,7 +636,7 @@ females_mat_final <- brt_mat_females4 # Change this once decision made
 # Plot the variables
 windows()
 gbm.plot(females_mat_final,
-         n.plots = 9,
+         n.plots = 8,
          plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
@@ -813,7 +667,7 @@ females_mat_int$interactions
 
 # par(mfrow = c(1, 3))
 # gbm.perspec(females_final,
-#             2, 3,
+#             3,
 #             z.range = c(0, 7.69),
 #             theta = 60,
 #             col = "light blue",
@@ -839,9 +693,117 @@ females_mat_int$interactions
 #             cex.lab = 1,
 #             ticktype = "detailed")
 
+# Training data map
+nlat = 40
+nlon = 60
+latd = seq(min(crab_train$latitude), max(crab_train$latitude), length.out = nlat)
+lond = seq(min(crab_train$longitude), max(crab_train$longitude), length.out = nlon)
+spatial_grid_mat_female <- expand.grid(lond, latd)
+names(spatial_grid_mat_female) <- c('longitude', 'latitude')
+spatial_grid_mat_female$dist <- NA
+for (k in 1:nrow(spatial_grid_mat_female)) {
+  dist <-  distance_function(spatial_grid_mat_female$latitude[k],
+                             spatial_grid_mat_female$longitude[k],
+                             crab_train$latitude,
+                             crab_train$longitude)
+  spatial_grid_mat_female$dist[k] <- min(dist)
+}
+spatial_grid_mat_female$year <- 2010
+spatial_grid_mat_female$depth <- median(crab_train$depth, na.rm = T)
+spatial_grid_mat_female$phi <- median(crab_train$phi, na.rm = T)
+spatial_grid_mat_female$julian <- median(crab_train$julian, na.rm = T)
+spatial_grid_mat_female$temperature <- median(crab_train$temperature, na.rm = T)
+spatial_grid_mat_female$ice <- median(crab_train$ice, na.rm = T)
+spatial_grid_mat_female$female_loading <- median(crab_train$female_loading, na.rm = T) 
+
+preds_mat_female <- predict.gbm(females_mat_final,
+                                spatial_grid_mat_female,
+                                n.trees = females_mat_final$gbm.call$best.trees, 
+                                type = "response")
+summary(preds_mat_female)
+
+spatial_grid_mat_female$pred <- predict(females_mat_final,
+                                        spatial_grid_mat_female,
+                                        n.trees = females_mat_final$gbm.call$best.trees, 
+                                        type = "response")
+
+
+
+spatial_grid_mat_female$pred[spatial_grid_mat_female$dist > 30000] <- NA
+
+my_color = colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+color_levels = 100
+max_absolute_value = max(abs(c(min(spatial_grid_mat_female$pred, na.rm = T),
+                               max(spatial_grid_mat_female$pred, na.rm = T))))
+color_sequence = seq(max(spatial_grid_mat_female$pred, na.rm = T), 
+                     min(spatial_grid_mat_female$pred, na.rm = T),
+                     length.out = color_levels + 1)
+n_in_class = hist(spatial_grid_mat_female$pred, breaks = color_sequence, plot = F)$counts > 0
+col_to_include = min(which(n_in_class == T)):max(which(n_in_class == T))
+breaks_to_include = min(which(n_in_class == T)):(max(which(n_in_class == T)) + 1)
+
+par(mfrow = c(1, 1),
+    family = "serif")
+image(lond,
+      latd,
+      t(matrix(spatial_grid_mat_female$pred,
+               nrow = length(latd),
+               ncol = length(lond),
+               byrow = T)),
+      xlim = c(-181, -156),
+      ylim = range(crab_train$latitude, na.rm = TRUE) + c(-.4, .5),
+      axes = FALSE,
+      xlab = "",
+      ylab = "")
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcream")
+par(new = TRUE)
+image(lond,
+      latd,
+      t(matrix(spatial_grid_mat_female$pred,
+               nrow = length(latd),
+               ncol = length(lond),
+               byrow = T)),
+      col = my_color(n = color_levels)[col_to_include],
+      ylab = "Latitude",
+      xlab = "Longitude",
+      xlim = c(-181, -156),
+      ylim = range(crab_train$latitude, na.rm = TRUE) + c(-.4, .5),
+      main = "Distribution of Mature Females (BRT)",
+      cex.main = 1.5,
+      cex.lab = 1.5,
+      cex.axis = 1.5)
+symbols(crab_train$longitude[crab_train$lncpue_mat_female > 0],
+        crab_train$latitude[crab_train$lncpue_mat_female > 0],
+        circles = log(crab_train$lncpue_mat_female + 1)[crab_train$lncpue_mat_female > 0],
+        inches = 0.1,
+        bg = alpha('grey', 0.3),
+        fg = alpha('black', 0.1),
+        add = T)
+points(crab_train$longitude[crab_train$lncpue_mat_female == 0],
+       crab_train$latitude[crab_train$lncpue_mat_female == 0],
+       pch =  '')
+maps::map("worldHires",
+          fill = T,
+          col = "wheat4",
+          add = T)
+image.plot(legend.only = T,
+           col = jet.colors(100),
+           legend.shrink = 0.2,
+           smallplot = c(.19, .21, .20, .38),
+           legend.cex = 1,
+           axis.args = list(cex.axis = 1.2),
+           legend.width = 0.8,
+           legend.mar = 6,
+           zlim = c(min(spatial_grid_mat_female$pred, na.rm = T), 
+                    max(spatial_grid_mat_female$pred, na.rm = T)),
+           legend.args = list("log(cpue + 1)",
+                              side = 2, cex = 1.1))
+
+
+
 ## Immature females ----
 brt_imm_females1 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -851,7 +813,7 @@ summary(brt_imm_females1)
 
 
 brt_imm_females2 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -861,7 +823,7 @@ summary(brt_imm_females2)
 
 
 brt_imm_females3 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 3,
@@ -871,7 +833,7 @@ summary(brt_imm_females3)
 
 
 brt_imm_females4 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 10,
@@ -881,7 +843,7 @@ summary(brt_imm_females4)
 
 
 brt_imm_females5 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -891,7 +853,7 @@ summary(brt_imm_females5)
 
 
 brt_imm_females6 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(4:6, 15, 17, 19:20, 23),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -940,8 +902,15 @@ females_imm_int <- gbm.interactions(females_imm_final)
 females_imm_int$interactions
 
 ## Legal Males ----
-brt_leg_males1 <- gbm.step(data = crab_train,
-                             gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+base_brt_leg_males1 <- gbm.step(data = crab_train,
+                                gbm.x = c(6, 19, 20),
+                                gbm.y = 33,
+                                grid)
+
+
+
+brt_leg_males1 <- gbm.step(data = crab_train[crab_train$legal_male > 0, ],
+                             gbm.x = c(4:6, 15, 17, 19:20, 21),
                              gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -951,7 +920,7 @@ summary(brt_leg_males1)
 
 
 brt_leg_males2 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(4:6, 15, 17, 19:20, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -961,7 +930,7 @@ summary(brt_leg_males2)
 
 
 brt_leg_males3 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(4:6, 15, 17, 19:20, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 3,
@@ -971,7 +940,7 @@ summary(brt_leg_males3)
 
 
 brt_leg_males4 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(4:6, 15, 17, 19:20, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 10,
@@ -981,7 +950,7 @@ summary(brt_leg_males4)
 
 
 brt_leg_males5 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(4:6, 15, 17, 19:20, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -991,7 +960,7 @@ summary(brt_leg_males5)
 
 
 brt_leg_males6 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(4:6, 15, 17, 19:20, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1041,7 +1010,7 @@ males_leg_int$interactions
 
 ## Sublegal Males ----
 brt_sub_males1 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(4:6, 15, 17, 19:20, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1051,7 +1020,7 @@ summary(brt_sub_males1)
 
 
 brt_sub_males2 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(4:6, 15, 17, 19:20, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1061,7 +1030,7 @@ summary(brt_sub_males2)
 
 
 brt_sub_males3 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(4:6, 15, 17, 19:20, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 3,
@@ -1071,7 +1040,7 @@ summary(brt_sub_males3)
 
 
 brt_sub_males4 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(4:6, 15, 17, 19:20, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 10,
@@ -1081,7 +1050,7 @@ summary(brt_sub_males4)
 
 
 brt_sub_males5 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(4:6, 15, 17, 19:20, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1091,7 +1060,7 @@ summary(brt_sub_males5)
 
 
 brt_sub_males6 <- gbm.step(data = crab_train,
-                           gbm.x = c(2, 4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(4:6, 15, 17, 19:20, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
