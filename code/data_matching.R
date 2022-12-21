@@ -67,17 +67,20 @@ bycatch_potsum <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2021',
 bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2021', 'snowcrab_bycatch-1995-2021_retained_size_freq.csv'))
 
 # EBS survey data
-crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
+crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_BCS_snowEBSNBS.csv'), col_select = -c(1))
+crab_env <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
 crab_dates <- read_csv(here('data/Snow_CrabData', 'year_station_julian_day.csv'))
 names(crab_survey) <- tolower(names(crab_survey))
+names(crab_env) <- tolower(names(crab_env))
 crab_survey <- as.data.frame(crab_survey)
 
 # Add the julian days
-crab_survey <- merge(crab_survey, 
-                     crab_dates,
-                     by.x = c("akfin_survey_year", "gis_station"),
-                     by.y = c("year", "station"))
-crab_survey <- crab_survey %>%
+crab_julian <- crab_survey %>% left_join(crab_dates,
+                                         by = c("akfin_survey_year" = "year",
+                                                "gis_station" = "station"))
+crab_all <- crab_julian %>% left_join(crab_env)
+
+crab_reduced <- crab_all %>%
   filter(akfin_survey_year >= 1995) %>% # observer data only available until this date
   rename(year = akfin_survey_year,
          station = gis_station,
@@ -87,7 +90,7 @@ crab_survey <- crab_survey %>%
          temperature = gear_temperature)
 
 # Pivot to wide format
-survey_wide <- crab_survey %>%
+survey_wide <- crab_reduced %>%
   pivot_wider(names_from = mat_sex, 
               values_from = cpue)
 survey_wide <- as.data.frame(survey_wide)
@@ -268,7 +271,7 @@ saveRDS(observer_summarized, file = here('data/Snow_CrabData', 'observer_summari
 survey_combined <- merge(survey_wide, observer_summarized,
                          by.x = c("year", "station"),
                          by.y = c("year_lag", "STATIONID"),
-                         all.x = T)[, -18] # only 1455 rows with observer data
+                         all.x = T)[, -c(18, 22)] # only 1455 rows with observer data
 
 # Add environmental data ----
 # Load data
@@ -295,7 +298,7 @@ survey_data <- survey_combined
 coordinates(survey_data) <- c("longitude", "latitude")
 proj4string(survey_data) <- CRS("+proj=longlat +datum=WGS84")
 
-data_xy <- spTransform(survey_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+data_xy <- spTransform(survey_data, CRS("+proj=longlat +datum=WGS84 +no_defs"))
 data_xy <- as.data.frame(data_xy)
 
 coordinates(phi_data) <- c("x", "y")
