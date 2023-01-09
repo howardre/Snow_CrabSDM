@@ -298,39 +298,39 @@ survey_data <- survey_combined
 coordinates(survey_data) <- c("longitude", "latitude")
 proj4string(survey_data) <- CRS("+proj=longlat +datum=WGS84")
 
-data_xy <- spTransform(survey_data, CRS("+proj=longlat +datum=WGS84 +no_defs"))
+data_xy <- spTransform(survey_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 data_xy <- as.data.frame(data_xy)
 
 coordinates(phi_data) <- c("x", "y")
 proj4string(phi_data) <- CRS("+proj=longlat +datum=WGS84")
 
-phi_data_xy <- spTransform(phi_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+phi_data_xy <- spTransform(phi_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 phi_data_xy <- as.data.frame(phi_data_xy)
 
 coordinates(ice_data) <- c("lon", "lat")
 proj4string(ice_data) <- CRS("+proj=longlat +datum=WGS84")
 
-ice_data_xy <- spTransform(ice_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+ice_data_xy <- spTransform(ice_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 ice_data_xy <- as.data.frame(ice_data_xy)
 
 coordinates(sst_data) <- c("lon", "lat")
 proj4string(sst_data) <- CRS("+proj=longlat +datum=WGS84")
 
-sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, "ellps=WGS84")))
+sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
-data_xy[, c(19, 20)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+data_xy[, c(22, 23)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
                                                 data_xy[, c('latitude', 'longitude')],
                                                 k = 1))
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
-data_xy <- data_xy[-c(19, 20)]
+data_xy <- data_xy[-c(22, 23)]
 
-data_xy[, c(20, 21)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+data_xy[, c(23, 24)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
                                                 data_xy[, c('latitude', 'longitude', 'month', 'year')],
                                                 k = 1))
 data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
-data_xy <- data_xy[-c(20, 21)]
+data_xy <- data_xy[-c(23, 24)]
 
 # Get avg spatial value of ice in March, April and annual coverage overall for same months
 ice_data_filtered <- filter(ice_data_xy, month == c(3, 4))
