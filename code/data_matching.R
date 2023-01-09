@@ -313,11 +313,11 @@ proj4string(ice_data) <- CRS("+proj=longlat +datum=WGS84")
 ice_data_xy <- spTransform(ice_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 ice_data_xy <- as.data.frame(ice_data_xy)
 
-coordinates(sst_data) <- c("lon", "lat")
-proj4string(sst_data) <- CRS("+proj=longlat +datum=WGS84")
+# coordinates(sst_data) <- c("lon", "lat")
+# proj4string(sst_data) <- CRS("+proj=longlat +datum=WGS84")
 
-sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
-sst_data_xy <- as.data.frame(sst_data_xy)
+# sst_data_xy <- spTransform(sst_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
+# sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
 data_xy[, c(22, 23)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
@@ -326,11 +326,13 @@ data_xy[, c(22, 23)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
 data_xy <- data_xy[-c(22, 23)]
 
-data_xy[, c(23, 24)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
-                                                data_xy[, c('latitude', 'longitude', 'month', 'year')],
-                                                k = 1))
-data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
-data_xy <- data_xy[-c(23, 24)]
+# Remove SST match for now, not using and must eliminate many rows
+# data_xy <- data_xy[!is.na(data_xy$month), ]
+# data_xy[, c(23, 24)] <- as.data.frame(RANN::nn2(sst_data_xy[, c('lat', 'lon', 'month', 'year')],
+#                                                 data_xy[, c('latitude', 'longitude', 'month', 'year')],
+#                                                 k = 1))
+# data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
+# data_xy <- data_xy[-c(23, 24)]
 
 # Get avg spatial value of ice in March, April and annual coverage overall for same months
 ice_data_filtered <- filter(ice_data_xy, month == c(3, 4))
@@ -342,7 +344,7 @@ ice_means <- ice_data_filtered %>%
   group_by(year) %>%
   summarise(spatial_ice = mean(ice, na.rm = T))
 
-data_xy[, c(21, 22)] <- as.data.frame(RANN::nn2(ice_data_avg[, c('lat', 'lon', 'year')],
+data_xy[, c(23, 24)] <- as.data.frame(RANN::nn2(ice_data_avg[, c('lat', 'lon', 'year')],
                                                 data_xy[, c('latitude', 'longitude', 'year')],
                                                 k = 1))
 data_xy$ice <- as.data.frame(ice_data_avg)[c(data_xy$nn.idx), 4] 
@@ -350,7 +352,7 @@ data_xy$ice_index <- ice_means$spatial_ice[match(data_xy$year, ice_means$year)]
 
 
 # Convert back to lat, lon
-crab_final <- data_xy[-c(12, 13, 17, 18, 21, 22)]
+crab_final <- data_xy[-c(20, 21, 23, 24)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
