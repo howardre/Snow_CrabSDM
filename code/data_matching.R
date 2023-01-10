@@ -92,7 +92,7 @@ crab_reduced <- crab_all %>%
 # Pivot to wide format
 survey_wide <- crab_reduced %>%
   pivot_wider(names_from = mat_sex, 
-              values_from = cpue)
+              values_from = count)
 survey_wide <- as.data.frame(survey_wide)
 survey_wide$date <- date.mmddyy(survey_wide$julian)
 survey_wide$date <- as.Date(survey_wide$date, "%m/%d/%Y")
