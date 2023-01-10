@@ -30,6 +30,11 @@ observer_df$lncpue_male_legal <- log(observer_df$obs_male_legal + 1)
 observer_df$lncpue_male_sublegal <- log(observer_df$obs_male_sub + 1)
 observer_df$lncpue_female <- log(observer_df$obs_female + 1)
 
+# Histograms
+hist(observer_df$lncpue_male_legal)
+hist(observer_df$lncpue_male_sublegal)
+hist(observer_df$lncpue_female)
+
 # Make matrices ----
 # Year and station ID for each group
 legal_male_mat <- fossil::create.matrix(as.data.frame(observer_df),
