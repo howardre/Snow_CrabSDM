@@ -15,6 +15,7 @@ crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Convert to lat lon, group
 observer_locs <- observer_all %>% tidyr::extract(geometry, c('lon', 'lat'), '\\((.*), (.*)\\)', convert = TRUE)
+observer_locs <- observer_locs[-c(36)]
 
 observer_df <- observer_locs %>%
   group_by(year_lag, STATIONID) %>%
@@ -129,6 +130,11 @@ biplot(legal_male_pca)
 biplot(sublegal_male_pca)
 biplot(female_pca)
 
+# Components
+plot(legal_male_pca, type = "l")
+plot(sublegal_male_pca, type = "l")
+plot(female_pca, type = "l")
+
 # Match to data ----
 legal_male_scores <- as.data.frame(legal_male_pca$scores[, 1])
 legal_male_scores <- tibble::rownames_to_column(legal_male_scores, "station")
@@ -205,3 +211,61 @@ ggplot() +
   geom_sf(data = female_sf,
           aes(color = female_scores),
           size = 4) 
+
+# NMDS ----
+# Ultimately inappropriate for replacing PCA loadings due to non-orthogonal 
+# New matrices
+# Year and station ID for each group
+legal_male_mat2 <- fossil::create.matrix(as.data.frame(observer_df),
+                                         tax.name = "STATIONID",
+                                         locality = "year_lag",
+                                         time.col = NULL,
+                                         time = NULL,
+                                         abund = T,
+                                         abund.col = "obs_male_legal")
+
+sublegal_male_mat2 <- fossil::create.matrix(as.data.frame(observer_df),
+                                            tax.name = "STATIONID",
+                                            locality = "year_lag",
+                                            time.col = NULL,
+                                            time = NULL,
+                                            abund = T,
+                                            abund.col = "obs_male_sub")
+
+female_mat2 <- fossil::create.matrix(as.data.frame(observer_df),
+                                     tax.name = "STATIONID",
+                                     locality = "year_lag",
+                                     time.col = NULL,
+                                     time = NULL,
+                                     abund = T,
+                                     abund.col = "obs_female")
+
+# Distance matrices
+legal_male_dist <- as.matrix(vegdist(legal_male_mat2,
+                                     method = "bray"), labels = TRUE)
+
+set.seed(1993)
+legal_male_nmds <- metaMDS(legal_male_dist, trace = FALSE)
+
+plot(legal_male_nmds)
+stressplot(legal_male_nmds)
+
+legal_male_vec <- 1:10
+legal_male_stress <- numeric(length(legal_male_vec))
+legal_male_distance <- metaMDSdist(legal_male_mat2, trace = FALSE)
+set.seed(2)
+for(i in seq_along(legal_male_vec)) {
+  legal_male_nmds <- metaMDSiter(legal_male_distance, 
+                                 k = i,
+                                 trace = FALSE)
+  legal_male_stress[i] <- legal_male_nmds$stress
+}
+
+plot(k_vec, 
+     legal_male_stress, 
+     type = "b",
+     ylab = "Stress",
+     xlab = "Dimensions")
+
+legal_male_scores <- scores(legal_male_nmds)
+
