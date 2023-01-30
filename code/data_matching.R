@@ -92,7 +92,8 @@ crab_reduced <- crab_all %>%
 # Pivot to wide format
 survey_wide <- crab_reduced %>%
   pivot_wider(names_from = mat_sex, 
-              values_from = count)
+              values_from = count,
+              values_fill = list(count = 0))
 survey_wide <- as.data.frame(survey_wide)
 survey_wide$date <- date.mmddyy(survey_wide$julian)
 survey_wide$date <- as.Date(survey_wide$date, "%m/%d/%Y")
@@ -103,7 +104,6 @@ survey_wide <- survey_wide %>%
          legal_male = 'Legal Male',
          immature_female = 'Immature Female',
          mature_female = 'Mature Female')
-survey_wide <- survey_wide
 
 # Reformat data (summarize males, split up dates)
 crab_detailed <- clean_data(crab_dump)
@@ -352,7 +352,7 @@ data_xy$ice_index <- ice_means$spatial_ice[match(data_xy$year, ice_means$year)]
 
 
 # Convert back to lat, lon
-crab_final <- data_xy[-c(20, 21, 23, 24)]
+crab_final <- data_xy[-c(7, 20, 21, 23:25)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
