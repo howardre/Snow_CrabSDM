@@ -21,128 +21,156 @@ contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 
 # Load data ----
+# Make sure to run PCA first if updating the data matching script
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))
 
 # Transform female and male data
 crab_trans <- mutate(crab_summary,
-                     lncpue_mat_female = log(mature_female + 1),
-                     lncpue_imm_female = log(immature_female + 1),
-                     lncpue_leg_male = log(legal_male + 1),
-                     lncpue_sub_male = log(immature_male + 1),
-                     lncpue_obs_female = log(obs_female + 1),
-                     lncpue_obs_sub_male = log(obs_male_sub + 1),
-                     lncpue_obs_leg_male = log(obs_male_legal + 1),
+                     lncount_mat_female = log(mature_female + 1),
+                     lncount_imm_female = log(immature_female + 1),
+                     lncount_leg_male = log(legal_male + 1),
+                     lncount_sub_male = log(immature_male + 1),
                      pres_imm_female = ifelse(mature_female > 0, 1, 0),
                      pres_mat_female = ifelse(immature_female > 0, 1, 0),
                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
                      pres_sub_male = ifelse(immature_male > 0, 1, 0))
 
 # Look at correlation
-pairs(crab_trans[, c(4, 5, 15, 17)], cex = 0.3)
+pairs(crab_trans[, c(10, 11, 20, 21)], cex = 0.3) # potential issue with phi and depth
+
+summary(lm(phi ~ depth, data = crab_trans)) # R2: 0.27
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
 # Need to filter out stations without observer data in order to get accurate comparison
-crab_final <- crab_trans[complete.cases(crab_trans), ]
-crab_train <- as.data.frame(crab_final %>% 
+crab_train <- as.data.frame(crab_trans %>% 
                               filter(year < 2015))
-crab_test <- as.data.frame(crab_final %>% 
+crab_test <- as.data.frame(crab_trans %>% 
                              filter(year > 2014))
 
 # GAMs ----
 ## Mature Female ----
 # Gaussian
-hist(crab_train$lncpue_mat_female,
+hist(crab_train$lncount_mat_female,
      main = "Mature Female Catch",
-     xlab = "log(CPUE+1)") # zero-inflated
-hist(crab_train$lncpue_mat_female[crab_train$lncpue_mat_female > 0])
+     xlab = "log(count+1)") # zero-inflated
+hist(crab_train$lncount_mat_female[crab_train$lncount_mat_female > 0])
 
-mat_female_gam_base <- gam(lncpue_mat_female ~ factor(year) +
-                             s(longitude, latitude) +
-                             s(julian) +
-                             s(depth),
-                           data = crab_train[crab_train$lncpue_mat_female > 0, ])
-summary(mat_female_gam_base) # 44.1% explained
+# Base model with presence/absence
+mat_female_gam_base <- gam(pres_mat_female ~ factor(year) +
+                             te(longitude, latitude) +
+                             s(julian),
+                           data = crab_train,
+                           family = "binomial")
+summary(mat_female_gam_base) # 45.2% explained
 
 # Add environmental data
-mat_female_gam1 <- gam(lncpue_mat_female ~ factor(year) + 
-                         s(longitude, latitude) +
+mat_female_gam1 <- gam(lncount_mat_female ~ factor(year) + 
+                         te(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice),
-                       data = crab_train[crab_train$lncpue_mat_female > 0, ])
-summary(mat_female_gam1) # 44.7% explained
+                         s(ice_index),
+                       data = crab_train[crab_train$lncount_mat_female > 0, ])
+summary(mat_female_gam1) # 37.1% explained
 
 # Add obs data
-mat_female_gam2 <- gam(lncpue_mat_female ~ factor(year) +
-                         s(longitude, latitude) +
+mat_female_gam2 <- gam(lncount_mat_female ~ factor(year) +
+                         te(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice) +
+                         s(ice_index) +
                          s(longitude, latitude, by = female_loading),
-                       data = crab_train[crab_train$lncpue_mat_female > 0, ])
-summary(mat_female_gam2) # 46.4
+                       data = crab_train[crab_train$lncount_mat_female > 0, ])
+summary(mat_female_gam2) # 38.8%
+
+# Add pcod and bcs data
+mat_female_gam3 <- gam(lncount_mat_female ~ factor(year) +
+                         te(longitude, latitude) +
+                         s(julian) +
+                         s(depth) +
+                         s(phi) +
+                         s(temperature) +
+                         s(ice_index) +
+                         s(longitude, latitude, by = female_loading) +
+                         s(pcod_cpue),
+                       data = crab_train[crab_train$lncount_mat_female > 0, ])
+summary(mat_female_gam3) # 39.2%
 
 par(mfrow = c(2, 2))
-gam.check(mat_female_gam2)
+gam.check(mat_female_gam3)
 
 par(mfrow = c(3, 3))
-plot(mat_female_gam2)
+plot(mat_female_gam3)
 
 # Tweedie
 # Base model
 mat_female_tweedie <- gam(mature_female + 1 ~ factor(year) +
-                            s(longitude, latitude) +
+                            te(longitude, latitude) +
                             s(julian) +
                             s(depth),
                           data = crab_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(mat_female_tweedie) # 48.8% explained
+summary(mat_female_tweedie) # 63.3% explained
 
 # Add environmental data
 mat_female_tweedie1 <- gam(mature_female + 1 ~ factor(year) +
-                             s(longitude, latitude) +
+                             te(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice),
+                             s(ice_index),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(mat_female_tweedie1) # 52.4% explained
+summary(mat_female_tweedie1) # 64.5% explained
 
 # Add obs data
 mat_female_tweedie2 <- gam(mature_female + 1 ~ factor(year) +
-                             s(longitude, latitude) +
+                             te(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice) +
+                             s(ice_index) +
                              s(longitude, latitude, by = female_loading),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(mat_female_tweedie2) # 54.7%
+summary(mat_female_tweedie2) # 67%
+
+# Add pcod data
+mat_female_tweedie3 <- gam(mature_female + 1 ~ factor(year) +
+                             te(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice_index) +
+                             s(longitude, latitude, by = female_loading) +
+                             s(pcod_cpue),
+                           data = crab_train,
+                           family = tw(link = "log"),
+                           method = "REML")
+summary(mat_female_tweedie3) # 67.1%
 
 par(mfrow = c(2, 2))
-gam.check(mat_female_tweedie2)
+gam.check(mat_female_tweedie3)
 
 par(mfrow = c(3, 3))
-plot(mat_female_tweedie2)
+plot(mat_female_tweedie3)
 
 # Make map
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0))
-myvis_gam(mat_female_tweedie2,
+myvis_gam(mat_female_tweedie3,
           view = c('longitude', 'latitude'),
           too.far = 0.07,
           plot.type = 'contour',
@@ -170,105 +198,133 @@ image.plot(legend.only = T,
                             family = "serif"),
            legend.width = 0.8,
            legend.mar = 6,
-           zlim = c(min(mat_female_tweedie2$linear.predictors),
-                    max(mat_female_tweedie2$linear.predictors)),
-           legend.args = list("log(cpue+1)",
+           zlim = c(min(mat_female_tweedie3$linear.predictors),
+                    max(mat_female_tweedie3$linear.predictors)),
+           legend.args = list("log(count+1)",
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
 ## Immature Female ----
 # Gaussian
-hist(crab_train$lncpue_imm_female,
+hist(crab_train$lncount_imm_female,
      main = "Immature Female Catch",
-     xlab = "log(CPUE+1)") # zero-inflated
-hist(crab_train$lncpue_imm_female[crab_train$lncpue_imm_female > 0])
+     xlab = "log(count+1)") # zero-inflated
+hist(crab_train$lncount_imm_female[crab_train$lncount_imm_female > 0])
 
-imm_female_gam_base <- gam(lncpue_imm_female ~ factor(year) +
-                             s(longitude, latitude) +
-                             s(julian) +
-                             s(depth),
-                           data = crab_train[crab_train$lncpue_imm_female > 0, ])
-summary(imm_female_gam_base) # 22% explained
+imm_female_gam_base <- gam(pres_imm_female ~ factor(year) +
+                             te(longitude, latitude) +
+                             s(julian),
+                           data = crab_train,
+                           family = "binomial")
+summary(imm_female_gam_base) # 53.6% explained
 
 # Add environmental data
-imm_female_gam1 <- gam(lncpue_imm_female ~ factor(year) + 
-                         s(longitude, latitude) +
+imm_female_gam1 <- gam(lncount_imm_female ~ factor(year) + 
+                         te(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice),
-                       data = crab_train[crab_train$lncpue_imm_female > 0, ])
-summary(imm_female_gam1) # 28.3% explained
+                         s(ice_index),
+                       data = crab_train[crab_train$lncount_imm_female > 0, ])
+summary(imm_female_gam1) # 44.8% explained
 
 # Add obs data
-imm_female_gam2 <- gam(lncpue_imm_female ~ factor(year) +
-                         s(longitude, latitude) +
+imm_female_gam2 <- gam(lncount_imm_female ~ factor(year) +
+                         te(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice) +
+                         s(ice_index) +
                          s(longitude, latitude, by = female_loading),
-                       data = crab_train[crab_train$lncpue_imm_female > 0, ])
-summary(imm_female_gam2) # 28.4%
+                       data = crab_train[crab_train$lncount_imm_female > 0, ])
+summary(imm_female_gam2) # 47.1%
+
+# Add pcod data
+imm_female_gam3 <- gam(lncount_imm_female ~ factor(year) +
+                         te(longitude, latitude) +
+                         s(julian) +
+                         s(depth) +
+                         s(phi) +
+                         s(temperature) +
+                         s(ice_index) +
+                         s(longitude, latitude, by = female_loading) +
+                         s(pcod_cpue),
+                       data = crab_train[crab_train$lncount_imm_female > 0, ])
+summary(imm_female_gam3) # 47.9%
 
 par(mfrow = c(2, 2))
-gam.check(imm_female_gam2)
+gam.check(imm_female_gam3)
 
 par(mfrow = c(3, 3))
-plot(imm_female_gam2)
+plot(imm_female_gam3)
 
 # Tweedie
 # Base model
 imm_female_tweedie <- gam(immature_female + 1 ~ factor(year) +
-                            s(longitude, latitude) +
+                            te(longitude, latitude) +
                             s(julian) +
                             s(depth),
                           data = crab_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(imm_female_tweedie) # 41.6% explained
+summary(imm_female_tweedie) # 67.6% explained
 
 # Add environmental data
 imm_female_tweedie1 <- gam(immature_female + 1 ~ factor(year) +
-                             s(longitude, latitude) +
+                             te(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice),
+                             s(ice_index),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(imm_female_tweedie1) # 43% explained
+summary(imm_female_tweedie1) # 68.7% explained
 
 # Add obs data
 imm_female_tweedie2 <- gam(immature_female + 1 ~ factor(year) +
-                             s(longitude, latitude) +
+                             te(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice) +
-                             s(longitude, latitude, by = female_loading),
+                             s(ice_index) +
+                             te(longitude, latitude, by = female_loading),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(imm_female_tweedie2) # 43%
+summary(imm_female_tweedie2) # 69.9%
+
+# Add pcod data
+imm_female_tweedie3 <- gam(immature_female + 1 ~ factor(year) +
+                             te(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice_index) +
+                             te(longitude, latitude, by = female_loading) +
+                             s(pcod_cpue),
+                           data = crab_train,
+                           family = tw(link = "log"),
+                           method = "REML")
+summary(imm_female_tweedie3) # 70.1%
 
 par(mfrow = c(2, 2))
-gam.check(imm_female_tweedie2)
+gam.check(imm_female_tweedie3)
 
 par(mfrow = c(3, 3))
-plot(imm_female_tweedie2)
+plot(imm_female_tweedie3)
 
 # Make maps
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0))
-myvis_gam(imm_female_tweedie2,
+myvis_gam(imm_female_tweedie3,
           view = c('longitude', 'latitude'),
           too.far = 0.07,
           plot.type = 'contour',
@@ -296,9 +352,9 @@ image.plot(legend.only = T,
                             family = "serif"),
            legend.width = 0.8,
            legend.mar = 6,
-           zlim = c(min(imm_female_tweedie2$linear.predictors),
-                    max(imm_female_tweedie2$linear.predictors)),
-           legend.args = list("log(cpue+1)",
+           zlim = c(min(imm_female_tweedie3$linear.predictors),
+                    max(imm_female_tweedie3$linear.predictors)),
+           legend.args = list("log(count+1)",
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
@@ -306,40 +362,40 @@ image.plot(legend.only = T,
 
 ## Legal Male ----
 # Gaussian
-hist(crab_train$lncpue_leg_male,
+hist(crab_train$lncount_leg_male,
      main = "Legal Male Catch",
-     xlab = "log(CPUE+1)") 
-hist(crab_train$lncpue_leg_male[crab_train$lncpue_leg_male > 0])
+     xlab = "log(count+1)") 
+hist(crab_train$lncount_leg_male[crab_train$lncount_leg_male > 0])
 
-leg_male_gam_base <- gam(lncpue_leg_male ~ factor(year) +
-                             s(longitude, latitude) +
-                             s(julian) +
-                             s(depth),
-                           data = crab_train[crab_train$lncpue_leg_male > 0, ])
-summary(leg_male_gam_base) # 47.3% explained
+leg_male_gam_base <- gam(pres_leg_male ~ factor(year) +
+                           te(longitude, latitude) +
+                           s(julian),
+                         data = crab_train,
+                         family = "binomial")
+summary(leg_male_gam_base) # 55.6% explained
 
 # Add environmental data
-leg_male_gam1 <- gam(lncpue_leg_male ~ factor(year) + 
-                         s(longitude, latitude) +
+leg_male_gam1 <- gam(lncount_leg_male ~ factor(year) + 
+                         te(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice),
-                       data = crab_train[crab_train$lncpue_leg_male > 0, ])
-summary(leg_male_gam1) # 50.7% explained
+                         s(ice_index),
+                       data = crab_train[crab_train$lncount_leg_male > 0, ])
+summary(leg_male_gam1) # 48.1% explained
 
 # Add obs data
-leg_male_gam2 <- gam(lncpue_leg_male ~ factor(year) +
-                         s(longitude, latitude) +
+leg_male_gam2 <- gam(lncount_leg_male ~ factor(year) +
+                         te(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice) +
+                         s(ice_index) +
                          s(longitude, latitude, by = legal_male_loading),
-                       data = crab_train[crab_train$lncpue_leg_male > 0, ])
-summary(leg_male_gam2) # 54.5% explained
+                       data = crab_train[crab_train$lncount_leg_male > 0, ])
+summary(leg_male_gam2) # 50.9% explained
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_gam2)
@@ -350,53 +406,68 @@ plot(leg_male_gam2)
 # Tweedie
 # Base model
 leg_male_tweedie <- gam(legal_male + 1 ~ factor(year) +
-                            s(longitude, latitude) +
+                            te(longitude, latitude) +
                             s(julian) +
                             s(depth),
                           data = crab_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(leg_male_tweedie) # 39.6% explained
+summary(leg_male_tweedie) # 62.5% explained
 
 # Add environmental data
 leg_male_tweedie1 <- gam(legal_male + 1 ~ factor(year) +
-                             s(longitude, latitude) +
+                             te(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice),
+                             s(ice_index),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(leg_male_tweedie1) # 43.1% explained
+summary(leg_male_tweedie1) # 65.2% explained
 
 # Add obs data
 leg_male_tweedie2 <- gam(legal_male + 1 ~ factor(year) +
-                             s(longitude, latitude) +
+                             te(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice) +
+                             s(ice_index) +
                              s(longitude, latitude, by = legal_male_loading),
                            data = crab_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(leg_male_tweedie2) # 45.6%
+summary(leg_male_tweedie2) # 67.4%
+
+# Add pcod data
+leg_male_tweedie3 <- gam(legal_male + 1 ~ factor(year) +
+                           te(longitude, latitude) +
+                           s(julian) +
+                           s(depth) +
+                           s(phi) +
+                           s(temperature) +
+                           s(ice_index) +
+                           s(longitude, latitude, by = legal_male_loading) +
+                           s(pcod_cpue),
+                         data = crab_train,
+                         family = tw(link = "log"),
+                         method = "REML")
+summary(leg_male_tweedie3) # 67.4%
 
 par(mfrow = c(2, 2))
-gam.check(leg_male_tweedie2)
+gam.check(leg_male_tweedie3)
 
 par(mfrow = c(3, 3))
-plot(leg_male_tweedie2)
+plot(leg_male_tweedie3)
 
 # Make maps
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0))
-myvis_gam(leg_male_tweedie2,
+myvis_gam(leg_male_tweedie3,
           view = c('longitude', 'latitude'),
           too.far = 0.07,
           plot.type = 'contour',
@@ -424,49 +495,50 @@ image.plot(legend.only = T,
                             family = "serif"),
            legend.width = 0.8,
            legend.mar = 6,
-           zlim = c(min(leg_male_tweedie2$linear.predictors),
-                    max(leg_male_tweedie2$linear.predictors)),
-           legend.args = list("log(cpue+1)",
+           zlim = c(min(leg_male_tweedie3$linear.predictors),
+                    max(leg_male_tweedie3$linear.predictors)),
+           legend.args = list("log(count+1)",
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
 
 ## Sublegal Male ----
 # Gaussian
-hist(crab_train$lncpue_sub_male,
+hist(crab_train$lncount_sub_male,
      main = "Sublegal Male Catch",
-     xlab = "log(CPUE+1)") 
-hist(crab_train$lncpue_sub_male[crab_train$lncpue_sub_male > 0])
+     xlab = "log(count+1)") 
+hist(crab_train$lncount_sub_male[crab_train$lncount_sub_male > 0])
 
-sub_male_gam_base <- gam(lncpue_sub_male ~ factor(year) +
-                           s(longitude, latitude) +
+sub_male_gam_base <- gam(pres_sub_male ~ factor(year) +
+                           te(longitude, latitude) +
                            s(julian) +
                            s(depth),
-                         data = crab_train[crab_train$lncpue_sub_male > 0, ])
-summary(sub_male_gam_base) # 52.9% explained
+                         data = crab_train,
+                         family = "binomial")
+summary(sub_male_gam_base) # 64.3% explained
 
 # Add environmental data
-sub_male_gam1 <- gam(lncpue_sub_male ~ factor(year) + 
-                       s(longitude, latitude) +
+sub_male_gam1 <- gam(lncount_sub_male ~ factor(year) + 
+                       te(longitude, latitude) +
                        s(julian) +
                        s(depth) +
                        s(phi) +
                        s(temperature) +
-                       s(ice),
-                     data = crab_train[crab_train$lncpue_sub_male > 0, ])
-summary(sub_male_gam1) # 55.2% explained
+                       s(ice_index),
+                     data = crab_train[crab_train$lncount_sub_male > 0, ])
+summary(sub_male_gam1) # 63.9% explained
 
 # Add obs data
-sub_male_gam2 <- gam(lncpue_sub_male ~ factor(year) +
-                       s(longitude, latitude) +
+sub_male_gam2 <- gam(lncount_sub_male ~ factor(year) +
+                       te(longitude, latitude) +
                        s(julian) +
                        s(depth) +
                        s(phi) +
                        s(temperature) +
-                       s(ice) +
+                       s(ice_index) +
                        s(longitude, latitude, by = sublegal_male_loading),
-                     data = crab_train[crab_train$lncpue_sub_male > 0, ])
-summary(sub_male_gam2) # 57.2% explained
+                     data = crab_train[crab_train$lncount_sub_male > 0, ])
+summary(sub_male_gam2) # 65.7% explained
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_gam2)
@@ -477,53 +549,68 @@ plot(sub_male_gam2)
 # Tweedie
 # Base model
 sub_male_tweedie <- gam(immature_male + 1 ~ factor(year) +
-                          s(longitude, latitude) +
+                          te(longitude, latitude) +
                           s(julian) +
                           s(depth),
                         data = crab_train,
                         family = tw(link = "log"),
                         method = "REML")
-summary(sub_male_tweedie) # 45.9% explained
+summary(sub_male_tweedie) # 70.9% explained
 
 # Add environmental data
 sub_male_tweedie1 <- gam(immature_male + 1 ~ factor(year) +
-                           s(longitude, latitude) +
+                           te(longitude, latitude) +
                            s(julian) +
                            s(depth) +
                            s(phi) +
                            s(temperature) +
-                           s(ice),
+                           s(ice_index),
                          data = crab_train,
                          family = tw(link = "log"),
                          method = "REML")
-summary(sub_male_tweedie1) # 48.4% explained
+summary(sub_male_tweedie1) # 72.5% explained
 
 # Add obs data
 sub_male_tweedie2 <- gam(immature_male + 1 ~ factor(year) +
-                           s(longitude, latitude) +
+                           te(longitude, latitude) +
                            s(julian) +
                            s(depth) +
                            s(phi) +
                            s(temperature) +
-                           s(ice) +
+                           s(ice_index) +
                            s(longitude, latitude, by = sublegal_male_loading),
                          data = crab_train,
                          family = tw(link = "log"),
                          method = "REML")
-summary(sub_male_tweedie2) # 50.4%
+summary(sub_male_tweedie2) # 74.7%
+
+# Add pcod data
+sub_male_tweedie3 <- gam(immature_male + 1 ~ factor(year) +
+                           te(longitude, latitude) +
+                           s(julian) +
+                           s(depth) +
+                           s(phi) +
+                           s(temperature) +
+                           s(ice_index) +
+                           s(longitude, latitude, by = sublegal_male_loading) +
+                           s(pcod_cpue),
+                         data = crab_train,
+                         family = tw(link = "log"),
+                         method = "REML")
+summary(sub_male_tweedie3) # 74.8%
 
 par(mfrow = c(2, 2))
-gam.check(sub_male_tweedie2)
+gam.check(sub_male_tweedie3)
 
 par(mfrow = c(3, 3))
-plot(sub_male_tweedie2)
+plot(sub_male_tweedie3)
 
 # Make maps
 windows(width = 12, height = 10)
 par(mar = c(6.4, 7.2, .5, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0))
-myvis_gam(sub_male_tweedie2,
+myvis_gam(sub_male_tweedie3,
           view = c('longitude', 'latitude'),
           too.far = 0.07,
           plot.type = 'contour',
@@ -551,9 +638,9 @@ image.plot(legend.only = T,
                             family = "serif"),
            legend.width = 0.8,
            legend.mar = 6,
-           zlim = c(min(sub_male_tweedie2$linear.predictors),
-                    max(sub_male_tweedie2$linear.predictors)),
-           legend.args = list("log(cpue+1)",
+           zlim = c(min(sub_male_tweedie3$linear.predictors),
+                    max(sub_male_tweedie3$linear.predictors)),
+           legend.args = list("log(count+1)",
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
@@ -568,8 +655,8 @@ image.plot(legend.only = T,
 
 ## Mature females ----
 brt_mat_females1 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
-                             gbm.y = 24,
+                             gbm.x = c(8:10, 19:23, 26),
+                             gbm.y = 27,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
@@ -578,8 +665,8 @@ summary(brt_mat_females1)
 
 
 brt_mat_females2 <- gbm.step(data = crab_train,
-                         gbm.x = c(4:6, 15, 17, 19:20, 23),
-                         gbm.y = 24,
+                         gbm.x = c(8:10, 19:23, 26),
+                         gbm.y = 27,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
@@ -588,8 +675,8 @@ summary(brt_mat_females2)
 
 
 brt_mat_females3 <- gbm.step(data = crab_train,
-                         gbm.x = c(4:6, 15, 17, 19:20, 23),
-                         gbm.y = 24,
+                         gbm.x = c(8:10, 19:23, 26),
+                         gbm.y = 27,
                          family = 'gaussian',
                          tree.complexity = 3,
                          learning.rate = 0.01,
@@ -598,8 +685,8 @@ summary(brt_mat_females3)
 
 
 brt_mat_females4 <- gbm.step(data = crab_train,
-                         gbm.x = c(4:6, 15, 17, 19:20, 23),
-                         gbm.y = 24,
+                         gbm.x = c(8:10, 19:23, 26),
+                         gbm.y = 27,
                          family = 'gaussian',
                          tree.complexity = 10,
                          learning.rate = 0.01,
@@ -608,8 +695,8 @@ summary(brt_mat_females4)
 
 
 brt_mat_females5 <- gbm.step(data = crab_train,
-                         gbm.x = c(4:6, 15, 17, 19:20, 23),
-                         gbm.y = 24,
+                         gbm.x = c(8:10, 19:23, 26),
+                         gbm.y = 27,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
@@ -618,8 +705,8 @@ summary(brt_mat_females5)
 
 
 brt_mat_females6 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
-                             gbm.y = 24,
+                             gbm.x = c(8:10, 19:23, 26),
+                             gbm.y = 27,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
@@ -713,7 +800,7 @@ spatial_grid_mat_female$depth <- median(crab_train$depth, na.rm = T)
 spatial_grid_mat_female$phi <- median(crab_train$phi, na.rm = T)
 spatial_grid_mat_female$julian <- median(crab_train$julian, na.rm = T)
 spatial_grid_mat_female$temperature <- median(crab_train$temperature, na.rm = T)
-spatial_grid_mat_female$ice <- median(crab_train$ice, na.rm = T)
+spatial_grid_mat_female$ice_index <- median(crab_train$ice_index, na.rm = T)
 spatial_grid_mat_female$female_loading <- median(crab_train$female_loading, na.rm = T) 
 
 preds_mat_female <- predict.gbm(females_mat_final,
@@ -772,15 +859,15 @@ image(lond,
       cex.main = 1.5,
       cex.lab = 1.5,
       cex.axis = 1.5)
-symbols(crab_train$longitude[crab_train$lncpue_mat_female > 0],
-        crab_train$latitude[crab_train$lncpue_mat_female > 0],
-        circles = log(crab_train$lncpue_mat_female + 1)[crab_train$lncpue_mat_female > 0],
+symbols(crab_train$longitude[crab_train$lncount_mat_female > 0],
+        crab_train$latitude[crab_train$lncount_mat_female > 0],
+        circles = log(crab_train$lncount_mat_female + 1)[crab_train$lncount_mat_female > 0],
         inches = 0.1,
         bg = alpha('grey', 0.3),
         fg = alpha('black', 0.1),
         add = T)
-points(crab_train$longitude[crab_train$lncpue_mat_female == 0],
-       crab_train$latitude[crab_train$lncpue_mat_female == 0],
+points(crab_train$longitude[crab_train$lncount_mat_female == 0],
+       crab_train$latitude[crab_train$lncount_mat_female == 0],
        pch =  '')
 maps::map("worldHires",
           fill = T,
@@ -796,14 +883,14 @@ image.plot(legend.only = T,
            legend.mar = 6,
            zlim = c(min(spatial_grid_mat_female$pred, na.rm = T), 
                     max(spatial_grid_mat_female$pred, na.rm = T)),
-           legend.args = list("log(cpue + 1)",
+           legend.args = list("log(count + 1)",
                               side = 2, cex = 1.1))
 
 
 
 ## Immature females ----
 brt_imm_females1 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -813,7 +900,7 @@ summary(brt_imm_females1)
 
 
 brt_imm_females2 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -823,7 +910,7 @@ summary(brt_imm_females2)
 
 
 brt_imm_females3 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 3,
@@ -833,7 +920,7 @@ summary(brt_imm_females3)
 
 
 brt_imm_females4 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 10,
@@ -843,7 +930,7 @@ summary(brt_imm_females4)
 
 
 brt_imm_females5 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -853,7 +940,7 @@ summary(brt_imm_females5)
 
 
 brt_imm_females6 <- gbm.step(data = crab_train,
-                             gbm.x = c(4:6, 15, 17, 19:20, 23),
+                             gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -910,7 +997,7 @@ base_brt_leg_males1 <- gbm.step(data = crab_train,
 
 
 brt_leg_males1 <- gbm.step(data = crab_train[crab_train$legal_male > 0, ],
-                             gbm.x = c(4:6, 15, 17, 19:20, 21),
+                             gbm.x = c(8:10, 19:23, 21),
                              gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -920,7 +1007,7 @@ summary(brt_leg_males1)
 
 
 brt_leg_males2 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(8:10, 19:23, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -930,7 +1017,7 @@ summary(brt_leg_males2)
 
 
 brt_leg_males3 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(8:10, 19:23, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 3,
@@ -940,7 +1027,7 @@ summary(brt_leg_males3)
 
 
 brt_leg_males4 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(8:10, 19:23, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 10,
@@ -950,7 +1037,7 @@ summary(brt_leg_males4)
 
 
 brt_leg_males5 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(8:10, 19:23, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -960,7 +1047,7 @@ summary(brt_leg_males5)
 
 
 brt_leg_males6 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 21),
+                           gbm.x = c(8:10, 19:23, 21),
                            gbm.y = 26,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1010,7 +1097,7 @@ males_leg_int$interactions
 
 ## Sublegal Males ----
 brt_sub_males1 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(8:10, 19:23, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1020,7 +1107,7 @@ summary(brt_sub_males1)
 
 
 brt_sub_males2 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(8:10, 19:23, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1030,7 +1117,7 @@ summary(brt_sub_males2)
 
 
 brt_sub_males3 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(8:10, 19:23, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 3,
@@ -1040,7 +1127,7 @@ summary(brt_sub_males3)
 
 
 brt_sub_males4 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(8:10, 19:23, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 10,
@@ -1050,7 +1137,7 @@ summary(brt_sub_males4)
 
 
 brt_sub_males5 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(8:10, 19:23, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1060,7 +1147,7 @@ summary(brt_sub_males5)
 
 
 brt_sub_males6 <- gbm.step(data = crab_train,
-                           gbm.x = c(4:6, 15, 17, 19:20, 22),
+                           gbm.x = c(8:10, 19:23, 22),
                            gbm.y = 27,
                            family = 'gaussian',
                            tree.complexity = 5,
