@@ -92,8 +92,7 @@ crab_reduced <- crab_all %>%
 # Pivot to wide format
 survey_wide <- crab_reduced %>%
   pivot_wider(names_from = mat_sex, 
-              values_from = count,
-              values_fill = list(count = 0))
+              values_from = count)
 survey_wide <- as.data.frame(survey_wide)
 survey_wide$date <- date.mmddyy(survey_wide$julian)
 survey_wide$date <- as.Date(survey_wide$date, "%m/%d/%Y")
@@ -356,7 +355,19 @@ crab_final <- data_xy[-c(7, 20, 21, 23:25)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
-saveRDS(crab_final, file = here('data/Snow_CrabData', 'crab_summary.rds'))
+pcod_catch <- read_csv(here('data/Snow_CrabData', 'GAP_survey_pcod.csv'), col_select = -c(1))
+names(pcod_catch) <- tolower(names(pcod_catch))
+
+survey_pcod <- merge(crab_final, pcod_catch,
+                         by.x = c("year", "station"),
+                         by.y = c("year", "stationid"),
+                         all.x = T)[-c(23:32, 34)]
+
+names(survey_pcod)[names(survey_pcod) == "cpue_noha"] <- "pcod_cpue"
+names(survey_pcod)[names(survey_pcod) == "latitude.x"] <- "latitude"
+names(survey_pcod)[names(survey_pcod) == "longitude.x"] <- "longitude"
+
+saveRDS(survey_pcod, file = here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Plot ice index
 plot(ice_means,
