@@ -16,6 +16,7 @@ library(mapdata)
 library(fields)
 library(ggplot2)
 source(here('code/functions', 'vis_gam_COLORS.R'))
+source(here('code/functions', 'distance_function.R'))
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
@@ -654,7 +655,8 @@ image.plot(legend.only = T,
 # Want at least 1000 trees, but don't need to go way beyond it
 
 ## Mature females ----
-brt_mat_females1 <- gbm.step(data = crab_train,
+# Must remove all NA's from response in order to run 
+brt_mat_females1 <- gbm.step(data = subset(crab_train, !is.na(lncount_mat_female)),
                              gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 27,
                              family = 'gaussian',
@@ -664,7 +666,7 @@ brt_mat_females1 <- gbm.step(data = crab_train,
 summary(brt_mat_females1) 
 
 
-brt_mat_females2 <- gbm.step(data = crab_train,
+brt_mat_females2 <- gbm.step(data = subset(crab_train, !is.na(lncount_mat_female)),
                          gbm.x = c(8:10, 19:23, 26),
                          gbm.y = 27,
                          family = 'gaussian',
@@ -674,42 +676,42 @@ brt_mat_females2 <- gbm.step(data = crab_train,
 summary(brt_mat_females2)
 
 
-brt_mat_females3 <- gbm.step(data = crab_train,
+brt_mat_females3 <- gbm.step(data = subset(crab_train, !is.na(lncount_mat_female)),
                          gbm.x = c(8:10, 19:23, 26),
                          gbm.y = 27,
                          family = 'gaussian',
-                         tree.complexity = 3,
-                         learning.rate = 0.01,
+                         tree.complexity = 7,
+                         learning.rate = 0.05,
                          bag.fraction = 0.5) 
 summary(brt_mat_females3)
 
 
-brt_mat_females4 <- gbm.step(data = crab_train,
+brt_mat_females4 <- gbm.step(data = subset(crab_train, !is.na(lncount_mat_female)),
                          gbm.x = c(8:10, 19:23, 26),
                          gbm.y = 27,
                          family = 'gaussian',
                          tree.complexity = 10,
-                         learning.rate = 0.01,
+                         learning.rate = 0.05,
                          bag.fraction = 0.5) 
 summary(brt_mat_females4)
 
 
-brt_mat_females5 <- gbm.step(data = crab_train,
+brt_mat_females5 <- gbm.step(data = subset(crab_train, !is.na(lncount_mat_female)),
                          gbm.x = c(8:10, 19:23, 26),
                          gbm.y = 27,
                          family = 'gaussian',
                          tree.complexity = 5,
-                         learning.rate = 0.01,
+                         learning.rate = 0.05,
                          bag.fraction = 0.75)
 summary(brt_mat_females5)
 
 
-brt_mat_females6 <- gbm.step(data = crab_train,
+brt_mat_females6 <- gbm.step(data = subset(crab_train, !is.na(lncount_mat_female)),
                              gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 27,
                              family = 'gaussian',
                              tree.complexity = 5,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.25)
 summary(brt_mat_females6)
 
@@ -752,33 +754,33 @@ female_mat_effects %>% arrange(desc(rel.inf)) %>%
 females_mat_int <- gbm.interactions(females_mat_final)
 females_mat_int$interactions
 
-# par(mfrow = c(1, 3))
-# gbm.perspec(females_final,
-#             3,
-#             z.range = c(0, 7.69),
-#             theta = 60,
-#             col = "light blue",
-#             cex.axis = 0.8,
-#             cex.lab = 1,
-#             ticktype = "detailed")
-# 
-# gbm.perspec(females_final,
-#             1, 3,
-#             z.range = c(0, 10.75),
-#             theta = 60,
-#             col = "light blue",
-#             cex.axis = 0.8,
-#             cex.lab = 1,
-#             ticktype = "detailed")
-# 
-# gbm.perspec(females_final,
-#             1, 2,
-#             z.range = c(0, 9.45),
-#             theta = 60,
-#             col = "light blue",
-#             cex.axis = 0.8,
-#             cex.lab = 1,
-#             ticktype = "detailed")
+par(mfrow = c(1, 3))
+gbm.perspec(females_mat_final,
+            2, 3,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_mat_final,
+            2, 7,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_mat_final,
+            1, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
 
 # Training data map
 nlat = 40
@@ -802,6 +804,7 @@ spatial_grid_mat_female$julian <- median(crab_train$julian, na.rm = T)
 spatial_grid_mat_female$temperature <- median(crab_train$temperature, na.rm = T)
 spatial_grid_mat_female$ice_index <- median(crab_train$ice_index, na.rm = T)
 spatial_grid_mat_female$female_loading <- median(crab_train$female_loading, na.rm = T) 
+spatial_grid_mat_female$pcod_cpue <- median(crab_train$pcod_cpue, na.rm = T)
 
 preds_mat_female <- predict.gbm(females_mat_final,
                                 spatial_grid_mat_female,
@@ -859,16 +862,16 @@ image(lond,
       cex.main = 1.5,
       cex.lab = 1.5,
       cex.axis = 1.5)
-symbols(crab_train$longitude[crab_train$lncount_mat_female > 0],
-        crab_train$latitude[crab_train$lncount_mat_female > 0],
-        circles = log(crab_train$lncount_mat_female + 1)[crab_train$lncount_mat_female > 0],
-        inches = 0.1,
-        bg = alpha('grey', 0.3),
-        fg = alpha('black', 0.1),
-        add = T)
-points(crab_train$longitude[crab_train$lncount_mat_female == 0],
-       crab_train$latitude[crab_train$lncount_mat_female == 0],
-       pch =  '')
+# symbols(crab_train$longitude[crab_train$lncount_mat_female > 0],
+#         crab_train$latitude[crab_train$lncount_mat_female > 0],
+#         circles = log(crab_train$lncount_mat_female + 1)[crab_train$lncount_mat_female > 0],
+#         inches = 0.1,
+#         bg = alpha('grey', 0.3),
+#         fg = alpha('black', 0.1),
+#         add = T)
+# points(crab_train$longitude[crab_train$lncount_mat_female == 0],
+#        crab_train$latitude[crab_train$lncount_mat_female == 0],
+#        pch =  '')
 maps::map("worldHires",
           fill = T,
           col = "wheat4",
@@ -885,7 +888,6 @@ image.plot(legend.only = T,
                     max(spatial_grid_mat_female$pred, na.rm = T)),
            legend.args = list("log(count + 1)",
                               side = 2, cex = 1.1))
-
 
 
 ## Immature females ----
@@ -913,8 +915,8 @@ brt_imm_females3 <- gbm.step(data = crab_train,
                              gbm.x = c(8:10, 19:23, 26),
                              gbm.y = 25,
                              family = 'gaussian',
-                             tree.complexity = 3,
-                             learning.rate = 0.01,
+                             tree.complexity = 7,
+                             learning.rate = 0.05,
                              bag.fraction = 0.5) 
 summary(brt_imm_females3)
 
