@@ -53,25 +53,29 @@ crab_test <- as.data.frame(crab_trans %>%
 mat_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_index, 
          longitude, latitude, julian, female_loading,
-         lncount_mat_female, mature_female, year) %>%
+         pcod_cpue, lncount_mat_female, mature_female, 
+         year) %>%
   tidyr::drop_na(lncount_mat_female)
 
 imm_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_index, 
                 longitude, latitude, julian, female_loading,
-                lncount_imm_female, immature_female, year) %>%
+                pcod_cpue, lncount_imm_female, immature_female, 
+                year) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_index, 
                 longitude, latitude, julian, female_loading,
-                lncount_leg_male, legal_male, year) %>%
+                pcod_cpue, lncount_leg_male, legal_male, 
+                year) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_index, 
                 longitude, latitude, julian, female_loading,
-                lncount_sub_male, immature_male, year) %>%
+                pcod_cpue, lncount_sub_male, immature_male, 
+                year) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = immature_male)
 
@@ -683,8 +687,8 @@ image.plot(legend.only = T,
 ## Mature females ----
 # Must remove all NA's from response in order to run 
 brt_mat_females1 <- gbm.step(data = mat_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 27,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
@@ -693,8 +697,8 @@ summary(brt_mat_females1)
 
 
 brt_mat_females2 <- gbm.step(data = mat_female_train,
-                         gbm.x = c(8:10, 19:23, 26),
-                         gbm.y = 27,
+                         gbm.x = c(1:9, 12),
+                         gbm.y = 10,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.01,
@@ -703,8 +707,8 @@ summary(brt_mat_females2)
 
 
 brt_mat_females3 <- gbm.step(data = mat_female_train,
-                         gbm.x = c(8:10, 19:23, 26),
-                         gbm.y = 27,
+                         gbm.x = c(1:9, 12),
+                         gbm.y = 10,
                          family = 'gaussian',
                          tree.complexity = 7,
                          learning.rate = 0.05,
@@ -713,8 +717,8 @@ summary(brt_mat_females3)
 
 
 brt_mat_females4 <- gbm.step(data = mat_female_train,
-                         gbm.x = c(8:10, 19:23, 26),
-                         gbm.y = 27,
+                         gbm.x = c(1:9, 12),
+                         gbm.y = 10,
                          family = 'gaussian',
                          tree.complexity = 10,
                          learning.rate = 0.05,
@@ -723,8 +727,8 @@ summary(brt_mat_females4)
 
 
 brt_mat_females5 <- gbm.step(data = mat_female_train,
-                         gbm.x = c(8:10, 19:23, 26),
-                         gbm.y = 27,
+                         gbm.x = c(1:9, 12),
+                         gbm.y = 10,
                          family = 'gaussian',
                          tree.complexity = 5,
                          learning.rate = 0.05,
@@ -733,8 +737,8 @@ summary(brt_mat_females5)
 
 
 brt_mat_females6 <- gbm.step(data = mat_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 27,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
@@ -917,9 +921,10 @@ image.plot(legend.only = T,
 
 
 ## Immature females ----
+# Must remove all NA's from response in order to run 
 brt_imm_females1 <- gbm.step(data = imm_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 25,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
@@ -928,8 +933,8 @@ summary(brt_imm_females1)
 
 
 brt_imm_females2 <- gbm.step(data = imm_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 25,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
@@ -938,8 +943,8 @@ summary(brt_imm_females2)
 
 
 brt_imm_females3 <- gbm.step(data = imm_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 25,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 7,
                              learning.rate = 0.05,
@@ -948,46 +953,45 @@ summary(brt_imm_females3)
 
 
 brt_imm_females4 <- gbm.step(data = imm_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 25,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 10,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.5) 
 summary(brt_imm_females4)
 
 
 brt_imm_females5 <- gbm.step(data = imm_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 25,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.75)
 summary(brt_imm_females5)
 
 
 brt_imm_females6 <- gbm.step(data = imm_female_train,
-                             gbm.x = c(8:10, 19:23, 26),
-                             gbm.y = 25,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.25)
 summary(brt_imm_females6)
 
-
 # Attempt dropping variable
-females_imm_simp <- gbm.simplify(brt_imm_females1, n.drops = 5) # this takes forever
-summary(females_simp)
+females_imm_simp <- gbm.simplify(brt_imm_females4, n.drops = 8) # this takes forever
+summary(females_imm_simp)
 
 # Choose final model
-females_imm_final <- brt_imm_females5 # Change this once decision made
+females_imm_final <- brt_imm_females4 # Change this once decision made
 
 # Plot the variables
 windows()
 gbm.plot(females_imm_final,
-         n.plots = 9,
+         n.plots = 8,
          plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
@@ -1016,17 +1020,40 @@ female_imm_effects %>% arrange(desc(rel.inf)) %>%
 females_imm_int <- gbm.interactions(females_imm_final)
 females_imm_int$interactions
 
+par(mfrow = c(1, 3))
+gbm.perspec(females_imm_final,
+            7, 2,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_imm_final,
+            6, 1,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_imm_final,
+            2, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+
 ## Legal Males ----
-base_brt_leg_males1 <- gbm.step(data = leg_male_train,
-                                gbm.x = c(6, 19, 20),
-                                gbm.y = 33,
-                                grid)
-
-
-
-brt_leg_males1 <- gbm.step(data = leg_male_train[leg_male_train$legal_male > 0, ],
-                             gbm.x = c(8:10, 19:23, 21),
-                             gbm.y = 26,
+# Must remove all NA's from response in order to run 
+brt_leg_males1 <- gbm.step(data = leg_male_train,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.05,
@@ -1035,8 +1062,8 @@ summary(brt_leg_males1)
 
 
 brt_leg_males2 <- gbm.step(data = leg_male_train,
-                           gbm.x = c(8:10, 19:23, 21),
-                           gbm.y = 26,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
                              learning.rate = 0.01,
@@ -1045,56 +1072,55 @@ summary(brt_leg_males2)
 
 
 brt_leg_males3 <- gbm.step(data = leg_male_train,
-                           gbm.x = c(8:10, 19:23, 21),
-                           gbm.y = 26,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
-                             tree.complexity = 3,
-                             learning.rate = 0.01,
+                             tree.complexity = 7,
+                             learning.rate = 0.05,
                              bag.fraction = 0.5) 
 summary(brt_leg_males3)
 
 
 brt_leg_males4 <- gbm.step(data = leg_male_train,
-                           gbm.x = c(8:10, 19:23, 21),
-                           gbm.y = 26,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 10,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.5) 
 summary(brt_leg_males4)
 
 
 brt_leg_males5 <- gbm.step(data = leg_male_train,
-                           gbm.x = c(8:10, 19:23, 21),
-                           gbm.y = 26,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.75)
 summary(brt_leg_males5)
 
 
 brt_leg_males6 <- gbm.step(data = leg_male_train,
-                           gbm.x = c(8:10, 19:23, 21),
-                           gbm.y = 26,
+                             gbm.x = c(1:9, 12),
+                             gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
-                             learning.rate = 0.01,
+                             learning.rate = 0.05,
                              bag.fraction = 0.25)
 summary(brt_leg_males6)
 
-
 # Attempt dropping variable
-males_leg_simp <- gbm.simplify(brt_leg_males1, n.drops = 5) # this takes forever
-summary(females_simp)
+leg_male_simp <- gbm.simplify(brt_leg_males4, n.drops = 8) # this takes forever
+summary(leg_male_simp)
 
 # Choose final model
-males_leg_final <- brt_leg_males5 # Change this once decision made
+leg_male_final <- brt_leg_males4 # Change this once decision made
 
 # Plot the variables
 windows()
-gbm.plot(males_leg_final,
-         n.plots = 9,
+gbm.plot(leg_male_final,
+         n.plots = 8,
          plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
@@ -1104,8 +1130,8 @@ gbm.plot(males_leg_final,
          lwd = 1.5)
 
 windows()
-male_leg_effects <- tibble::as_tibble(summary.gbm(males_leg_final, plotit = F))
-male_leg_effects %>% arrange(desc(rel.inf)) %>%
+leg_male_effects <- tibble::as_tibble(summary.gbm(leg_male_final, plotit = F))
+leg_male_effects %>% arrange(desc(rel.inf)) %>%
   ggplot(aes(x = forcats::fct_reorder(.f = var,
                                       .x = rel.inf),
              y = rel.inf,
@@ -1120,13 +1146,43 @@ male_leg_effects %>% arrange(desc(rel.inf)) %>%
   ggtitle('Variable Influence on Legal Male Snow Crab')
 
 # Plot the fits
-males_leg_int <- gbm.interactions(males_leg_final)
-males_leg_int$interactions
+leg_male_int <- gbm.interactions(leg_male_final)
+leg_male_int$interactions
+
+par(mfrow = c(1, 3))
+gbm.perspec(leg_male_final,
+            2, 3,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(leg_male_final,
+            2, 7,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(leg_male_final,
+            1, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
 
 ## Sublegal Males ----
+# Must remove all NA's from response in order to run 
 brt_sub_males1 <- gbm.step(data = sub_male_train,
-                           gbm.x = c(8:10, 19:23, 22),
-                           gbm.y = 27,
+                           gbm.x = c(1:9, 12),
+                           gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
                            learning.rate = 0.05,
@@ -1135,8 +1191,8 @@ summary(brt_sub_males1)
 
 
 brt_sub_males2 <- gbm.step(data = sub_male_train,
-                           gbm.x = c(8:10, 19:23, 22),
-                           gbm.y = 27,
+                           gbm.x = c(1:9, 12),
+                           gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
                            learning.rate = 0.01,
@@ -1145,56 +1201,55 @@ summary(brt_sub_males2)
 
 
 brt_sub_males3 <- gbm.step(data = sub_male_train,
-                           gbm.x = c(8:10, 19:23, 22),
-                           gbm.y = 27,
+                           gbm.x = c(1:9, 12),
+                           gbm.y = 10,
                            family = 'gaussian',
-                           tree.complexity = 3,
-                           learning.rate = 0.01,
+                           tree.complexity = 7,
+                           learning.rate = 0.05,
                            bag.fraction = 0.5) 
 summary(brt_sub_males3)
 
 
 brt_sub_males4 <- gbm.step(data = sub_male_train,
-                           gbm.x = c(8:10, 19:23, 22),
-                           gbm.y = 27,
+                           gbm.x = c(1:9, 12),
+                           gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 10,
-                           learning.rate = 0.01,
+                           learning.rate = 0.05,
                            bag.fraction = 0.5) 
 summary(brt_sub_males4)
 
 
 brt_sub_males5 <- gbm.step(data = sub_male_train,
-                           gbm.x = c(8:10, 19:23, 22),
-                           gbm.y = 27,
+                           gbm.x = c(1:9, 12),
+                           gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
-                           learning.rate = 0.01,
+                           learning.rate = 0.05,
                            bag.fraction = 0.75)
 summary(brt_sub_males5)
 
 
 brt_sub_males6 <- gbm.step(data = sub_male_train,
-                           gbm.x = c(8:10, 19:23, 22),
-                           gbm.y = 27,
+                           gbm.x = c(1:9, 12),
+                           gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
-                           learning.rate = 0.01,
+                           learning.rate = 0.05,
                            bag.fraction = 0.25)
 summary(brt_sub_males6)
 
-
 # Attempt dropping variable
-males_sub_simp <- gbm.simplify(brt_sub_males1, n.drops = 5) # this takes forever
-summary(females_simp)
+sub_male_simp <- gbm.simplify(brt_sub_males4, n.drops = 8) # this takes forever
+summary(sub_male_simp)
 
 # Choose final model
-males_sub_final <- brt_sub_males5 # Change this once decision made
+sub_male_final <- brt_sub_males4 # Change this once decision made
 
 # Plot the variables
 windows()
-gbm.plot(males_sub_final,
-         n.plots = 9,
+gbm.plot(sub_male_final,
+         n.plots = 8,
          plot.layout = c(3, 3),
          write.title = F,
          smooth = T,
@@ -1204,8 +1259,8 @@ gbm.plot(males_sub_final,
          lwd = 1.5)
 
 windows()
-male_sub_effects <- tibble::as_tibble(summary.gbm(males_sub_final, plotit = F))
-male_sub_effects %>% arrange(desc(rel.inf)) %>%
+sub_male_effects <- tibble::as_tibble(summary.gbm(sub_male_final, plotit = F))
+sub_male_effects %>% arrange(desc(rel.inf)) %>%
   ggplot(aes(x = forcats::fct_reorder(.f = var,
                                       .x = rel.inf),
              y = rel.inf,
@@ -1220,5 +1275,33 @@ male_sub_effects %>% arrange(desc(rel.inf)) %>%
   ggtitle('Variable Influence on Sublegal Male Snow Crab')
 
 # Plot the fits
-males_sub_int <- gbm.interactions(males_sub_final)
-males_sub_int$interactions
+sub_male_int <- gbm.interactions(sub_male_final)
+sub_male_int$interactions
+
+par(mfrow = c(1, 3))
+gbm.perspec(sub_male_final,
+            2, 3,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(sub_male_final,
+            2, 7,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(sub_male_final,
+            1, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
