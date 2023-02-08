@@ -9,13 +9,16 @@ bering_sea <- map_data("world")
 
 # Transform female and male data
 crab_trans <- mutate(crab_summary,
-                     lncpue_mat_female = log(mature_female + 1),
-                     lncpue_imm_female = log(immature_female + 1),
-                     lncpue_leg_male = log(legal_male + 1),
-                     lncpue_sub_male = log(immature_male + 1),
-                     lncpue_obs_female = log(obs_female + 1),
-                     lncpue_obs_sub_male = log(obs_male_sub + 1),
-                     lncpue_obs_leg_male = log(obs_male_legal + 1))
+                     lncount_mat_female = log(mature_female + 1),
+                     lncount_imm_female = log(immature_female + 1),
+                     lncount_leg_male = log(legal_male + 1),
+                     lncount_sub_male = log(immature_male + 1),
+                     pres_imm_female = ifelse(immature_female > 0, 1, 0),
+                     pres_mat_female = ifelse(mature_female > 0, 1, 0),
+                     pres_leg_male = ifelse(legal_male > 0, 1, 0),
+                     pres_sub_male = ifelse(immature_male > 0, 1, 0),
+                     year_f = as.factor(year),
+                     log_pcod_cpue = log(pcod_cpue + 1))
 
 # Map of survey data
 # Legal males
@@ -23,13 +26,13 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = crab_trans, 
+  geom_point(data = crab_trans[crab_trans$legal_male > 0,], 
              aes(longitude, latitude,
-                 size = lncpue_leg_male),
+                 size = legal_male),
              alpha = 0.2,
              color = "salmon") +
   scale_size_area() +
-  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 66)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
         axis.line = element_blank(),
@@ -44,7 +47,7 @@ ggplot() +
   labs(title = "Legal Males",
        x = "Longitude",
        y = "Latitude",
-       size = "ln(catch+1)") 
+       size = "Count") 
 
 ggplot() +  
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
@@ -52,7 +55,7 @@ ggplot() +
                colour = "black") +
   geom_point(data = crab_trans, 
              aes(longitude, latitude,
-                 color = lncpue_leg_male),
+                 color = lncount_leg_male),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
@@ -79,13 +82,13 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = crab_trans, 
+  geom_point(data = crab_trans[crab_trans$immature_male > 0, ], 
              aes(longitude, latitude,
-                 size = lncpue_sub_male),
+                 size = immature_male),
              alpha = 0.2,
              color = "salmon") +
   scale_size_area() +
-  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 66)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
         axis.line = element_blank(),
@@ -100,7 +103,7 @@ ggplot() +
   labs(title = "Sublegal Males",
        x = "Longitude",
        y = "Latitude",
-       size = "ln(catch+1)") 
+       size = "Count") 
 
 ggplot() +  
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
@@ -108,7 +111,7 @@ ggplot() +
                colour = "black") +
   geom_point(data = crab_trans, 
              aes(longitude, latitude,
-                 color = lncpue_sub_male),
+                 color = lncount_sub_male),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
@@ -135,13 +138,13 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = crab_trans, 
+  geom_point(data = crab_trans[crab_trans$mature_female > 0, ], 
              aes(longitude, latitude,
-                 size = lncpue_mat_female),
+                 size = mature_female),
              alpha = 0.2,
              color = "salmon") +
   scale_size_area() +
-  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 66)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
         axis.line = element_blank(),
@@ -156,7 +159,7 @@ ggplot() +
   labs(title = "Mature Females",
        x = "Longitude",
        y = "Latitude",
-       size = "ln(catch+1)") 
+       size = "Count") 
 
 ggplot() +  
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
@@ -164,7 +167,7 @@ ggplot() +
                colour = "black") +
   geom_point(data = crab_trans, 
              aes(longitude, latitude,
-                 color = lncpue_mat_female),
+                 color = lncount_mat_female),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
@@ -191,13 +194,13 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = crab_trans, 
+  geom_point(data = crab_trans[crab_trans$immature_female > 0, ], 
              aes(longitude, latitude,
-                 size = lncpue_imm_female),
+                 size = immature_female),
              alpha = 0.2,
              color = "salmon") +
   scale_size_area() +
-  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 62)) +
+  coord_quickmap(xlim = c(-180, -156), ylim = c(54, 66)) +
   theme_classic() +
   theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
         axis.line = element_blank(),
@@ -212,7 +215,7 @@ ggplot() +
   labs(title = "Immature Females",
        x = "Longitude",
        y = "Latitude",
-       size = "ln(catch+1)") 
+       size = "Count") 
 
 ggplot() +  
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
@@ -220,7 +223,7 @@ ggplot() +
                colour = "black") +
   geom_point(data = crab_trans, 
              aes(longitude, latitude,
-                 color = lncpue_imm_female),
+                 color = lncount_imm_female),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
@@ -247,9 +250,9 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = subset(crab_trans, !is.na(lncpue_obs_leg_male)), 
+  geom_point(data = subset(crab_trans, !is.na(lncount_obs_leg_male)), 
              aes(longitude, latitude,
-                 color = lncpue_obs_leg_male),
+                 color = lncount_obs_leg_male),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
@@ -276,9 +279,9 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = subset(crab_trans, !is.na(lncpue_obs_sub_male)), 
+  geom_point(data = subset(crab_trans, !is.na(lncount_obs_sub_male)), 
              aes(longitude, latitude,
-                 color = lncpue_obs_sub_male),
+                 color = lncount_obs_sub_male),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
@@ -305,9 +308,9 @@ ggplot() +
   geom_polygon(aes(long, lat, group = group), data = bering_sea,
                fill = "lightyellow4", 
                colour = "black") +
-  geom_point(data = subset(crab_trans, !is.na(lncpue_obs_female)), 
+  geom_point(data = subset(crab_trans, !is.na(lncount_obs_female)), 
              aes(longitude, latitude,
-                 color = lncpue_obs_female),
+                 color = lncount_obs_female),
              alpha = 0.2,
              size = 3) +
   scale_color_distiller(palette = "YlGnBu", direction = 1) +
