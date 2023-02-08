@@ -249,6 +249,111 @@ image.plot(legend.only = T,
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
+
+# Prediction grid map
+nlat = 40
+nlon = 60
+latd = seq(min(mat_female_train$latitude), max(mat_female_train$latitude), length.out = nlat)
+lond = seq(min(mat_female_train$longitude), max(mat_female_train$longitude), length.out = nlon)
+spatial_grid_mat_female <- expand.grid(lond, latd)
+names(spatial_grid_mat_female) <- c('longitude', 'latitude')
+spatial_grid_mat_female$dist <- NA
+for (k in 1:nrow(spatial_grid_mat_female)) {
+  dist <-  distance_function(spatial_grid_mat_female$latitude[k],
+                             spatial_grid_mat_female$longitude[k],
+                             mat_female_train$latitude,
+                             mat_female_train$longitude)
+  spatial_grid_mat_female$dist[k] <- min(dist)
+}
+spatial_grid_mat_female$year_f <- as.factor('2010')
+spatial_grid_mat_female$depth <- median(mat_female_train$depth, na.rm = T)
+spatial_grid_mat_female$phi <- median(mat_female_train$phi, na.rm = T)
+spatial_grid_mat_female$julian <- median(mat_female_train$julian, na.rm = T)
+spatial_grid_mat_female$temperature <- median(mat_female_train$temperature, na.rm = T)
+spatial_grid_mat_female$ice_index <- median(mat_female_train$ice_index, na.rm = T)
+spatial_grid_mat_female$female_loading <- median(mat_female_train$female_loading, na.rm = T) 
+spatial_grid_mat_female$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
+
+spatial_grid_mat_female$pred <- predict(mat_female_tweedie3,
+                                        spatial_grid_mat_female,
+                                        type = "response")
+
+spatial_grid_mat_female$pred[spatial_grid_mat_female$dist > 30000] <- NA
+
+my_color = colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+color_levels = 100
+max_absolute_value = max(abs(c(min(spatial_grid_mat_female$pred, na.rm = T),
+                               max(spatial_grid_mat_female$pred, na.rm = T))))
+color_sequence = seq(max(spatial_grid_mat_female$pred, na.rm = T), 
+                     min(spatial_grid_mat_female$pred, na.rm = T),
+                     length.out = color_levels + 1)
+n_in_class = hist(spatial_grid_mat_female$pred, breaks = color_sequence, plot = F)$counts > 0
+col_to_include = min(which(n_in_class == T)):max(which(n_in_class == T))
+breaks_to_include = min(which(n_in_class == T)):(max(which(n_in_class == T)) + 1)
+
+windows(width = 12, height = 10)
+par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
+    oma = c(1, 1, 1, 1),
+    mgp = c(5, 2, 0),
+    family = "serif")
+image(lond,
+      latd,
+      t(matrix(spatial_grid_mat_female$pred,
+               nrow = length(latd),
+               ncol = length(lond),
+               byrow = T)),
+      xlim = c(-181, -156),
+      ylim = range(mat_female_train$latitude, na.rm = TRUE) + c(-.4, .5),
+      axes = FALSE,
+      xlab = "",
+      ylab = "")
+rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcream")
+par(new = TRUE)
+image(lond,
+      latd,
+      t(matrix(spatial_grid_mat_female$pred,
+               nrow = length(latd),
+               ncol = length(lond),
+               byrow = T)),
+      col = my_color(n = color_levels)[col_to_include],
+      ylab = "Latitude",
+      xlab = "Longitude",
+      xlim = c(-181, -156),
+      ylim = range(mat_female_train$latitude, na.rm = TRUE) + c(-.4, .5),
+      main = "Distribution of Mature Females (GAM)",
+      cex.main = 1.7,
+      cex.lab = 1.7,
+      cex.axis = 1.5)
+# symbols(mat_female_train$longitude[mat_female_train$lncount_mat_female > 0],
+#         mat_female_train$latitude[mat_female_train$lncount_mat_female > 0],
+#         circles = log(mat_female_train$lncount_mat_female + 1)[mat_female_train$lncount_mat_female > 0],
+#         inches = 0.1,
+#         bg = alpha('grey', 0.3),
+#         fg = alpha('black', 0.1),
+#         add = T)
+# points(mat_female_train$longitude[mat_female_train$lncount_mat_female == 0],
+#        mat_female_train$latitude[mat_female_train$lncount_mat_female == 0],
+#        pch =  '')
+maps::map("worldHires",
+          fill = T,
+          col = "wheat4",
+          add = T)
+image.plot(legend.only = T,
+           col = jet.colors(100),
+           legend.shrink = 0.2,
+           smallplot = c(.28, .31, .27, .42),
+           legend.cex = 1,
+           axis.args = list(cex.axis = 1.3,
+                            family = "serif"),
+           legend.width = 0.8,
+           legend.mar = 6,
+           zlim = c(min(spatial_grid_mat_female$pred, na.rm = T), 
+                    max(spatial_grid_mat_female$pred, na.rm = T)),
+           legend.args = list("log(count+1)",
+                              side = 2,
+                              cex = 1.5,
+                              family =  "serif"))
+
 ## Immature Female ----
 # Gaussian
 hist(imm_female_train$lncount_imm_female,
@@ -757,11 +862,11 @@ image.plot(legend.only = T,
 ## Mature females ----
 # Must remove all NA's from response in order to run 
 brt_mat_females_base <- gbm.step(data = mat_female_train,
-                                 gbm.x = c(1:9),
+                                 gbm.x = c(1:9, 13),
                                  gbm.y = 12,
                                  family = 'bernoulli',
-                                 tree.complexity = 10,
-                                 learning.rate = 0.05,
+                                 tree.complexity = 5,
+                                 learning.rate = 0.03,
                                  bag.fraction = 0.5)
 summary(brt_mat_females_base)
 
@@ -796,11 +901,11 @@ summary(brt_mat_females3)
 
 
 brt_mat_females4 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                         gbm.x = c(1:9),
+                         gbm.x = c(1:9, 13),
                          gbm.y = 10,
                          family = 'gaussian',
                          tree.complexity = 10,
-                         learning.rate = 0.05,
+                         learning.rate = 0.03,
                          bag.fraction = 0.5) 
 summary(brt_mat_females4)
 
@@ -906,7 +1011,7 @@ for (k in 1:nrow(spatial_grid_mat_female)) {
                              mat_female_train$longitude)
   spatial_grid_mat_female$dist[k] <- min(dist)
 }
-spatial_grid_mat_female$year <- 2010
+spatial_grid_mat_female$year_f <- as.factor('2010')
 spatial_grid_mat_female$depth <- median(mat_female_train$depth, na.rm = T)
 spatial_grid_mat_female$phi <- median(mat_female_train$phi, na.rm = T)
 spatial_grid_mat_female$julian <- median(mat_female_train$julian, na.rm = T)
@@ -915,23 +1020,23 @@ spatial_grid_mat_female$ice_index <- median(mat_female_train$ice_index, na.rm = 
 spatial_grid_mat_female$female_loading <- median(mat_female_train$female_loading, na.rm = T) 
 spatial_grid_mat_female$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
 
-preds_mat_female <- predict.gbm(females_mat_final,
-                                spatial_grid_mat_female,
-                                n.trees = females_mat_final$gbm.call$best.trees, 
-                                type = "response")
+# Need to add year as a constant because it is included as a factor (const = add)
+# Must also be in the prediction grid as a factor 
+# If neither of the above is done, RStudio will crash
+year_f <- factor('2012', levels = levels(mat_female_train$year_f))
+add <- data.frame(year_f)
+
+preds_mat_female <- predict(females_mat_final,
+                            spatial_grid_mat_female,
+                            n.trees = females_mat_final$gbm.call$best.trees, 
+                            type = "response",
+                            const = add)
 base_mat_female <- predict.gbm(brt_mat_females_base,
                                spatial_grid_mat_female,
                                n.trees = brt_mat_females_base$gbm.call$best.trees, 
-                               type = "response")
+                               type = "response",
+                               const = add)
 spatial_grid_mat_female$pred <- preds_mat_female * base_mat_female
-
-summary(preds_mat_female)
-
-spatial_grid_mat_female$pred <- predict(females_mat_final,
-                                        spatial_grid_mat_female,
-                                        n.trees = females_mat_final$gbm.call$best.trees, 
-                                        type = "response")
-
 
 
 spatial_grid_mat_female$pred[spatial_grid_mat_female$dist > 30000] <- NA
@@ -1013,7 +1118,7 @@ image.plot(legend.only = T,
 
 ## Immature females ----
 brt_imm_females_base <- gbm.step(data = imm_female_train,
-                                gbm.x = c(1:9),
+                                gbm.x = c(1:9, 13),
                                 gbm.y = 12,
                                 family = 'bernoulli',
                                 tree.complexity = 5,
@@ -1051,7 +1156,7 @@ summary(brt_imm_females3)
 
 
 brt_imm_females4 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:9, 13),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 10,
@@ -1161,7 +1266,7 @@ for (k in 1:nrow(spatial_grid_imm_female)) {
                              imm_female_train$longitude)
   spatial_grid_imm_female$dist[k] <- min(dist)
 }
-spatial_grid_imm_female$year <- 2010
+spatial_grid_imm_female$year_f <- as.factor('2010')
 spatial_grid_imm_female$depth <- median(imm_female_train$depth, na.rm = T)
 spatial_grid_imm_female$phi <- median(imm_female_train$phi, na.rm = T)
 spatial_grid_imm_female$julian <- median(imm_female_train$julian, na.rm = T)
@@ -1170,22 +1275,19 @@ spatial_grid_imm_female$ice_index <- median(imm_female_train$ice_index, na.rm = 
 spatial_grid_imm_female$female_loading <- median(imm_female_train$female_loading, na.rm = T) 
 spatial_grid_imm_female$log_pcod_cpue <- median(imm_female_train$log_pcod_cpue, na.rm = T)
 
-preds_imm_female <- predict.gbm(females_imm_final,
-                                spatial_grid_imm_female,
-                                n.trees = females_imm_final$gbm.call$best.trees, 
-                                type = "response")
-base_imm_female <- predict.gbm(brt_imm_females_base,
-                               spatial_grid_imm_female,
-                               n.trees = brt_imm_females_base$gbm.call$best.trees, 
-                               type = "response")
+preds_imm_female <- predict(females_imm_final,
+                            spatial_grid_imm_female,
+                            n.trees = females_imm_final$gbm.call$best.trees, 
+                            type = "response",
+                            const = add)
+base_imm_female <- predict(brt_imm_females_base,
+                           spatial_grid_imm_female,
+                           n.trees = brt_imm_females_base$gbm.call$best.trees,
+                           type = "response",
+                           const = add)
 spatial_grid_imm_female$pred <- preds_imm_female * base_imm_female
 
 summary(preds_imm_female)
-
-spatial_grid_imm_female$pred <- predict(females_imm_final,
-                                        spatial_grid_imm_female,
-                                        n.trees = females_imm_final$gbm.call$best.trees, 
-                                        type = "response")
 
 spatial_grid_imm_female$pred[spatial_grid_imm_female$dist > 30000] <- NA
 
@@ -1266,7 +1368,7 @@ image.plot(legend.only = T,
 
 ## Legal Males ----
 brt_leg_males_base <- gbm.step(data = leg_male_train,
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:9, 13),
                            gbm.y = 12,
                            family = 'bernoulli',
                            tree.complexity = 10,
@@ -1304,13 +1406,13 @@ brt_leg_males3 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male
 summary(brt_leg_males3)
 
 
-brt_leg_males4 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                             gbm.x = c(1:9),
-                             gbm.y = 10,
-                             family = 'gaussian',
-                             tree.complexity = 10,
-                             learning.rate = 0.05,
-                             bag.fraction = 0.5) 
+brt_leg_males4 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0,],
+                           gbm.x = c(1:9, 13),
+                           gbm.y = 10,
+                           family = 'gaussian',
+                           tree.complexity = 10,
+                           learning.rate = 0.05,
+                           bag.fraction = 0.5) 
 summary(brt_leg_males4)
 
 
@@ -1415,7 +1517,7 @@ for (k in 1:nrow(spatial_grid_leg_male)) {
                              leg_male_train$longitude)
   spatial_grid_leg_male$dist[k] <- min(dist)
 }
-spatial_grid_leg_male$year <- 2010
+spatial_grid_leg_male$year_f <- as.factor('2010')
 spatial_grid_leg_male$depth <- median(leg_male_train$depth, na.rm = T)
 spatial_grid_leg_male$phi <- median(leg_male_train$phi, na.rm = T)
 spatial_grid_leg_male$julian <- median(leg_male_train$julian, na.rm = T)
@@ -1425,21 +1527,18 @@ spatial_grid_leg_male$legal_male_loading <- median(leg_male_train$legal_male_loa
 spatial_grid_leg_male$log_pcod_cpue <- median(leg_male_train$log_pcod_cpue, na.rm = T)
 
 preds_leg_male <- predict.gbm(leg_male_final,
-                                spatial_grid_leg_male,
-                                n.trees = leg_male_final$gbm.call$best.trees, 
-                                type = "response")
+                              spatial_grid_leg_male,
+                              n.trees = leg_male_final$gbm.call$best.trees,
+                              type = "response",
+                              const = add)
 base_leg_male <- predict.gbm(brt_leg_males_base,
-                               spatial_grid_leg_male,
-                               n.trees = brt_leg_males_base$gbm.call$best.trees, 
-                               type = "response")
+                             spatial_grid_leg_male,
+                             n.trees = brt_leg_males_base$gbm.call$best.trees,
+                             type = "response",
+                             const = add)
 spatial_grid_leg_male$pred <- preds_leg_male * base_leg_male
 
 summary(preds_leg_male)
-
-spatial_grid_leg_male$pred <- predict(females_imm_final,
-                                        spatial_grid_leg_male,
-                                        n.trees = females_imm_final$gbm.call$best.trees, 
-                                        type = "response")
 
 spatial_grid_leg_male$pred[spatial_grid_leg_male$dist > 30000] <- NA
 
@@ -1520,13 +1619,15 @@ image.plot(legend.only = T,
 
 ## Sublegal Males ----
 brt_sub_males_base <- gbm.step(data = sub_male_train,
-                           gbm.x = c(1:9),
-                           gbm.y = 12,
-                           family = 'bernoulli',
-                           tree.complexity = 10,
-                           learning.rate = 0.05,
-                           bag.fraction = 0.5) 
+                               gbm.x = c(1:9, 13),
+                               gbm.y = 12,
+                               family = 'bernoulli',
+                               tree.complexity = 10,
+                               learning.rate = 0.05,
+                               bag.fraction = 0.5) 
 summary(brt_sub_males_base)
+
+
 brt_sub_males1 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
                            gbm.x = c(1:9),
                            gbm.y = 10,
@@ -1558,7 +1659,7 @@ summary(brt_sub_males3)
 
 
 brt_sub_males4 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:9, 13),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 10,
@@ -1668,7 +1769,7 @@ for (k in 1:nrow(spatial_grid_sub_male)) {
                              sub_male_train$longitude)
   spatial_grid_sub_male$dist[k] <- min(dist)
 }
-spatial_grid_sub_male$year <- 2010
+spatial_grid_sub_male$year_f <- as.factor('2010')
 spatial_grid_sub_male$depth <- median(sub_male_train$depth, na.rm = T)
 spatial_grid_sub_male$phi <- median(sub_male_train$phi, na.rm = T)
 spatial_grid_sub_male$julian <- median(sub_male_train$julian, na.rm = T)
@@ -1680,11 +1781,13 @@ spatial_grid_sub_male$log_pcod_cpue <- median(sub_male_train$log_pcod_cpue, na.r
 preds_sub_male <- predict.gbm(sub_male_final,
                               spatial_grid_sub_male,
                               n.trees = sub_male_final$gbm.call$best.trees, 
-                              type = "response")
+                              type = "response",
+                              const = add)
 base_sub_male <- predict.gbm(brt_sub_males_base,
                              spatial_grid_sub_male,
                              n.trees = brt_sub_males_base$gbm.call$best.trees, 
-                             type = "response")
+                             type = "response",
+                             const = add)
 spatial_grid_sub_male$pred <- preds_sub_male * base_sub_male
 
 summary(preds_sub_male)
@@ -1749,18 +1852,18 @@ maps::map("worldHires",
           fill = T,
           col = "wheat4",
           add = T)
-image.plot(subend.only = T,
+image.plot(legend.only = T,
            col = jet.colors(100),
-           subend.shrink = 0.2,
+           legend.shrink = 0.2,
            smallplot = c(.28, .31, .27, .42),
-           subend.cex = 1,
+           legend.cex = 1,
            axis.args = list(cex.axis = 1.3,
                             family = "serif"),
-           subend.width = 0.8,
-           subend.mar = 6,
+           legend.width = 0.8,
+           legend.mar = 6,
            zlim = c(min(spatial_grid_sub_male$pred, na.rm = T), 
                     max(spatial_grid_sub_male$pred, na.rm = T)),
-           subend.args = list("log(count+1)",
+           legend.args = list("log(count+1)",
                               side = 2,
                               cex = 1.5,
                               family =  "serif"))
