@@ -102,7 +102,12 @@ survey_wide <- survey_wide %>%
          mature_male = 'Mature Male',
          legal_male = 'Legal Male',
          immature_female = 'Immature Female',
-         mature_female = 'Mature Female')
+         mature_female = 'Mature Female') %>%
+  mutate(immature_male = ifelse(is.na(immature_male), 0, immature_male), # fill NA values with 0a
+         mature_male = ifelse(is.na(mature_male), 0, mature_male),
+         legal_male = ifelse(is.na(legal_male), 0, legal_male),
+         immature_female = ifelse(is.na(immature_female), 0, immature_female),
+         mature_female = ifelse(is.na(mature_female), 0, mature_female))
 
 # Reformat data (summarize males, split up dates)
 crab_detailed <- clean_data(crab_dump)
@@ -279,6 +284,23 @@ sst_data$month <- match(sst_data$month, month.abb)
 ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
 ice_data$month <- match(ice_data$month, month.abb)
 
+ice_data_filtered <- filter(ice_data, month == c(1:4))
+
+ice_sf <- st_as_sf(ice_data_filtered,
+                   coords = c("lon", "lat"), 
+                   crs = 4269)
+
+ice_df <- st_join(ice_sf, EBS_trans, left = FALSE)
+
+ice_means <- ice_df %>%
+  group_by(year, STATIONID) %>%
+  summarise(ice_early = mean(ice[month == c(1, 2)]),
+            ice_late = mean(ice[month == c(3, 4)]))
+
+ice_final <- ice_means %>%
+  group_by(year, STATIONID) %>%
+  summarise(ice_mean = mean(c(ice_early, ice_late)))
+
 phi_raster <- raster(here('data', 'EBS_phi_1km.gri'))
 phi_pts <- rasterToPoints(phi_raster, spatial = T)
 proj4string(phi_pts) # warning here related to the retirement of rgdal package
@@ -306,12 +328,6 @@ proj4string(phi_data) <- CRS("+proj=longlat +datum=WGS84")
 phi_data_xy <- spTransform(phi_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 phi_data_xy <- as.data.frame(phi_data_xy)
 
-coordinates(ice_data) <- c("lon", "lat")
-proj4string(ice_data) <- CRS("+proj=longlat +datum=WGS84")
-
-ice_data_xy <- spTransform(ice_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
-ice_data_xy <- as.data.frame(ice_data_xy)
-
 # coordinates(sst_data) <- c("lon", "lat")
 # proj4string(sst_data) <- CRS("+proj=longlat +datum=WGS84")
 
@@ -333,25 +349,14 @@ data_xy <- data_xy[-c(22, 23)]
 # data_xy$sst <- sst_data_xy[c(data_xy$nn.idx), 2] # Match nearest temperature value
 # data_xy <- data_xy[-c(23, 24)]
 
-# Get avg spatial value of ice in March, April and annual coverage overall for same months
-ice_data_filtered <- filter(ice_data_xy, month == c(3, 4))
-ice_data_avg <- ice_data_filtered %>%
-  group_by(year, lat, lon) %>%
-  summarise(spatial_ice = mean(ice, na.rm = T))
-
-ice_means <- ice_data_filtered %>%
-  group_by(year) %>%
-  summarise(spatial_ice = mean(ice, na.rm = T))
-
-data_xy[, c(23, 24)] <- as.data.frame(RANN::nn2(ice_data_avg[, c('lat', 'lon', 'year')],
-                                                data_xy[, c('latitude', 'longitude', 'year')],
-                                                k = 1))
-data_xy$ice <- as.data.frame(ice_data_avg)[c(data_xy$nn.idx), 4] 
-data_xy$ice_index <- ice_means$spatial_ice[match(data_xy$year, ice_means$year)]
-
+# Match ice to survey stations
+crab_ice <- merge(data_xy, ice_final,
+                  by.x = c("year", "station"),
+                  by.y = c("year", "STATIONID"),
+                  all.x = T)
 
 # Convert back to lat, lon
-crab_final <- data_xy[-c(7, 20, 21, 23:25)]
+crab_final <- crab_ice[-c(7, 20, 21, 24)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
@@ -359,9 +364,9 @@ pcod_catch <- read_csv(here('data/Snow_CrabData', 'GAP_survey_pcod.csv'), col_se
 names(pcod_catch) <- tolower(names(pcod_catch))
 
 survey_pcod <- merge(crab_final, pcod_catch,
-                         by.x = c("year", "station"),
-                         by.y = c("year", "stationid"),
-                         all.x = T)[-c(23:32, 34)]
+                     by.x = c("year", "station"),
+                     by.y = c("year", "stationid"),
+                     all.x = T)[-c(23:31, 33, 34)]
 
 names(survey_pcod)[names(survey_pcod) == "cpue_noha"] <- "pcod_cpue"
 names(survey_pcod)[names(survey_pcod) == "latitude.x"] <- "latitude"
@@ -370,6 +375,6 @@ names(survey_pcod)[names(survey_pcod) == "longitude.x"] <- "longitude"
 saveRDS(survey_pcod, file = here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Plot ice index
-plot(ice_means,
-     main = "Ice Index",
-     ylab = "value")
+# plot(ice_final,
+#      main = "Ice Index",
+#      ylab = "ice_mean")
