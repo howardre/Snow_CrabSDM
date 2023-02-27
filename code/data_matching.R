@@ -368,7 +368,7 @@ survey_pcod <- merge(crab_final, pcod_catch,
                      by.y = c("year", "stationid"),
                      all.x = T)[-c(23:31, 33, 34)]
 
-names(survey_pcod)[names(survey_pcod) == "cpue_noha"] <- "pcod_cpue"
+names(survey_pcod)[names(survey_pcod) == "cpue_kgha"] <- "pcod_cpue"
 names(survey_pcod)[names(survey_pcod) == "latitude.x"] <- "latitude"
 names(survey_pcod)[names(survey_pcod) == "longitude.x"] <- "longitude"
 
