@@ -89,6 +89,44 @@ crab_reduced <- crab_all %>%
          depth = gear_depth,
          temperature = gear_temperature)
 
+# Calculate proportion of crab with BCS and get total count
+bcs_calc <- function(data, stage){
+  calc_data <- data %>%
+    filter(mat_sex == stage) %>%
+    group_by(station, year) %>%
+    dplyr::mutate(count_sum = sum(count),
+                  count_bcs = ifelse(bcs == 'N', 0, count)) %>%
+    dplyr::mutate(bcs_prop = count_bcs / count_sum) %>%
+    dplyr::mutate(bcs_prop = ifelse(is.nan(bcs_prop), 0, bcs_prop)) %>%
+    as.data.frame
+  filtered_data <- calc_data %>%
+    dplyr::select(!c(count, cpue, count_bcs, bcs))
+  
+  merge_data <- filtered_data %>%
+    group_by(station, year) %>%
+    dplyr::mutate(bcs_prop = sum(bcs_prop))
+  
+  final_data <- merge_data[!duplicated(merge_data), ] 
+  
+  return(final_data)
+}
+
+crab_mat_female <- bcs_calc(crab_reduced, "Mature Female")
+
+combine_data <- function(data){
+  mat_female <- bcs_calc(data, "Mature Female")
+  imm_female <- bcs_calc(data, "Immature Female")
+  leg_male <- bcs_calc(data, "Legal Male")
+  sub_male <- bcs_calc(data, "Sublegal Male")
+  mat_male <- bcs_calc(data, "Mature Male")
+  
+  df <- rbind(mat_female, imm_female, leg_male, sub_male, mat_male)
+  
+  return(df)
+}
+
+test_data <- combine_data(crab_reduced)
+
 # Pivot to wide format
 survey_wide <- crab_reduced %>%
   pivot_wider(names_from = mat_sex, 
