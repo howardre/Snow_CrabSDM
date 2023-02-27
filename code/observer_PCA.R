@@ -15,7 +15,6 @@ crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_summary.rds'))
 
 # Convert to lat lon, group
 observer_locs <- observer_all %>% tidyr::extract(geometry, c('lon', 'lat'), '\\((.*), (.*)\\)', convert = TRUE)
-observer_locs <- observer_locs[-c(36)]
 
 observer_df <- observer_locs %>%
   group_by(year_lag, STATIONID) %>%
