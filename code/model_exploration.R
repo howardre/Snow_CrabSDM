@@ -36,12 +36,18 @@ crab_trans <- mutate(crab_summary,
                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
                      pres_sub_male = ifelse(immature_male > 0, 1, 0),
                      year_f = as.factor(year),
-                     log_pcod_cpue = log(pcod_cpue + 1))
+                     log_pcod_cpue = log(pcod_cpue + 1),
+                     bcs = ifelse(mature_female == 0 & 
+                                    immature_female == 0 &
+                                    legal_male == 0 &
+                                    immature_male == 0 &
+                                    mature_male == 0, NA, bcs)) # remove N factor for hauls with no crab
 
 # Look at correlation
-pairs(crab_trans[, c(10, 11, 20, 21)], cex = 0.3) # potential issue with phi and depth
+pairs(crab_trans[, c(9, 10, 19:22, 36)], cex = 0.3) # potential issue with phi and depth
 
 summary(lm(phi ~ depth, data = crab_trans)) # R2: 0.27
+summary(lm(log_pcod_cpue ~ temperature, data = crab_trans)) # R2: 0.06
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -53,28 +59,29 @@ crab_test <- as.data.frame(crab_trans %>%
 
 # Split into each sex/stage
 mat_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_index, 
+  dplyr::select(depth, temperature, phi, ice_mean, bcs,
          longitude, latitude, julian, female_loading,
          log_pcod_cpue, lncount_mat_female, mature_female, 
          pres_mat_female, year_f) %>%
-  tidyr::drop_na(lncount_mat_female)
+  tidyr::drop_na(lncount_mat_female) 
+mat_female_train$bcs_f <- factor(mat_female_train$bcs)
 
 imm_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_index, 
+  dplyr::select(depth, temperature, phi, ice_mean, bcs,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_index, 
+  dplyr::select(depth, temperature, phi, ice_mean, bcs,
                 longitude, latitude, julian, legal_male_loading,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
                 pres_leg_male, year_f) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_index, 
+  dplyr::select(depth, temperature, phi, ice_mean, bcs,
                 longitude, latitude, julian, sublegal_male_loading,
                 log_pcod_cpue, lncount_sub_male, immature_male, 
                 pres_sub_male, year_f) %>%
@@ -97,7 +104,7 @@ mat_female_gam_base <- gam(pres_mat_female ~ year_f +
                              s(julian),
                            data = mat_female_train,
                            family = "binomial")
-summary(mat_female_gam_base) # 54.7% explained
+summary(mat_female_gam_base) # 7.19% explained
 
 # Add environmental data
 mat_female_gam1 <- gam(lncount_mat_female ~ year_f + 
@@ -106,7 +113,7 @@ mat_female_gam1 <- gam(lncount_mat_female ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index),
+                         s(ice_mean),
                        data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
 summary(mat_female_gam1) # 37.1% explained
 
@@ -117,23 +124,24 @@ mat_female_gam2 <- gam(lncount_mat_female ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index) +
+                         s(ice_mean) +
                          s(longitude, latitude, by = female_loading),
                        data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
 summary(mat_female_gam2) # 38.8%
 
-# Add pcod and bcs data
+# Add pcod data
+# cannot at BCS because only 1 level when NA's from other columns removed
 mat_female_gam3 <- gam(lncount_mat_female ~ year_f +
                          s(longitude, latitude) +
                          s(julian) +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index) +
+                         s(ice_mean) +
                          s(longitude, latitude, by = female_loading) +
                          s(log_pcod_cpue),
                        data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
-summary(mat_female_gam3) # 39.2%
+summary(mat_female_gam3) # 39.3%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam3)
@@ -159,7 +167,7 @@ mat_female_tweedie1 <- gam(mature_female + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index),
+                             s(ice_mean),
                            data = mat_female_train,
                            family = tw(link = "log"),
                            method = "REML")
@@ -172,7 +180,7 @@ mat_female_tweedie2 <- gam(mature_female + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index) +
+                             s(ice_mean) +
                              s(longitude, latitude, by = female_loading),
                            data = mat_female_train,
                            family = tw(link = "log"),
@@ -181,12 +189,13 @@ summary(mat_female_tweedie2) # 67%
 
 # Add pcod data
 mat_female_tweedie3 <- gam(mature_female + 1 ~ year_f +
+                             bcs_f +
                              s(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index) +
+                             s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
                              s(log_pcod_cpue),
                            data = mat_female_train,
@@ -266,28 +275,61 @@ for (k in 1:nrow(spatial_grid_mat_female)) {
   spatial_grid_mat_female$dist[k] <- min(dist)
 }
 spatial_grid_mat_female$year_f <- as.factor('2010')
+spatial_grid_mat_female$bcs_f <- as.factor("Y")
 spatial_grid_mat_female$depth <- median(mat_female_train$depth, na.rm = T)
 spatial_grid_mat_female$phi <- median(mat_female_train$phi, na.rm = T)
 spatial_grid_mat_female$julian <- median(mat_female_train$julian, na.rm = T)
 spatial_grid_mat_female$temperature <- median(mat_female_train$temperature, na.rm = T)
-spatial_grid_mat_female$ice_index <- median(mat_female_train$ice_index, na.rm = T)
+spatial_grid_mat_female$ice_mean <- median(mat_female_train$ice_mean, na.rm = T)
 spatial_grid_mat_female$female_loading <- median(mat_female_train$female_loading, na.rm = T) 
 spatial_grid_mat_female$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
 
-spatial_grid_mat_female$pred <- predict(mat_female_tweedie3,
-                                        spatial_grid_mat_female,
+# Tidy grid
+spatial_grid_tidy <- mat_female_train %>%
+  mutate(longitude = cut(longitude, breaks = seq(floor(min(mat_female_train$longitude)), 
+                                                 ceiling(max(mat_female_train$longitude)), by = 0.02),
+                         labels = seq(floor(min(mat_female_train$longitude)) + 0.01, 
+                                      ceiling(max(mat_female_train$longitude)), by = 0.02)),
+         latitude = cut(latitude, breaks = seq(floor(min(mat_female_train$latitude)), 
+                                               ceiling(max(mat_female_train$latitude)), by = 0.02),
+                        labels = seq(floor(min(mat_female_train$latitude)) + 0.01,
+                                     ceiling(max(mat_female_train$latitude)), by = 0.02))) %>%
+  group_by(longitude, latitude) %>%
+  summarise(depth = median(depth, na.rm = T),
+            phi = median(phi, na.rm = T),
+            temperature = median(temperature, na.rm = T),
+            ice_mean = median(ice_mean, na.rm = T),
+            .groups = "drop") %>%
+  mutate(across(where(is.factor), ~as.numeric(as.character(.x))))
+
+spatial_grid_tidy$year_f <- as.factor('2010')
+spatial_grid_tidy$bcs_f <- as.factor('Y')
+spatial_grid_tidy$julian <- median(mat_female_train$julian, na.rm = T)
+spatial_grid_tidy$female_loading <- median(mat_female_train$female_loading, na.rm = T)
+spatial_grid_tidy$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
+spatial_grid_tidy$dist <- NA
+for (k in 1:nrow(spatial_grid_tidy)) {
+  dist <-  distance_function(spatial_grid_tidy$latitude[k],
+                             spatial_grid_tidy$longitude[k],
+                             mat_female_train$latitude,
+                             mat_female_train$longitude)
+  spatial_grid_tidy$dist[k] <- min(dist)
+}
+
+spatial_grid_tidy$pred <- predict(mat_female_tweedie3,
+                                        spatial_grid_tidy,
                                         type = "response")
 
-spatial_grid_mat_female$pred[spatial_grid_mat_female$dist > 30000] <- NA
+spatial_grid_tidy$pred[spatial_grid_tidy$dist > 30000] <- NA
 
 my_color = colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 color_levels = 100
-max_absolute_value = max(abs(c(min(spatial_grid_mat_female$pred, na.rm = T),
-                               max(spatial_grid_mat_female$pred, na.rm = T))))
-color_sequence = seq(max(spatial_grid_mat_female$pred, na.rm = T), 
-                     min(spatial_grid_mat_female$pred, na.rm = T),
+max_absolute_value = max(abs(c(min(spatial_grid_tidy$pred, na.rm = T),
+                               max(spatial_grid_tidy$pred, na.rm = T))))
+color_sequence = seq(max(spatial_grid_tidy$pred, na.rm = T), 
+                     min(spatial_grid_tidy$pred, na.rm = T),
                      length.out = color_levels + 1)
-n_in_class = hist(spatial_grid_mat_female$pred, breaks = color_sequence, plot = F)$counts > 0
+n_in_class = hist(spatial_grid_tidy$pred, breaks = color_sequence, plot = F)$counts > 0
 col_to_include = min(which(n_in_class == T)):max(which(n_in_class == T))
 breaks_to_include = min(which(n_in_class == T)):(max(which(n_in_class == T)) + 1)
 
@@ -296,9 +338,9 @@ par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0),
     family = "serif")
-image(lond,
-      latd,
-      t(matrix(spatial_grid_mat_female$pred,
+image(spatial_grid_tidy$longitude,
+      spatial_grid_tidy$latitude,
+      t(matrix(spatial_grid_tidy$pred,
                nrow = length(latd),
                ncol = length(lond),
                byrow = T)),
@@ -309,9 +351,9 @@ image(lond,
       ylab = "")
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcream")
 par(new = TRUE)
-image(lond,
-      latd,
-      t(matrix(spatial_grid_mat_female$pred,
+image(spatial_grid_tidy$longitude,
+      spatial_grid_tidy$latitude,
+      t(matrix(spatial_grid_tidy$pred,
                nrow = length(latd),
                ncol = length(lond),
                byrow = T)),
@@ -347,8 +389,8 @@ image.plot(legend.only = T,
                             family = "serif"),
            legend.width = 0.8,
            legend.mar = 6,
-           zlim = c(min(spatial_grid_mat_female$pred, na.rm = T), 
-                    max(spatial_grid_mat_female$pred, na.rm = T)),
+           zlim = c(min(spatial_grid_tidy$pred, na.rm = T), 
+                    max(spatial_grid_tidy$pred, na.rm = T)),
            legend.args = list("log(count+1)",
                               side = 2,
                               cex = 1.5,
@@ -375,7 +417,7 @@ imm_female_gam1 <- gam(lncount_imm_female ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index),
+                         s(ice_mean),
                        data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
 summary(imm_female_gam1) # 46.7% explained
 
@@ -386,7 +428,7 @@ imm_female_gam2 <- gam(lncount_imm_female ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index) +
+                         s(ice_mean) +
                          s(longitude, latitude, by = female_loading),
                        data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
 summary(imm_female_gam2) # 48.5%
@@ -398,7 +440,7 @@ imm_female_gam3 <- gam(lncount_imm_female ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index) +
+                         s(ice_mean) +
                          s(longitude, latitude, by = female_loading) +
                          s(log_pcod_cpue),
                        data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
@@ -428,7 +470,7 @@ imm_female_tweedie1 <- gam(immature_female + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index),
+                             s(ice_mean),
                            data = imm_female_train,
                            family = tw(link = "log"),
                            method = "REML")
@@ -441,7 +483,7 @@ imm_female_tweedie2 <- gam(immature_female + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index) +
+                             s(ice_mean) +
                              s(longitude, latitude, by = female_loading),
                            data = imm_female_train,
                            family = tw(link = "log"),
@@ -455,7 +497,7 @@ imm_female_tweedie3 <- gam(immature_female + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index) +
+                             s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
                              s(log_pcod_cpue),
                            data = imm_female_train,
@@ -541,7 +583,7 @@ leg_male_gam1 <- gam(lncount_leg_male ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index),
+                         s(ice_mean),
                        data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
 summary(leg_male_gam1) # 49.2% explained
 
@@ -552,7 +594,7 @@ leg_male_gam2 <- gam(lncount_leg_male ~ year_f +
                          s(depth) +
                          s(phi) +
                          s(temperature) +
-                         s(ice_index) +
+                         s(ice_mean) +
                          s(longitude, latitude, by = legal_male_loading),
                        data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
 summary(leg_male_gam2) # 51.8% explained
@@ -564,7 +606,7 @@ leg_male_gam3 <- gam(lncount_leg_male ~ year_f +
                        s(depth) +
                        s(phi) +
                        s(temperature) +
-                       s(ice_index) +
+                       s(ice_mean) +
                        s(longitude, latitude, by = legal_male_loading) +
                        s(log_pcod_cpue),
                      data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
@@ -594,7 +636,7 @@ leg_male_tweedie1 <- gam(legal_male + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index),
+                             s(ice_mean),
                            data = leg_male_train,
                            family = tw(link = "log"),
                            method = "REML")
@@ -607,7 +649,7 @@ leg_male_tweedie2 <- gam(legal_male + 1 ~ year_f +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_index) +
+                             s(ice_mean) +
                              s(longitude, latitude, by = legal_male_loading),
                            data = leg_male_train,
                            family = tw(link = "log"),
@@ -621,7 +663,7 @@ leg_male_tweedie3 <- gam(legal_male + 1 ~ year_f +
                            s(depth) +
                            s(phi) +
                            s(temperature) +
-                           s(ice_index) +
+                           s(ice_mean) +
                            s(longitude, latitude, by = legal_male_loading) +
                            s(log_pcod_cpue),
                          data = leg_male_train,
@@ -707,7 +749,7 @@ sub_male_gam1 <- gam(lncount_sub_male ~ year_f +
                        s(depth) +
                        s(phi) +
                        s(temperature) +
-                       s(ice_index),
+                       s(ice_mean),
                      data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
 summary(sub_male_gam1) # 64.3% explained
 
@@ -718,7 +760,7 @@ sub_male_gam2 <- gam(lncount_sub_male ~ year_f +
                        s(depth) +
                        s(phi) +
                        s(temperature) +
-                       s(ice_index) +
+                       s(ice_mean) +
                        s(longitude, latitude, by = sublegal_male_loading),
                      data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
 summary(sub_male_gam2) # 65.6% explained
@@ -730,7 +772,7 @@ sub_male_gam3 <- gam(lncount_sub_male ~ year_f +
                        s(depth) +
                        s(phi) +
                        s(temperature) +
-                       s(ice_index) +
+                       s(ice_mean) +
                        s(longitude, latitude, by = sublegal_male_loading) +
                        s(log_pcod_cpue),
                      data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
@@ -760,7 +802,7 @@ sub_male_tweedie1 <- gam(sublegal_male + 1 ~ year_f +
                            s(depth) +
                            s(phi) +
                            s(temperature) +
-                           s(ice_index),
+                           s(ice_mean),
                          data = sub_male_train,
                          family = tw(link = "log"),
                          method = "REML")
@@ -773,7 +815,7 @@ sub_male_tweedie2 <- gam(sublegal_male + 1 ~ year_f +
                            s(depth) +
                            s(phi) +
                            s(temperature) +
-                           s(ice_index) +
+                           s(ice_mean) +
                            s(longitude, latitude, by = sublegal_male_loading),
                          data = sub_male_train,
                          family = tw(link = "log"),
@@ -787,7 +829,7 @@ sub_male_tweedie3 <- gam(sublegal_male + 1 ~ year_f +
                            s(depth) +
                            s(phi) +
                            s(temperature) +
-                           s(ice_index) +
+                           s(ice_mean) +
                            s(longitude, latitude, by = sublegal_male_loading) +
                            s(log_pcod_cpue),
                          data = sub_male_train,
@@ -1016,7 +1058,7 @@ spatial_grid_mat_female$depth <- median(mat_female_train$depth, na.rm = T)
 spatial_grid_mat_female$phi <- median(mat_female_train$phi, na.rm = T)
 spatial_grid_mat_female$julian <- median(mat_female_train$julian, na.rm = T)
 spatial_grid_mat_female$temperature <- median(mat_female_train$temperature, na.rm = T)
-spatial_grid_mat_female$ice_index <- median(mat_female_train$ice_index, na.rm = T)
+spatial_grid_mat_female$ice_mean <- median(mat_female_train$ice_mean, na.rm = T)
 spatial_grid_mat_female$female_loading <- median(mat_female_train$female_loading, na.rm = T) 
 spatial_grid_mat_female$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
 
@@ -1271,7 +1313,7 @@ spatial_grid_imm_female$depth <- median(imm_female_train$depth, na.rm = T)
 spatial_grid_imm_female$phi <- median(imm_female_train$phi, na.rm = T)
 spatial_grid_imm_female$julian <- median(imm_female_train$julian, na.rm = T)
 spatial_grid_imm_female$temperature <- median(imm_female_train$temperature, na.rm = T)
-spatial_grid_imm_female$ice_index <- median(imm_female_train$ice_index, na.rm = T)
+spatial_grid_imm_female$ice_mean <- median(imm_female_train$ice_mean, na.rm = T)
 spatial_grid_imm_female$female_loading <- median(imm_female_train$female_loading, na.rm = T) 
 spatial_grid_imm_female$log_pcod_cpue <- median(imm_female_train$log_pcod_cpue, na.rm = T)
 
@@ -1522,7 +1564,7 @@ spatial_grid_leg_male$depth <- median(leg_male_train$depth, na.rm = T)
 spatial_grid_leg_male$phi <- median(leg_male_train$phi, na.rm = T)
 spatial_grid_leg_male$julian <- median(leg_male_train$julian, na.rm = T)
 spatial_grid_leg_male$temperature <- median(leg_male_train$temperature, na.rm = T)
-spatial_grid_leg_male$ice_index <- median(leg_male_train$ice_index, na.rm = T)
+spatial_grid_leg_male$ice_mean <- median(leg_male_train$ice_mean, na.rm = T)
 spatial_grid_leg_male$legal_male_loading <- median(leg_male_train$legal_male_loading, na.rm = T) 
 spatial_grid_leg_male$log_pcod_cpue <- median(leg_male_train$log_pcod_cpue, na.rm = T)
 
@@ -1774,7 +1816,7 @@ spatial_grid_sub_male$depth <- median(sub_male_train$depth, na.rm = T)
 spatial_grid_sub_male$phi <- median(sub_male_train$phi, na.rm = T)
 spatial_grid_sub_male$julian <- median(sub_male_train$julian, na.rm = T)
 spatial_grid_sub_male$temperature <- median(sub_male_train$temperature, na.rm = T)
-spatial_grid_sub_male$ice_index <- median(sub_male_train$ice_index, na.rm = T)
+spatial_grid_sub_male$ice_mean <- median(sub_male_train$ice_mean, na.rm = T)
 spatial_grid_sub_male$sublegal_male_loading <- median(sub_male_train$sublegal_male_loading, na.rm = T) 
 spatial_grid_sub_male$log_pcod_cpue <- median(sub_male_train$log_pcod_cpue, na.rm = T)
 
