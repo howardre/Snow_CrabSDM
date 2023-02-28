@@ -46,6 +46,40 @@ lon2UTM <- function(longitude){
   (floor((longitude + 180)/6) %% 60) + 1
 }
 
+# Get BCS proportions
+bcs_calc <- function(data, stage){
+  calc_data <- data %>%
+    filter(mat_sex == stage) %>%
+    group_by(station, year) %>%
+    dplyr::mutate(count_sum = sum(count),
+                  count_bcs = ifelse(bcs == 'N', 0, count)) %>%
+    dplyr::mutate(bcs_prop = count_bcs / count_sum) %>%
+    dplyr::mutate(bcs_prop = ifelse(is.nan(bcs_prop), 0, bcs_prop)) %>%
+    as.data.frame
+  filtered_data <- calc_data %>%
+    dplyr::select(!c(count, cpue, count_bcs, bcs))
+  
+  merge_data <- filtered_data %>%
+    group_by(station, year) %>%
+    dplyr::mutate(bcs_prop = sum(bcs_prop))
+  
+  final_data <- merge_data[!duplicated(merge_data), ] 
+  
+  return(final_data)
+}
+
+combine_data <- function(data){
+  mat_female <- bcs_calc(data, "Mature Female")
+  imm_female <- bcs_calc(data, "Immature Female")
+  leg_male <- bcs_calc(data, "Legal Male")
+  sub_male <- bcs_calc(data, "Immature Male")
+  mat_male <- bcs_calc(data, "Mature Male")
+  
+  df <- rbind(mat_female, imm_female, leg_male, sub_male, mat_male)
+  
+  return(df)
+}
+
 # Load data ----
 # Catch of snow crab in directed fishery
 crab_dump_most <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-1995-2020_crab_dump.csv'))
@@ -90,41 +124,6 @@ crab_reduced <- crab_all %>%
          temperature = gear_temperature)
 
 # Calculate proportion of crab with BCS and get total count
-bcs_calc <- function(data, stage){
-  calc_data <- data %>%
-    filter(mat_sex == stage) %>%
-    group_by(station, year) %>%
-    dplyr::mutate(count_sum = sum(count),
-                  count_bcs = ifelse(bcs == 'N', 0, count)) %>%
-    dplyr::mutate(bcs_prop = count_bcs / count_sum) %>%
-    dplyr::mutate(bcs_prop = ifelse(is.nan(bcs_prop), 0, bcs_prop)) %>%
-    as.data.frame
-  filtered_data <- calc_data %>%
-    dplyr::select(!c(count, cpue, count_bcs, bcs))
-  
-  merge_data <- filtered_data %>%
-    group_by(station, year) %>%
-    dplyr::mutate(bcs_prop = sum(bcs_prop))
-  
-  final_data <- merge_data[!duplicated(merge_data), ] 
-  
-  return(final_data)
-}
-
-crab_mat_female <- bcs_calc(crab_reduced, "Mature Female")
-
-combine_data <- function(data){
-  mat_female <- bcs_calc(data, "Mature Female")
-  imm_female <- bcs_calc(data, "Immature Female")
-  leg_male <- bcs_calc(data, "Legal Male")
-  sub_male <- bcs_calc(data, "Immature Male")
-  mat_male <- bcs_calc(data, "Mature Male")
-  
-  df <- rbind(mat_female, imm_female, leg_male, sub_male, mat_male)
-  
-  return(df)
-}
-
 crab_bcs <- combine_data(crab_reduced)
 
 # Pivot to wide format
@@ -313,7 +312,7 @@ saveRDS(observer_summarized, file = here('data/Snow_CrabData', 'observer_summari
 survey_combined <- merge(survey_wide, observer_summarized,
                          by.x = c("year", "station"),
                          by.y = c("year_lag", "STATIONID"),
-                         all.x = T)[, -c(18, 22)] # only 1455 rows with observer data
+                         all.x = T)[, -c(17, 21)] # only 1455 rows with observer data
 
 # Add environmental data ----
 # Load data
@@ -373,11 +372,11 @@ phi_data_xy <- as.data.frame(phi_data_xy)
 # sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
-data_xy[, c(22, 23)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+data_xy[, c(21, 22)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
                                                 data_xy[, c('latitude', 'longitude')],
                                                 k = 1))
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
-data_xy <- data_xy[-c(22, 23)]
+data_xy <- data_xy[-c(21, 22)]
 
 # Remove SST match for now, not using and must eliminate many rows
 # data_xy <- data_xy[!is.na(data_xy$month), ]
@@ -394,7 +393,7 @@ crab_ice <- merge(data_xy, ice_final,
                   all.x = T)
 
 # Convert back to lat, lon
-crab_final <- crab_ice[-c(7, 20, 21, 24)]
+crab_final <- crab_ice[-c(6, 19, 20, 23)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
@@ -404,7 +403,7 @@ names(pcod_catch) <- tolower(names(pcod_catch))
 survey_pcod <- merge(crab_final, pcod_catch,
                      by.x = c("year", "station"),
                      by.y = c("year", "stationid"),
-                     all.x = T)[-c(23:31, 33, 34)]
+                     all.x = T)[-c(22:30, 32, 33)]
 
 names(survey_pcod)[names(survey_pcod) == "cpue_kgha"] <- "pcod_cpue"
 names(survey_pcod)[names(survey_pcod) == "latitude.x"] <- "latitude"
