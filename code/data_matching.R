@@ -117,7 +117,7 @@ combine_data <- function(data){
   mat_female <- bcs_calc(data, "Mature Female")
   imm_female <- bcs_calc(data, "Immature Female")
   leg_male <- bcs_calc(data, "Legal Male")
-  sub_male <- bcs_calc(data, "Sublegal Male")
+  sub_male <- bcs_calc(data, "Immature Male")
   mat_male <- bcs_calc(data, "Mature Male")
   
   df <- rbind(mat_female, imm_female, leg_male, sub_male, mat_male)
@@ -125,23 +125,23 @@ combine_data <- function(data){
   return(df)
 }
 
-test_data <- combine_data(crab_reduced)
+crab_bcs <- combine_data(crab_reduced)
 
 # Pivot to wide format
-survey_wide <- crab_reduced %>%
+survey_wide <- crab_bcs %>%
   pivot_wider(names_from = mat_sex, 
-              values_from = count)
+              values_from = count_sum)
 survey_wide <- as.data.frame(survey_wide)
 survey_wide$date <- date.mmddyy(survey_wide$julian)
 survey_wide$date <- as.Date(survey_wide$date, "%m/%d/%Y")
 survey_wide <- survey_wide %>% 
   mutate(month = lubridate::month(date)) %>% # needed to match sst & ice
-  rename(immature_male = 'Immature Male',
+  rename(sublegal_male = 'Immature Male',
          mature_male = 'Mature Male',
          legal_male = 'Legal Male',
          immature_female = 'Immature Female',
          mature_female = 'Mature Female') %>%
-  mutate(immature_male = ifelse(is.na(immature_male), 0, immature_male), # fill NA values with 0a
+  mutate(sublegal_male = ifelse(is.na(sublegal_male), 0, sublegal_male), # fill NA values with 0a
          mature_male = ifelse(is.na(mature_male), 0, mature_male),
          legal_male = ifelse(is.na(legal_male), 0, legal_male),
          immature_female = ifelse(is.na(immature_female), 0, immature_female),
