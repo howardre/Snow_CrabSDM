@@ -2,3 +2,6 @@ sst_latlon.csv
 ice_latlon.csv
 EBS_phi_1km.gri
 EBS_phi_1km.grd
+Bering10K_extended_grid.nc
+/ROMS
+hindcast_temps.rds
