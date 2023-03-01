@@ -30,21 +30,19 @@ crab_trans <- mutate(crab_summary,
                      lncount_mat_female = log(mature_female + 1),
                      lncount_imm_female = log(immature_female + 1),
                      lncount_leg_male = log(legal_male + 1),
-                     lncount_sub_male = log(immature_male + 1),
+                     lncount_sub_male = log(sublegal_male + 1),
                      pres_imm_female = ifelse(immature_female > 0, 1, 0),
                      pres_mat_female = ifelse(mature_female > 0, 1, 0),
                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
-                     pres_sub_male = ifelse(immature_male > 0, 1, 0),
+                     pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
                      year_f = as.factor(year),
-                     log_pcod_cpue = log(pcod_cpue + 1),
-                     bcs = ifelse(mature_female == 0 & 
-                                    immature_female == 0 &
-                                    legal_male == 0 &
-                                    immature_male == 0 &
-                                    mature_male == 0, NA, bcs)) # remove N factor for hauls with no crab
+                     log_pcod_cpue = log(pcod_cpue + 1)) %>%
+  filter(!is.na(temperature),
+         !is.na(julian),
+         !is.na(depth)) # The missing depth and temperature values end up removing the ability to use BCS
 
 # Look at correlation
-pairs(crab_trans[, c(9, 10, 19:22, 36)], cex = 0.3) # potential issue with phi and depth
+pairs(crab_trans[, c(7, 8, 22:25, 39)], cex = 0.3) # potential issue with phi and depth
 
 summary(lm(phi ~ depth, data = crab_trans)) # R2: 0.27
 summary(lm(log_pcod_cpue ~ temperature, data = crab_trans)) # R2: 0.06
@@ -59,34 +57,33 @@ crab_test <- as.data.frame(crab_trans %>%
 
 # Split into each sex/stage
 mat_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, bcs,
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
          longitude, latitude, julian, female_loading,
          log_pcod_cpue, lncount_mat_female, mature_female, 
          pres_mat_female, year_f) %>%
   tidyr::drop_na(lncount_mat_female) 
-mat_female_train$bcs_f <- factor(mat_female_train$bcs)
 
 imm_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, bcs,
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, bcs,
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
                 pres_leg_male, year_f) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, bcs,
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
                 longitude, latitude, julian, sublegal_male_loading,
-                log_pcod_cpue, lncount_sub_male, immature_male, 
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f) %>%
   tidyr::drop_na(lncount_sub_male) %>%
-  dplyr::rename(sublegal_male = immature_male)
+  dplyr::rename(sublegal_male = sublegal_male)
 
 # GAMs ----
 ## Mature Female ----
@@ -104,7 +101,7 @@ mat_female_gam_base <- gam(pres_mat_female ~ year_f +
                              s(julian),
                            data = mat_female_train,
                            family = "binomial")
-summary(mat_female_gam_base) # 7.19% explained
+summary(mat_female_gam_base) # 35.2% explained
 
 # Add environmental data
 mat_female_gam1 <- gam(lncount_mat_female ~ year_f + 
@@ -130,7 +127,7 @@ mat_female_gam2 <- gam(lncount_mat_female ~ year_f +
 summary(mat_female_gam2) # 38.8%
 
 # Add pcod data
-# cannot at BCS because only 1 level when NA's from other columns removed
+# couldn't add BCS due to lack of hauls with any prevalence
 mat_female_gam3 <- gam(lncount_mat_female ~ year_f +
                          s(longitude, latitude) +
                          s(julian) +
@@ -189,7 +186,6 @@ summary(mat_female_tweedie2) # 67%
 
 # Add pcod data
 mat_female_tweedie3 <- gam(mature_female + 1 ~ year_f +
-                             bcs_f +
                              s(longitude, latitude) +
                              s(julian) +
                              s(depth) +
@@ -197,7 +193,8 @@ mat_female_tweedie3 <- gam(mature_female + 1 ~ year_f +
                              s(temperature) +
                              s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
-                             s(log_pcod_cpue),
+                             s(log_pcod_cpue) +
+                             s(bcs_prop),
                            data = mat_female_train,
                            family = tw(link = "log"),
                            method = "REML")
@@ -275,7 +272,7 @@ for (k in 1:nrow(spatial_grid_mat_female)) {
   spatial_grid_mat_female$dist[k] <- min(dist)
 }
 spatial_grid_mat_female$year_f <- as.factor('2010')
-spatial_grid_mat_female$bcs_f <- as.factor("Y")
+spatial_grid_mat_female$bcs_prop_f <- as.factor("Y")
 spatial_grid_mat_female$depth <- median(mat_female_train$depth, na.rm = T)
 spatial_grid_mat_female$phi <- median(mat_female_train$phi, na.rm = T)
 spatial_grid_mat_female$julian <- median(mat_female_train$julian, na.rm = T)
@@ -303,7 +300,7 @@ spatial_grid_tidy <- mat_female_train %>%
   mutate(across(where(is.factor), ~as.numeric(as.character(.x))))
 
 spatial_grid_tidy$year_f <- as.factor('2010')
-spatial_grid_tidy$bcs_f <- as.factor('Y')
+spatial_grid_tidy$bcs_prop_f <- as.factor('Y')
 spatial_grid_tidy$julian <- median(mat_female_train$julian, na.rm = T)
 spatial_grid_tidy$female_loading <- median(mat_female_train$female_loading, na.rm = T)
 spatial_grid_tidy$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
