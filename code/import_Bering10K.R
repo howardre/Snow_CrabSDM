@@ -30,17 +30,17 @@ for(i in hindcast_temp_dat_list){
   hindcast_temp_df_list
 }
 
-hindcast_temp_hindcast_temp_dfs <- bind_rows(hindcast_temp_df_list)
+hindcast_temp_dfs <- bind_rows(hindcast_temp_df_list)
 
 # add in lat/longs matched to xi/eta 
-hindcast_temp_hindcast_temp_dfs$lon <- lons[cbind(hindcast_temp_hindcast_temp_dfs$xi_rho, hindcast_temp_hindcast_temp_dfs$eta_rho)]
-hindcast_temp_hindcast_temp_dfs$lat <- lats[cbind(hindcast_temp_hindcast_temp_dfs$xi_rho, hindcast_temp_hindcast_temp_dfs$eta_rho)]
+hindcast_temp_dfs$lon <- lons[cbind(hindcast_temp_dfs$xi_rho, hindcast_temp_dfs$eta_rho)]
+hindcast_temp_dfs$lat <- lats[cbind(hindcast_temp_dfs$xi_rho, hindcast_temp_dfs$eta_rho)]
 
 # create object for time axis
-hindcast_temp_hindcast_temp_dfs$DateTime <- as.POSIXct(hindcast_temp_hindcast_temp_dfs$ocean_time, origin = "1900-01-01", tz = "GMT")
+hindcast_temp_dfs$DateTime <- as.POSIXct(hindcast_temp_dfs$ocean_time, origin = "1900-01-01", tz = "GMT")
 
-hindcast_temp_dfs$date <- as.Date(hindcast_temp_dfs$DateTime) # date in Date format
-hindcast_temp_dfs$month <- month(hindcast_temp_dfs$date) 
+hindcast_temp_dfs$date <- as.Date(hindcast_temp_dfs$DateTime) # date in date format
+hindcast_temp_dfs$month <- month(hindcast_temp_dfs$date)
 hindcast_temp_dfs$year <- year(hindcast_temp_dfs$date)
 
 # remove all months aside from Feb - Aug
