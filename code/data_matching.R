@@ -102,29 +102,40 @@ bycatch_retained <- read_csv(here('data/Snow_CrabData/snowcrab_bycatch-1995-2021
 
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_BCS_snowEBSNBS.csv'), col_select = -c(1))
-crab_env <- read_csv(here('data/Snow_CrabData', 'station_cpue_snow.csv'), col_select = -c(1))
-crab_dates <- read_csv(here('data/Snow_CrabData', 'year_station_julian_day.csv'))
+crab_env <- read_csv(here('data/Snow_CrabData', 'SAPsurvey_tempdepth.csv'), col_select = -c(1))
+crab_julian <- read_csv(here('data/Snow_CrabData', 'year_station_julian_day.csv'))
 names(crab_survey) <- tolower(names(crab_survey))
 names(crab_env) <- tolower(names(crab_env))
 crab_survey <- as.data.frame(crab_survey)
 
 # Add the julian days
-crab_julian <- crab_survey %>% left_join(crab_dates,
-                                         by = c("akfin_survey_year" = "year",
-                                                "gis_station" = "station"))
-crab_all <- crab_julian %>% left_join(crab_env)
+crab_env$date <- as.Date(with(crab_env, paste(survey_year, survey_month, survey_day, sep = "-")),
+                         "%Y-%m-%d")
+crab_env$julian <- lubridate::yday(crab_env$date)
+crab_all <- crab_survey %>% left_join(crab_env,
+                                       by = c("akfin_survey_year" = "survey_year",
+                                              "gis_station" = "gis_station"))
+crab_all <- crab_all[-c(13:16)]
 
-crab_reduced <- crab_all %>%
+crab_fix <- crab_all %>% left_join(crab_julian,
+                                   by = c("akfin_survey_year" = "year",
+                                          "gis_station" = "station"))
+crab_fill <- crab_fix %>% 
+  mutate(julian = coalesce(julian.x, julian.y)) %>%
+  dplyr::select(-c(julian.x, julian.y))
+
+crab_reduced <- crab_fill %>%
   filter(akfin_survey_year >= 1995) %>% # observer data only available until this date
   rename(year = akfin_survey_year,
          station = gis_station,
-         latitude = mid_latitude,
-         longitude = mid_longitude,
-         depth = gear_depth,
+         latitude = mid_latitude.x,
+         longitude = mid_longitude.x,
+         depth = bottom_depth,
          temperature = gear_temperature)
 
 # Calculate proportion of crab with BCS and get total count
 bcs_calc <- function(data, stage){
+  # calculate the proportion of crab with BCS in a haul for sex/stage
   calc_data <- data %>%
     filter(mat_sex == stage) %>%
     group_by(station, year) %>%
@@ -133,33 +144,42 @@ bcs_calc <- function(data, stage){
     dplyr::mutate(bcs_prop = count_bcs / count_sum) %>%
     dplyr::mutate(bcs_prop = ifelse(is.nan(bcs_prop), 0, bcs_prop)) %>%
     as.data.frame
+  
+  # Remove unnecessary columns
   filtered_data <- calc_data %>%
     dplyr::select(!c(count, cpue, count_bcs, bcs))
   
+  # Apply BCS proportion to each station/year for both duplicate rows
   merge_data <- filtered_data %>%
     group_by(station, year) %>%
     dplyr::mutate(bcs_prop = sum(bcs_prop))
   
-  final_data <- merge_data[!duplicated(merge_data), ] 
+  # Get rid of separate Y and N columns (duplicates at this point)
+  final_data <- merge_data[!duplicated(merge_data), ] # removes the 
   
   return(final_data)
 }
 
 combine_data <- function(data){
+  # Do the BCS calculation for each sex/stage
   mat_female <- bcs_calc(data, "Mature Female")
   imm_female <- bcs_calc(data, "Immature Female")
   leg_male <- bcs_calc(data, "Legal Male")
   sub_male <- bcs_calc(data, "Immature Male")
   mat_male <- bcs_calc(data, "Mature Male")
   
+  # Put the data back together
+  # This should be smaller than the input data because the Y/N rows are now gone
   df <- rbind(mat_female, imm_female, leg_male, sub_male, mat_male)
   
   return(df)
 }
 
-mat_female <- bcs_calc(crab_reduced, "Mature Female")
-leg_male <- bcs_calc(crab_reduced, "Legal Male")
+# Test the bcs_calc function
+# mat_female <- bcs_calc(crab_reduced, "Mature Female")
+# leg_male <- bcs_calc(crab_reduced, "Legal Male")
 
+# Calculate the proportion of crab with BCS at a given station/year combo
 crab_bcs <- combine_data(crab_reduced)
 
 # Pivot to wide format
@@ -167,10 +187,11 @@ survey_wide <- crab_bcs %>%
   pivot_wider(names_from = mat_sex, 
               values_from = c(count_sum, bcs_prop))
 survey_wide <- as.data.frame(survey_wide)
-survey_wide$date <- date.mmddyy(survey_wide$julian)
-survey_wide$date <- as.Date(survey_wide$date, "%m/%d/%Y")
-survey_wide <- survey_wide %>% 
-  mutate(month = lubridate::month(date)) %>% # needed to match sst & ice
+survey_jdate <- survey_wide %>% mutate(jdate = as.Date(strptime(paste(as.numeric(survey_wide$year),
+                                                                      as.numeric(survey_wide$julian)),
+                                                                format = "%Y%j"))) %>%
+  mutate(date = coalesce(date, jdate))
+survey_rename <- survey_jdate %>% 
   rename(sublegal_male = 'count_sum_Immature Male',
          mature_male = 'count_sum_Mature Male',
          legal_male = 'count_sum_Legal Male',
@@ -191,6 +212,7 @@ survey_wide <- survey_wide %>%
          bcs_legal_male = ifelse(is.na(bcs_legal_male), 0, bcs_legal_male),
          bcs_immature_female = ifelse(is.na(bcs_immature_female), 0, bcs_immature_female),
          bcs_mature_female = ifelse(is.na(bcs_mature_female), 0, bcs_mature_female))
+survey_rename <- survey_rename[-23]
 
 # Reformat data (summarize males, split up dates)
 crab_detailed <- clean_data(crab_dump)
@@ -355,10 +377,10 @@ saveRDS(observer_summarized, file = here('data/Snow_CrabData', 'observer_summari
 #saveRDS(bycatch_summarized, file = here('data/Snow_CrabData', 'bycatch_df.rds'))
 
 # Match to the survey data
-survey_combined <- merge(survey_wide, observer_summarized,
+survey_combined <- merge(survey_rename, observer_summarized,
                          by.x = c("year", "station"),
                          by.y = c("year_lag", "STATIONID"),
-                         all.x = T)[, -c(22, 25)] # only 1455 rows with observer data
+                         all.x = T)[-26] # only 1455 rows with observer data
 
 # Add environmental data ----
 # Load data
@@ -418,11 +440,11 @@ phi_data_xy <- as.data.frame(phi_data_xy)
 # sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
-data_xy[, c(25, 26)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
+data_xy[, c(27, 28)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
                                                 data_xy[, c('latitude', 'longitude')],
                                                 k = 1))
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
-data_xy <- data_xy[-c(25, 26)]
+data_xy <- data_xy[-c(27, 28)]
 
 # Remove SST match for now, not using and must eliminate many rows
 # data_xy <- data_xy[!is.na(data_xy$month), ]
@@ -439,7 +461,7 @@ crab_ice <- merge(data_xy, ice_final,
                   all.x = T)
 
 # Convert back to lat, lon
-crab_final <- crab_ice[-c(6, 23, 24, 27)]
+crab_final <- crab_ice[-c(6, 7, 25, 26, 29)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
 crab_final$longitude <- survey_combined$longitude[match(survey_combined$index, crab_final$index)]
 
@@ -449,7 +471,7 @@ names(pcod_catch) <- tolower(names(pcod_catch))
 survey_pcod <- merge(crab_final, pcod_catch,
                      by.x = c("year", "station"),
                      by.y = c("year", "stationid"),
-                     all.x = T)[-c(26:34, 36, 37)]
+                     all.x = T)[-c(27:35, 38)]
 
 names(survey_pcod)[names(survey_pcod) == "cpue_kgha"] <- "pcod_cpue"
 names(survey_pcod)[names(survey_pcod) == "latitude.x"] <- "latitude"
@@ -468,48 +490,19 @@ temp_df$day <- lubridate::day(temp_df$date)
 temp_df$julian <- as.numeric(mdy.date(temp_df$month, temp_df$day, 1960))
 
 temp_means <- temp_df %>%
-  group_by(year, julian, STATIONID) %>%
-  summarise(mean_temp = mean(temp)) # calculate mean temperature based on station
+  group_by(year, STATIONID) %>%
+  summarise(mean_temp = mean(temp, na.rm = TRUE)) # calculate mean temperature based on station
 
-temp_sum <- as.data.frame(temp_means)
-temp_sum$date <- as.numeric(format(as.Date(strptime(paste(temp_sum$year, 
-                                                          temp_sum$julian), 
-                                                    format = "%Y%j")),
-                                   "%m%d%Y"))
-temp_date <- as.data.frame(temp_sum)
+crab_temp <- merge(survey_pcod, temp_means,
+                   by.x = c("year", "station"),
+                   by.y = c("year", "STATIONID"),
+                   all.x = TRUE)
 
-temp_sum <- sfheaders::sf_to_df(temp_means, fill = TRUE)
-
-temp_final <- temp_date %>%
-  mutate(lat = unlist(map(temp_date$geometry, 1)),
-         lon = unlist(map(temp_date$geometry, 3)))
-
-temp_final <- temp_means %>%
-  transmute(lon = list(sf::st_coordinates(.)[,1]),
-            lat = list(sf::st_coordinates(.)[,2])) %>%
-  unnest(lon, lat) %>%
-  st_drop_geometry()
-
-survey_pcod$numeric_date <- as.numeric(format(as.Date(strptime(paste(survey_pcod$year, 
-                                                                     survey_pcod$julian), 
-                                                               format = "%Y%j")),
-                                              "%m%d%Y"))
-
-
-survey_pcod[, c(31, 32)] <- RANN::nn2(temp_final[, c('lon', 'lat', 'date')],
-                                      survey_pcod[, c('lon', 'lat', 'numeric_date')],
-                                      k = 1)
-data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
-data_xy <- data_xy[-c(25, 26)]
-
-survey_temp <- merge(survey_pcod, temp_means,
-                     by.x = c("year", "station", "julian"),
-                     by.y = c("year", "STATIONID", "julian"),
-                     all.x = T)
+survey_temp <- crab_temp %>% mutate(temperature = coalesce(temperature, mean_temp)) 
 
 # Interpolate depths
 # Use other data to fill in missing depth values
-depth_loess <- loess(depth ~ lon * lat,
+depth_loess <- loess(depth ~ longitude * latitude,
                      span = 0.01,
                      degree = 2,
                      data = survey_temp)
@@ -517,10 +510,7 @@ survey_temp$depth_pred <- predict(depth_loess, newdata = survey_temp)
 
 survey_depth <- survey_temp %>% mutate(depth = coalesce(depth, depth_pred))
 
+crab_summary <- survey_depth %>% drop_na(temperature, depth, phi, julian)
+
 # Save final data set
 saveRDS(survey_depth, file = here('data/Snow_CrabData', 'crab_summary.rds'))
-
-# Plot ice index
-# plot(ice_final,
-#      main = "Ice Index",
-#      ylab = "ice_mean")
