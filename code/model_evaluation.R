@@ -1,0 +1,786 @@
+# Title: Snow Crab Model Exploration
+# Purpose: Investigate potential models
+# Data created: 07/20/2022
+
+# Load libraries ----
+library(gbm)
+library(dismo)
+library(scales)
+library(randomForest)
+library(here)
+library(mgcv)
+library(dplyr)
+library(colorspace)
+library(maps)
+library(mapdata)
+library(fields)
+library(ggplot2)
+source(here('code/functions', 'vis_gam_COLORS.R'))
+source(here('code/functions', 'distance_function.R'))
+
+contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
+jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+
+# Load data ----
+# Make sure to run PCA first if updating the data matching script
+crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))
+
+# Transform female and male data
+crab_trans <- mutate(crab_summary,
+                     lncount_mat_female = log(mature_female + 1),
+                     lncount_imm_female = log(immature_female + 1),
+                     lncount_leg_male = log(legal_male + 1),
+                     lncount_sub_male = log(sublegal_male + 1),
+                     pres_imm_female = ifelse(immature_female > 0, 1, 0),
+                     pres_mat_female = ifelse(mature_female > 0, 1, 0),
+                     pres_leg_male = ifelse(legal_male > 0, 1, 0),
+                     pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
+                     year_f = as.factor(year),
+                     log_pcod_cpue = log(pcod_cpue + 1)) %>%
+  filter(!is.na(temperature),
+         !is.na(julian),
+         !is.na(depth), 
+         year_f != 2022) # REMOVE ONCE ICE DATA COMPLETE!!!!!!!!
+
+# Create train and test datasets
+# Considering using blocked approach but current discussion pointed toward using certain years
+# Need to filter out stations without observer data in order to get accurate comparison
+crab_train <- as.data.frame(crab_trans %>% 
+                              filter(year < 2015))
+crab_test <- as.data.frame(crab_trans %>% 
+                             filter(year > 2014))
+
+# Split into each sex/stage
+# Training data
+mat_female_train <- crab_train %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year) %>%
+  tidyr::drop_na(lncount_mat_female) 
+
+imm_female_train <- crab_train %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year) %>%
+  tidyr::drop_na(lncount_imm_female)
+
+leg_male_train <- crab_train %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year) %>%
+  tidyr::drop_na(lncount_leg_male)
+
+sub_male_train <- crab_train %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year) %>%
+  tidyr::drop_na(lncount_sub_male) %>%
+  dplyr::rename(sublegal_male = sublegal_male)
+
+# Test data
+mat_female_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year) %>%
+  tidyr::drop_na(lncount_mat_female) 
+
+imm_female_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year) %>%
+  tidyr::drop_na(lncount_imm_female)
+
+leg_male_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year) %>%
+  tidyr::drop_na(lncount_leg_male)
+
+sub_male_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year) %>%
+  tidyr::drop_na(lncount_sub_male) %>%
+  dplyr::rename(sublegal_male = sublegal_male)
+
+
+# GAMs ----
+## Mature Female ----
+# Gaussian
+# Base model with presence/absence
+mat_female_gam_base <- gam(pres_mat_female ~ s(year, bs = "re") +
+                             s(longitude, latitude) +
+                             s(julian),
+                           data = mat_female_train,
+                           family = "binomial")
+summary(mat_female_gam_base) # 54.2% explained
+
+# Abundance model
+mat_female_gam_abun <- gam(lncount_mat_female ~ s(year, bs = "re") +
+                             s(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice_mean) +
+                             s(longitude, latitude, by = female_loading) +
+                             s(log_pcod_cpue) +
+                             s(bcs_mature_female),
+                           data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
+summary(mat_female_gam_abun) # 40.8%
+
+par(mfrow = c(2, 2))
+gam.check(mat_female_gam_abun)
+
+par(mfrow = c(3, 3))
+plot(mat_female_gam_abun)
+
+# Tweedie
+mat_female_tweedie <- gam(mature_female + 1 ~ s(year, bs = 're') +
+                             s(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice_mean) +
+                             s(longitude, latitude, by = female_loading) +
+                             s(log_pcod_cpue) +
+                             s(bcs_mature_female),
+                           data = mat_female_train,
+                           family = tw(link = "log"),
+                           method = "REML")
+summary(mat_female_tweedie) # 67.5%
+
+par(mfrow = c(2, 2))
+gam.check(mat_female_tweedie)
+
+par(mfrow = c(3, 3))
+plot(mat_female_tweedie)
+
+# Predict on test data
+mat_female_test$pred_gam <- predict(mat_female_tweedie,
+                                        mat_female_test,
+                                        type = "link",
+                                        exclude = "s(year)") # remove to allow predictions on new years
+mat_female_test$pred_gam_base <- predict(mat_female_gam_base,
+                                         mat_female_test,
+                                         type = "response",
+                                         exclude = "s(year)")
+mat_female_test$pred_gam_abun <- predict(mat_female_gam_abun,
+                                         mat_female_test,
+                                         type = "response",
+                                         exclude = "s(year)")
+
+mat_female_test$pred_gam_delta <- mat_female_test$pred_gam_base * mat_female_test$pred_gam_abun
+
+rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
+rmse_mat_female_tweedie # 3.72
+
+rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
+rmse_mat_female_delta # 3.90
+
+# Prediction grid map
+
+## Immature Female ----
+# Gaussian
+# Base model with presence/absence
+imm_female_gam_base <- gam(pres_imm_female ~ s(year, bs = "re") +
+                             s(longitude, latitude) +
+                             s(julian),
+                           data = imm_female_train,
+                           family = "binomial")
+summary(imm_female_gam_base) # 44.1% explained
+
+# Abundance model
+imm_female_gam_abun <- gam(lncount_imm_female ~ s(year, bs = "re") +
+                             s(longitude, latitude) +
+                             s(julian) +
+                             s(depth) +
+                             s(phi) +
+                             s(temperature) +
+                             s(ice_mean) +
+                             s(longitude, latitude, by = female_loading) +
+                             s(log_pcod_cpue) +
+                             s(bcs_immature_female),
+                           data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
+summary(imm_female_gam_abun) # 47.8%
+
+par(mfrow = c(2, 2))
+gam.check(imm_female_gam_abun)
+
+par(mfrow = c(3, 3))
+plot(imm_female_gam_abun)
+
+# Tweedie
+imm_female_tweedie <- gam(immature_female + 1 ~ s(year, bs = 're') +
+                            s(longitude, latitude) +
+                            s(julian) +
+                            s(depth) +
+                            s(phi) +
+                            s(temperature) +
+                            s(ice_mean) +
+                            s(longitude, latitude, by = female_loading) +
+                            s(log_pcod_cpue) +
+                            s(bcs_immature_female),
+                          data = imm_female_train,
+                          family = tw(link = "log"),
+                          method = "REML")
+summary(imm_female_tweedie) # 69.3%
+
+par(mfrow = c(2, 2))
+gam.check(imm_female_tweedie)
+
+par(mfrow = c(3, 3))
+plot(imm_female_tweedie)
+
+# Predict on test data
+imm_female_test$pred_gam <- predict(imm_female_tweedie,
+                                    imm_female_test,
+                                    type = "link",
+                                    exclude = "s(year)") 
+imm_female_test$pred_gam_base <- predict(imm_female_gam_base,
+                                         imm_female_test,
+                                         type = "response",
+                                         exclude = "s(year)")
+imm_female_test$pred_gam_abun <- predict(imm_female_gam_abun,
+                                         imm_female_test,
+                                         type = "response",
+                                         exclude = "s(year)")
+
+imm_female_test$pred_gam_delta <- imm_female_test$pred_gam_base * imm_female_test$pred_gam_abun
+
+rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam)^2, na.rm = T))
+rmse_imm_female_tweedie # 2.48
+
+rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
+rmse_imm_female_delta # 2.12
+
+## Legal Male ----
+# Gaussian
+# Base model with presence/absence
+leg_male_gam_base <- gam(pres_leg_male ~ s(year, bs = "re") +
+                           s(longitude, latitude) +
+                           s(julian),
+                         data = leg_male_train,
+                         family = "binomial")
+summary(leg_male_gam_base) # 56% explained
+
+# Abundance model
+leg_male_gam_abun <- gam(lncount_leg_male ~ s(year, bs = "re") +
+                           s(longitude, latitude) +
+                           s(julian) +
+                           s(depth) +
+                           s(phi) +
+                           s(temperature) +
+                           s(ice_mean) +
+                           s(longitude, latitude, by = legal_male_loading) +
+                           s(log_pcod_cpue) +
+                           s(bcs_legal_male),
+                         data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
+summary(leg_male_gam_abun) # 46.1%
+
+par(mfrow = c(2, 2))
+gam.check(leg_male_gam_abun)
+
+par(mfrow = c(3, 3))
+plot(leg_male_gam_abun)
+
+# Tweedie
+leg_male_tweedie <- gam(legal_male + 1 ~ s(year, bs = 're') +
+                          s(longitude, latitude) +
+                          s(julian) +
+                          s(depth) +
+                          s(phi) +
+                          s(temperature) +
+                          s(ice_mean) +
+                          s(longitude, latitude, by = legal_male_loading) +
+                          s(log_pcod_cpue) +
+                          s(bcs_legal_male),
+                        data = leg_male_train,
+                        family = tw(link = "log"),
+                        method = "REML")
+summary(leg_male_tweedie) # 64.7%
+
+par(mfrow = c(2, 2))
+gam.check(leg_male_tweedie)
+
+par(mfrow = c(3, 3))
+plot(leg_male_tweedie)
+
+# Predict on test data
+leg_male_test$pred_gam <- predict(leg_male_tweedie,
+                                  leg_male_test,
+                                  type = "link",
+                                  exclude = "s(year)") 
+leg_male_test$pred_gam_base <- predict(leg_male_gam_base,
+                                       leg_male_test,
+                                       type = "response",
+                                       exclude = "s(year)")
+leg_male_test$pred_gam_abun <- predict(leg_male_gam_abun,
+                                       leg_male_test,
+                                       type = "response",
+                                       exclude = "s(year)")
+
+leg_male_test$pred_gam_delta <- leg_male_test$pred_gam_base * leg_male_test$pred_gam_abun
+
+rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam)^2, na.rm = T))
+rmse_leg_male_tweedie # 1.81
+
+rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
+rmse_leg_male_delta # 5.51
+
+## Sublegal Male ----
+# Gaussian
+# Base model with presence/absence
+sub_male_gam_base <- gam(pres_sub_male ~ s(year, bs = "re") +
+                           s(longitude, latitude) +
+                           s(julian),
+                         data = sub_male_train,
+                         family = "binomial")
+summary(sub_male_gam_base) # 59.9% explained
+
+# Abundance model
+sub_male_gam_abun <- gam(lncount_sub_male ~ s(year, bs = "re") +
+                           s(longitude, latitude) +
+                           s(julian) +
+                           s(depth) +
+                           s(phi) +
+                           s(temperature) +
+                           s(ice_mean) +
+                           s(longitude, latitude, by = sublegal_male_loading) +
+                           s(log_pcod_cpue) +
+                           s(bcs_sublegal_male),
+                         data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
+summary(sub_male_gam_abun) # 61.3%
+
+par(mfrow = c(2, 2))
+gam.check(sub_male_gam_abun)
+
+par(mfrow = c(3, 3))
+plot(sub_male_gam_abun)
+
+# Tweedie
+sub_male_tweedie <- gam(sublegal_male + 1 ~ s(year, bs = 're') +
+                          s(longitude, latitude) +
+                          s(julian) +
+                          s(depth) +
+                          s(phi) +
+                          s(temperature) +
+                          s(ice_mean) +
+                          s(longitude, latitude, by = sublegal_male_loading) +
+                          s(log_pcod_cpue) +
+                          s(bcs_sublegal_male),
+                        data = sub_male_train,
+                        family = tw(link = "log"),
+                        method = "REML")
+summary(sub_male_tweedie) # 71.4%
+
+par(mfrow = c(2, 2))
+gam.check(sub_male_tweedie)
+
+par(mfrow = c(3, 3))
+plot(sub_male_tweedie)
+
+# Predict on test data
+sub_male_test$pred_gam <- predict(sub_male_tweedie,
+                                  sub_male_test,
+                                  type = "link",
+                                  exclude = "s(year)") 
+sub_male_test$pred_gam_base <- predict(sub_male_gam_base,
+                                       sub_male_test,
+                                       type = "response",
+                                       exclude = "s(year)")
+sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
+                                       sub_male_test,
+                                       type = "response",
+                                       exclude = "s(year)")
+
+sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
+
+rmse_sub_male_tweedie <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam)^2, na.rm = T))
+rmse_sub_male_tweedie # 1.90
+
+rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
+rmse_sub_male_delta # 1.46
+
+
+# Boosted regression trees ----
+# Adjust the bag fraction to a value between 0.5-0.75 as suggested by Elith et al. (2008)
+# The learning rate could range from 0.1-0.0001, higher value usually means less trees
+# Depending on the number of samples, want tree complexity to be high enough (likely using 5)
+# Want at least 1000 trees, but don't need to go way beyond it
+
+library(enmSdmX) # use for grid search, wrapper for dismo
+
+grid_search <- function(data, response, family){
+  trainBRT(data = data,
+           preds = c(1:10, 14),
+           resp = response,
+           family = family,
+           treeComplexity = c(1, 5, 10),
+           learningRate = c(0.01, 0.05, 0.1),
+           bagFraction = c(0.25, 0.5, 0.75),
+           minTrees = 1000, # recommended minimum by Elith
+           maxTrees = 2000,
+           cores = 6, # increase speed
+           out = c('model', 'tuning')) # should return model and table with hyperparameters
+}
+
+## Mature females ----
+# Get best models
+brt_mat_female_base <- grid_search(mat_female_train, 13, 'bernoulli')
+brt_mat_female_base
+
+brt_mat_female_abun <- grid_search(mat_female_train[mat_female_train$lncount_mat_female > 0, ],
+                                    11, 'gaussian')
+brt_mat_female_abun
+
+# Predict on test data
+mat_female_test$pred_base <- predict.gbm(brt_mat_female_base$model,
+                                         mat_female_test,
+                                         n.trees = brt_mat_females_base$model$gbm.call$best.trees,
+                                         type = "response")
+
+mat_female_test$pred_abun <- predict.gbm(brt_mat_female_abun$model,
+                                         mat_female_test,
+                                         n.trees = brt_mat_females_abun$model$gbm.call$best.trees,
+                                         type = "response")
+
+mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abun
+
+
+# Calculate RMSE
+rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
+rmse_mat_female_brt
+
+
+# Plot the variables
+windows()
+gbm.plot(females_mat_final,
+         n.plots = 8,
+         plot.layout = c(3, 3),
+         write.title = F,
+         smooth = T,
+         common.scale = T,
+         cex.axis = 1.7,
+         cex.lab = 1.7,
+         lwd = 1.5)
+
+windows()
+female_mat_effects <- tibble::as_tibble(summary.gbm(females_mat_final, plotit = F))
+female_mat_effects %>% arrange(desc(rel.inf)) %>%
+  ggplot(aes(x = forcats::fct_reorder(.f = var,
+                                      .x = rel.inf),
+             y = rel.inf,
+             fill = rel.inf)) +
+  geom_col() +
+  coord_flip() +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(axis.title = element_text()) +
+  xlab('Variable') +
+  ylab('Relative Influence') +
+  ggtitle('Variable Influence on Mature Female Snow Crab')
+
+# Plot the fits
+females_mat_int <- gbm.interactions(females_mat_final)
+females_mat_int$interactions
+
+par(mfrow = c(1, 3))
+gbm.perspec(females_mat_final,
+            2, 3,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_mat_final,
+            2, 7,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_mat_final,
+            1, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+## Immature females ----
+# Get best models
+brt_imm_female_base <- grid_search(imm_female_train, 13, 'bernoulli')
+brt_imm_female_base
+
+brt_imm_female_abun <- grid_search(imm_female_train[imm_female_train$lncount_imm_female > 0, ],
+                                    11, 'gaussian')
+brt_imm_female_abun
+
+# Predict on test data
+imm_female_test$pred_base <- predict.gbm(brt_imm_female_base$model,
+                                         imm_female_test,
+                                         n.trees = brt_imm_female_base$model$gbm.call$best.trees,
+                                         type = "response")
+
+imm_female_test$pred_abun <- predict.gbm(brt_imm_female_abun$model,
+                                         imm_female_test,
+                                         n.trees = brt_imm_female_abun$model$gbm.call$best.trees,
+                                         type = "response")
+
+imm_female_test$pred_brt <- imm_female_test$pred_base * imm_female_test$pred_abun
+
+
+# Calculate RMSE
+rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
+rmse_imm_female_brt # 1.43
+
+# Plot the variables
+windows()
+gbm.plot(females_imm_final,
+         n.plots = 8,
+         plot.layout = c(3, 3),
+         write.title = F,
+         smooth = T,
+         common.scale = T,
+         cex.axis = 1.7,
+         cex.lab = 1.7,
+         lwd = 1.5)
+
+windows()
+female_imm_effects <- tibble::as_tibble(summary.gbm(females_imm_final, plotit = F))
+female_imm_effects %>% arrange(desc(rel.inf)) %>%
+  ggplot(aes(x = forcats::fct_reorder(.f = var,
+                                      .x = rel.inf),
+             y = rel.inf,
+             fill = rel.inf)) +
+  geom_col() +
+  coord_flip() +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(axis.title = element_text()) +
+  xlab('Variable') +
+  ylab('Relative Influence') +
+  ggtitle('Variable Influence on Immature Female Snow Crab')
+
+# Plot the fits
+females_imm_int <- gbm.interactions(females_imm_final)
+females_imm_int$interactions
+
+par(mfrow = c(1, 3))
+gbm.perspec(females_imm_final,
+            7, 2,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_imm_final,
+            6, 1,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(females_imm_final,
+            2, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+
+## Legal Males ----
+# Get best models
+brt_leg_male_base <- grid_search(leg_male_train, 13, 'bernoulli')
+brt_leg_male_base
+
+brt_leg_male_abun <- grid_search(leg_male_train[leg_male_train$lncount_leg_male > 0, ],
+                                   11, 'gaussian')
+brt_leg_male_abun
+
+# Predict on test data
+leg_male_test$pred_base <- predict.gbm(brt_leg_male_base$model,
+                                       leg_male_test,
+                                       n.trees = brt_leg_male_base$model$gbm.call$best.trees,
+                                       type = "response")
+
+leg_male_test$pred_abun <- predict.gbm(brt_leg_male_abun$model,
+                                       leg_male_test,
+                                       n.trees = brt_leg_male_abun$model$gbm.call$best.trees,
+                                       type = "response")
+
+leg_male_test$pred_brt <- leg_male_test$pred_base * leg_male_test$pred_abun
+
+
+# Calculate RMSE
+rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
+rmse_leg_male_brt # 1.20
+
+# Plot the variables
+windows()
+gbm.plot(leg_male_final,
+         n.plots = 8,
+         plot.layout = c(3, 3),
+         write.title = F,
+         smooth = T,
+         common.scale = T,
+         cex.axis = 1.7,
+         cex.lab = 1.7,
+         lwd = 1.5)
+
+windows()
+leg_male_effects <- tibble::as_tibble(summary.gbm(leg_male_final, plotit = F))
+leg_male_effects %>% arrange(desc(rel.inf)) %>%
+  ggplot(aes(x = forcats::fct_reorder(.f = var,
+                                      .x = rel.inf),
+             y = rel.inf,
+             fill = rel.inf)) +
+  geom_col() +
+  coord_flip() +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(axis.title = element_text()) +
+  xlab('Variable') +
+  ylab('Relative Influence') +
+  ggtitle('Variable Influence on Legal Male Snow Crab')
+
+# Plot the fits
+leg_male_int <- gbm.interactions(leg_male_final)
+leg_male_int$interactions
+
+par(mfrow = c(1, 3))
+gbm.perspec(leg_male_final,
+            2, 3,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(leg_male_final,
+            2, 7,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(leg_male_final,
+            1, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+
+## Sublegal Males ----
+# Get best models
+brt_sub_male_base <- grid_search(sub_male_train, 13, 'bernoulli')
+brt_sub_male_base
+
+brt_sub_male_abun <- grid_search(sub_male_train[sub_male_train$lncount_sub_male > 0, ],
+                                 11, 'gaussian')
+brt_sub_male_abun
+
+# Predict on test data
+sub_male_test$pred_base <- predict.gbm(brt_sub_male_base$model,
+                                       sub_male_test,
+                                       n.trees = brt_sub_male_base$model$gbm.call$best.trees,
+                                       type = "response")
+
+sub_male_test$pred_abun <- predict.gbm(brt_sub_male_abun$model,
+                                       sub_male_test,
+                                       n.trees = brt_sub_male_abun$model$gbm.call$best.trees,
+                                       type = "response")
+
+sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
+
+
+# Calculate RMSE
+rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
+rmse_sub_male_brt # 1.59
+
+# Plot the variables
+windows()
+gbm.plot(sub_male_final,
+         n.plots = 8,
+         plot.layout = c(3, 3),
+         write.title = F,
+         smooth = T,
+         common.scale = T,
+         cex.axis = 1.7,
+         cex.lab = 1.7,
+         lwd = 1.5)
+
+windows()
+sub_male_effects <- tibble::as_tibble(summary.gbm(sub_male_final, plotit = F))
+sub_male_effects %>% arrange(desc(rel.inf)) %>%
+  ggplot(aes(x = forcats::fct_reorder(.f = var,
+                                      .x = rel.inf),
+             y = rel.inf,
+             fill = rel.inf)) +
+  geom_col() +
+  coord_flip() +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(axis.title = element_text()) +
+  xlab('Variable') +
+  ylab('Relative Influence') +
+  ggtitle('Variable Influence on Sublegal Male Snow Crab')
+
+# Plot the fits
+sub_male_int <- gbm.interactions(sub_male_final)
+sub_male_int$interactions
+
+par(mfrow = c(1, 3))
+gbm.perspec(sub_male_final,
+            2, 3,
+            z.range = c(0, 6.25),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(sub_male_final,
+            2, 7,
+            z.range = c(-1.3, 4.8),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
+
+gbm.perspec(sub_male_final,
+            1, 3,
+            z.range = c(-0.1, 5.7),
+            theta = 60,
+            col = "light blue",
+            cex.axis = 0.8,
+            cex.lab = 1,
+            ticktype = "detailed")
