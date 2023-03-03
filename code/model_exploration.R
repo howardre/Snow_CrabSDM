@@ -223,7 +223,7 @@ mat_female_tweedie3 <- gam(mature_female + 1 ~
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             #s(ice_mean) +
+                             s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
                              s(log_pcod_cpue) +
                              s(bcs_mature_female),
@@ -239,12 +239,12 @@ par(mfrow = c(3, 3))
 plot(mat_female_tweedie3)
 
 # Predict on test data
-mat_female_test$pred_gam <- predict(mat_female_tweedie3,
-                                    mat_female_test,
+mat_female_test[mat_female_test$year_f != 2022, ]$pred_gam <- predict(mat_female_tweedie3,
+                                    mat_female_test[mat_female_test$year_f != 2022, ],
                                     type = "link")
 
-rmse_mat_female_gam <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
-rmse_mat_female_gam
+rmse_mat_female_gam <- sqrt(mean((mat_female_test[mat_female_test$year_f != 2022, ]$lncount_mat_female - mat_female_test[mat_female_test$year_f != 2022, ]$pred_gam)^2, na.rm = T))
+rmse_mat_female_gam # 3.72
 
 
 # Make map
