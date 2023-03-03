@@ -44,8 +44,8 @@ crab_trans <- mutate(crab_summary,
 # Look at correlation
 pairs(crab_trans[, c(7, 8, 22:25, 39)], cex = 0.3) # potential issue with phi and depth
 
-summary(lm(phi ~ depth, data = crab_trans)) # R2: 0.27
-summary(lm(log_pcod_cpue ~ temperature, data = crab_trans)) # R2: 0.06
+summary(lm(phi ~ depth, data = crab_trans)) # R2: 0.33
+summary(lm(log_pcod_cpue ~ temperature, data = crab_trans)) # R2: 0.0006
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -56,6 +56,7 @@ crab_test <- as.data.frame(crab_trans %>%
                              filter(year > 2014))
 
 # Split into each sex/stage
+# Training data
 mat_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
          longitude, latitude, julian, female_loading,
@@ -85,6 +86,37 @@ sub_male_train <- crab_train %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
+# Test data
+mat_female_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f) %>%
+  tidyr::drop_na(lncount_mat_female) 
+
+imm_female_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f) %>%
+  tidyr::drop_na(lncount_imm_female)
+
+leg_male_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f) %>%
+  tidyr::drop_na(lncount_leg_male)
+
+sub_male_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f) %>%
+  tidyr::drop_na(lncount_sub_male) %>%
+  dplyr::rename(sublegal_male = sublegal_male)
+
+
 # GAMs ----
 ## Mature Female ----
 # Gaussian
@@ -101,7 +133,7 @@ mat_female_gam_base <- gam(pres_mat_female ~ year_f +
                              s(julian),
                            data = mat_female_train,
                            family = "binomial")
-summary(mat_female_gam_base) # 35.2% explained
+summary(mat_female_gam_base) # 54.2% explained
 
 # Add environmental data
 mat_female_gam1 <- gam(lncount_mat_female ~ year_f + 
@@ -126,8 +158,7 @@ mat_female_gam2 <- gam(lncount_mat_female ~ year_f +
                        data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
 summary(mat_female_gam2) # 38.8%
 
-# Add pcod data
-# couldn't add BCS due to lack of hauls with any prevalence
+# Add pcod and bcs data
 mat_female_gam3 <- gam(lncount_mat_female ~ year_f +
                          s(longitude, latitude) +
                          s(julian) +
@@ -136,9 +167,10 @@ mat_female_gam3 <- gam(lncount_mat_female ~ year_f +
                          s(temperature) +
                          s(ice_mean) +
                          s(longitude, latitude, by = female_loading) +
-                         s(log_pcod_cpue),
+                         s(log_pcod_cpue) +
+                         s(bcs_mature_female),
                        data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
-summary(mat_female_gam3) # 39.3%
+summary(mat_female_gam3) # 40.8%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam3)
@@ -155,7 +187,7 @@ mat_female_tweedie <- gam(mature_female + 1 ~ year_f +
                           data = mat_female_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(mat_female_tweedie) # 64% explained
+summary(mat_female_tweedie) # 63% explained
 
 # Add environmental data
 mat_female_tweedie1 <- gam(mature_female + 1 ~ year_f +
@@ -194,11 +226,11 @@ mat_female_tweedie3 <- gam(mature_female + 1 ~ year_f +
                              s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
                              s(log_pcod_cpue) +
-                             s(bcs_prop),
+                             s(bcs_mature_female),
                            data = mat_female_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(mat_female_tweedie3) # 67.1%
+summary(mat_female_tweedie3) # 67.6%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_tweedie3)
@@ -405,7 +437,7 @@ imm_female_gam_base <- gam(pres_imm_female ~ year_f +
                              s(julian),
                            data = imm_female_train,
                            family = "binomial")
-summary(imm_female_gam_base) # 45.2% explained
+summary(imm_female_gam_base) # 46.4% explained
 
 # Add environmental data
 imm_female_gam1 <- gam(lncount_imm_female ~ year_f + 
@@ -430,18 +462,19 @@ imm_female_gam2 <- gam(lncount_imm_female ~ year_f +
                        data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
 summary(imm_female_gam2) # 48.5%
 
-# Add pcod data
+# Add pcod and bcs data
 imm_female_gam3 <- gam(lncount_imm_female ~ year_f +
                          s(longitude, latitude) +
-                         s(julian) +
-                         s(depth) +
-                         s(phi) +
-                         s(temperature) +
+                         s(julian, k = 4) +
+                         s(depth, k = 4) +
+                         s(phi, k = 4) +
+                         s(temperature, k = 4) +
                          s(ice_mean) +
                          s(longitude, latitude, by = female_loading) +
-                         s(log_pcod_cpue),
+                         s(log_pcod_cpue) +
+                         s(bcs_immature_female, k = 4),
                        data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
-summary(imm_female_gam3) # 49.2%
+summary(imm_female_gam3) # 50.2%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_gam3)
@@ -458,7 +491,7 @@ imm_female_tweedie <- gam(immature_female + 1 ~ year_f +
                           data = imm_female_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(imm_female_tweedie) # 68.8% explained
+summary(imm_female_tweedie) # 70.1% explained
 
 # Add environmental data
 imm_female_tweedie1 <- gam(immature_female + 1 ~ year_f +
@@ -487,7 +520,7 @@ imm_female_tweedie2 <- gam(immature_female + 1 ~ year_f +
                            method = "REML")
 summary(imm_female_tweedie2) # 71.3%
 
-# Add pcod data
+# Add pcod and bcs data
 imm_female_tweedie3 <- gam(immature_female + 1 ~ year_f +
                              s(longitude, latitude) +
                              s(julian) +
@@ -496,11 +529,12 @@ imm_female_tweedie3 <- gam(immature_female + 1 ~ year_f +
                              s(temperature) +
                              s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
-                             s(log_pcod_cpue),
+                             s(log_pcod_cpue) +
+                             s(bcs_immature_female),
                            data = imm_female_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(imm_female_tweedie3) # 71.5%
+summary(imm_female_tweedie3) # 71.4%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_tweedie3)
@@ -571,7 +605,7 @@ leg_male_gam_base <- gam(pres_leg_male ~ year_f +
                            s(julian),
                          data = leg_male_train,
                          family = "binomial")
-summary(leg_male_gam_base) # 57.7% explained
+summary(leg_male_gam_base) # 58.4% explained
 
 # Add environmental data
 leg_male_gam1 <- gam(lncount_leg_male ~ year_f + 
@@ -596,7 +630,7 @@ leg_male_gam2 <- gam(lncount_leg_male ~ year_f +
                        data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
 summary(leg_male_gam2) # 51.8% explained
 
-# Add pcod data
+# Add pcod and bcs data
 leg_male_gam3 <- gam(lncount_leg_male ~ year_f +
                        s(longitude, latitude) +
                        s(julian) +
@@ -605,7 +639,8 @@ leg_male_gam3 <- gam(lncount_leg_male ~ year_f +
                        s(temperature) +
                        s(ice_mean) +
                        s(longitude, latitude, by = legal_male_loading) +
-                       s(log_pcod_cpue),
+                       s(log_pcod_cpue) +
+                       s(bcs_legal_male, k = 4),
                      data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
 summary(leg_male_gam3) # 51.8% explained
 
@@ -662,11 +697,12 @@ leg_male_tweedie3 <- gam(legal_male + 1 ~ year_f +
                            s(temperature) +
                            s(ice_mean) +
                            s(longitude, latitude, by = legal_male_loading) +
-                           s(log_pcod_cpue),
+                           s(log_pcod_cpue) +
+                           s(bcs_legal_male),
                          data = leg_male_train,
                          family = tw(link = "log"),
                          method = "REML")
-summary(leg_male_tweedie3) # 67.5%
+summary(leg_male_tweedie3) # 67.3%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_tweedie3)
@@ -737,7 +773,7 @@ sub_male_gam_base <- gam(pres_sub_male ~ year_f +
                            s(depth),
                          data = sub_male_train,
                          family = "binomial")
-summary(sub_male_gam_base) # 64.6% explained
+summary(sub_male_gam_base) # 64.7% explained
 
 # Add environmental data
 sub_male_gam1 <- gam(lncount_sub_male ~ year_f + 
@@ -771,7 +807,8 @@ sub_male_gam3 <- gam(lncount_sub_male ~ year_f +
                        s(temperature) +
                        s(ice_mean) +
                        s(longitude, latitude, by = sublegal_male_loading) +
-                       s(log_pcod_cpue),
+                       s(log_pcod_cpue) +
+                       s(bcs_sublegal_male),
                      data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
 summary(sub_male_gam3) # 65.9% explained
 
@@ -828,11 +865,12 @@ sub_male_tweedie3 <- gam(sublegal_male + 1 ~ year_f +
                            s(temperature) +
                            s(ice_mean) +
                            s(longitude, latitude, by = sublegal_male_loading) +
-                           s(log_pcod_cpue),
+                           s(log_pcod_cpue) +
+                           s(bcs_sublegal_male),
                          data = sub_male_train,
                          family = tw(link = "log"),
                          method = "REML")
-summary(sub_male_tweedie3) # 74.6%
+summary(sub_male_tweedie3) # 74.1%
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_tweedie3)
@@ -898,75 +936,49 @@ image.plot(legend.only = T,
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
 
+library(enmSdmX) # use for grid search, wrapper for dismo
+
+grid_search <- function(data, response, family){
+  trainBRT(data = data,
+           preds = c(1:10, 14),
+           resp = response,
+           family = family,
+           treeComplexity = c(1, 5, 10),
+           learningRate = c(0.01, 0.05, 0.1),
+           bagFraction = c(0.25, 0.5, 0.75),
+           minTrees = 1000, # recommended minimum by Elith
+           maxTrees = 2000,
+           cores = 6, # increase speed
+           out = c('model', 'tuning')) # should return model and table with hyperparameters
+}
+
 ## Mature females ----
-# Must remove all NA's from response in order to run 
-brt_mat_females_base <- gbm.step(data = mat_female_train,
-                                 gbm.x = c(1:9, 13),
-                                 gbm.y = 12,
-                                 family = 'bernoulli',
-                                 tree.complexity = 5,
-                                 learning.rate = 0.03,
-                                 bag.fraction = 0.5)
-summary(brt_mat_females_base)
+# Get best models
+brt_mat_females_base <- grid_search(mat_female_train, 13, 'bernoulli')
+brt_mat_females_base
 
-brt_mat_females1 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                             gbm.x = c(1:9),
-                             gbm.y = 10,
-                             family = 'gaussian',
-                             tree.complexity = 5,
-                             learning.rate = 0.05,
-                             bag.fraction = 0.5) 
-summary(brt_mat_females1) 
+brt_mat_females_abun <- grid_search(mat_female_train[mat_female_train$lncount_mat_female > 0, ],
+                                    11, 'gaussian')
+brt_mat_females_abun
 
+# Predict on test data
+mat_female_test$pred_base <- predict.gbm(brt_mat_females_base$model,
+                                         mat_female_test,
+                                         n.trees = brt_mat_females_base$model$gbm.call$best.trees,
+                                         type = "response")
 
-brt_mat_females2 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                         gbm.x = c(1:9),
-                         gbm.y = 10,
-                         family = 'gaussian',
-                         tree.complexity = 5,
-                         learning.rate = 0.01,
-                         bag.fraction = 0.5) 
-summary(brt_mat_females2)
+mat_female_test$pred_abun <- predict.gbm(brt_mat_females_abun$model,
+                                         mat_female_test,
+                                         n.trees = brt_mat_females_abun$model$gbm.call$best.trees,
+                                         type = "response")
+
+mat_female_test$pred <- mat_female_test$pred_base * mat_female_test$pred_abun
 
 
-brt_mat_females3 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                         gbm.x = c(1:9),
-                         gbm.y = 10,
-                         family = 'gaussian',
-                         tree.complexity = 7,
-                         learning.rate = 0.05,
-                         bag.fraction = 0.5) 
-summary(brt_mat_females3)
+# Calculate RMSE
+rmse_mat_female <- sqrt(mean((mat_female_test$pres_mat_female - mat_female_test$pred_base)^2))
+rmse_mat_female
 
-
-brt_mat_females4 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                         gbm.x = c(1:9, 13),
-                         gbm.y = 10,
-                         family = 'gaussian',
-                         tree.complexity = 10,
-                         learning.rate = 0.03,
-                         bag.fraction = 0.5) 
-summary(brt_mat_females4)
-
-
-brt_mat_females5 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                         gbm.x = c(1:9),
-                         gbm.y = 10,
-                         family = 'gaussian',
-                         tree.complexity = 5,
-                         learning.rate = 0.05,
-                         bag.fraction = 0.75)
-summary(brt_mat_females5)
-
-
-brt_mat_females6 <- gbm.step(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                             gbm.x = c(1:9),
-                             gbm.y = 10,
-                             family = 'gaussian',
-                             tree.complexity = 5,
-                             learning.rate = 0.05,
-                             bag.fraction = 0.25)
-summary(brt_mat_females6)
 
 # Attempt dropping variable
 females_mat_simp <- gbm.simplify(brt_mat_females4, n.drops = 8) # this takes forever
@@ -1157,7 +1169,7 @@ image.plot(legend.only = T,
 
 ## Immature females ----
 brt_imm_females_base <- gbm.step(data = imm_female_train,
-                                gbm.x = c(1:9, 13),
+                                gbm.x = c(1:10, 13),
                                 gbm.y = 12,
                                 family = 'bernoulli',
                                 tree.complexity = 5,
@@ -1165,7 +1177,7 @@ brt_imm_females_base <- gbm.step(data = imm_female_train,
                                 bag.fraction = 0.5)
 
 brt_imm_females1 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1175,7 +1187,7 @@ summary(brt_imm_females1)
 
 
 brt_imm_females2 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1185,7 +1197,7 @@ summary(brt_imm_females2)
 
 
 brt_imm_females3 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 7,
@@ -1195,7 +1207,7 @@ summary(brt_imm_females3)
 
 
 brt_imm_females4 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9, 13),
+                             gbm.x = c(1:10, 13),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 10,
@@ -1205,7 +1217,7 @@ summary(brt_imm_females4)
 
 
 brt_imm_females5 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1215,7 +1227,7 @@ summary(brt_imm_females5)
 
 
 brt_imm_females6 <- gbm.step(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1407,7 +1419,7 @@ image.plot(legend.only = T,
 
 ## Legal Males ----
 brt_leg_males_base <- gbm.step(data = leg_male_train,
-                           gbm.x = c(1:9, 13),
+                           gbm.x = c(1:10, 13),
                            gbm.y = 12,
                            family = 'bernoulli',
                            tree.complexity = 10,
@@ -1416,7 +1428,7 @@ brt_leg_males_base <- gbm.step(data = leg_male_train,
 summary(brt_leg_males_base)
 
 brt_leg_males1 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1426,7 +1438,7 @@ summary(brt_leg_males1)
 
 
 brt_leg_males2 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1436,7 +1448,7 @@ summary(brt_leg_males2)
 
 
 brt_leg_males3 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 7,
@@ -1446,7 +1458,7 @@ summary(brt_leg_males3)
 
 
 brt_leg_males4 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0,],
-                           gbm.x = c(1:9, 13),
+                           gbm.x = c(1:10, 13),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 10,
@@ -1456,7 +1468,7 @@ summary(brt_leg_males4)
 
 
 brt_leg_males5 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1466,7 +1478,7 @@ summary(brt_leg_males5)
 
 
 brt_leg_males6 <- gbm.step(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                             gbm.x = c(1:9),
+                             gbm.x = c(1:10),
                              gbm.y = 10,
                              family = 'gaussian',
                              tree.complexity = 5,
@@ -1658,7 +1670,7 @@ image.plot(legend.only = T,
 
 ## Sublegal Males ----
 brt_sub_males_base <- gbm.step(data = sub_male_train,
-                               gbm.x = c(1:9, 13),
+                               gbm.x = c(1:10, 13),
                                gbm.y = 12,
                                family = 'bernoulli',
                                tree.complexity = 10,
@@ -1668,7 +1680,7 @@ summary(brt_sub_males_base)
 
 
 brt_sub_males1 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:10),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1678,7 +1690,7 @@ summary(brt_sub_males1)
 
 
 brt_sub_males2 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:10),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1688,7 +1700,7 @@ summary(brt_sub_males2)
 
 
 brt_sub_males3 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:10),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 7,
@@ -1698,7 +1710,7 @@ summary(brt_sub_males3)
 
 
 brt_sub_males4 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9, 13),
+                           gbm.x = c(1:10, 13),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 10,
@@ -1708,7 +1720,7 @@ summary(brt_sub_males4)
 
 
 brt_sub_males5 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:10),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
@@ -1718,7 +1730,7 @@ summary(brt_sub_males5)
 
 
 brt_sub_males6 <- gbm.step(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                           gbm.x = c(1:9),
+                           gbm.x = c(1:10),
                            gbm.y = 10,
                            family = 'gaussian',
                            tree.complexity = 5,
