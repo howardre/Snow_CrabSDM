@@ -217,13 +217,13 @@ mat_female_tweedie2 <- gam(mature_female + 1 ~ year_f +
 summary(mat_female_tweedie2) # 67%
 
 # Add pcod data
-mat_female_tweedie3 <- gam(mature_female + 1 ~ year_f +
+mat_female_tweedie3 <- gam(mature_female + 1 ~ 
                              s(longitude, latitude) +
                              s(julian) +
                              s(depth) +
                              s(phi) +
                              s(temperature) +
-                             s(ice_mean) +
+                             #s(ice_mean) +
                              s(longitude, latitude, by = female_loading) +
                              s(log_pcod_cpue) +
                              s(bcs_mature_female),
@@ -237,6 +237,15 @@ gam.check(mat_female_tweedie3)
 
 par(mfrow = c(3, 3))
 plot(mat_female_tweedie3)
+
+# Predict on test data
+mat_female_test$pred_gam <- predict(mat_female_tweedie3,
+                                    mat_female_test,
+                                    type = "link")
+
+rmse_mat_female_gam <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
+rmse_mat_female_gam
+
 
 # Make map
 windows(width = 12, height = 10)
@@ -972,12 +981,12 @@ mat_female_test$pred_abun <- predict.gbm(brt_mat_females_abun$model,
                                          n.trees = brt_mat_females_abun$model$gbm.call$best.trees,
                                          type = "response")
 
-mat_female_test$pred <- mat_female_test$pred_base * mat_female_test$pred_abun
+mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abun
 
 
 # Calculate RMSE
-rmse_mat_female <- sqrt(mean((mat_female_test$pres_mat_female - mat_female_test$pred_base)^2))
-rmse_mat_female
+rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
+rmse_mat_female_brt
 
 
 # Attempt dropping variable
