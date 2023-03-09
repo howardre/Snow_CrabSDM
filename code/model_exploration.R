@@ -6,7 +6,6 @@
 library(gbm)
 library(dismo)
 library(scales)
-library(randomForest)
 library(here)
 library(mgcv)
 library(dplyr)
@@ -15,6 +14,7 @@ library(maps)
 library(mapdata)
 library(fields)
 library(ggplot2)
+library(enmSdmX) # use for grid search, wrapper for dismo
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
 
@@ -23,7 +23,8 @@ jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 
 # Load data ----
 # Make sure to run PCA first if updating the data matching script
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))
+crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>% 
+  select(-geometry)
 
 # Transform female and male data
 crab_trans <- mutate(crab_summary,
@@ -944,8 +945,6 @@ image.plot(legend.only = T,
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
-
-library(enmSdmX) # use for grid search, wrapper for dismo
 
 grid_search <- function(data, response, family){
   trainBRT(data = data,
