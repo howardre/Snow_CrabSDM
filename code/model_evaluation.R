@@ -112,6 +112,160 @@ sub_male_test <- crab_test %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
+# Functions and LOESS ----
+# Use LOESS for prediction grid, works better than fixed values for depth and phi
+depth_loess <- loess(depth ~ longitude * latitude,
+                     data = crab_trans,
+                     span = 0.7,
+                     degree = 2,
+                     control = loess.control(surface = "interpolate"))
+summary(lm(depth_loess$fitted ~ crab_trans$depth)) # check R2
+
+
+phi_loess <- loess(phi ~ longitude * latitude,
+                   span = 0.05,
+                   degree = 2,
+                   data = crab_trans,
+                   family = "symmetric",
+                   control = loess.control(surface = "interpolate"))
+summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
+
+grid_search <- function(data, response, family){
+  trainBRT(data = data,
+           preds = c(1:10, 14),
+           resp = response,
+           family = family,
+           treeComplexity = c(1, 5, 10),
+           learningRate = c(0.01, 0.05, 0.1),
+           bagFraction = c(0.25, 0.5, 0.75),
+           minTrees = 1000, # recommended minimum by Elith
+           maxTrees = 2000,
+           cores = 6, # increase speed
+           out = c('model', 'tuning')) # should return model and table with hyperparameters
+}
+
+grid_development <- function(train_data){
+  nlat = 40
+  nlon = 60
+  latd = seq(min(train_data$latitude), max(train_data$latitude), length.out = nlat)
+  lond = seq(min(train_data$longitude), max(train_data$longitude), length.out = nlon)
+  spatial_grid <- expand.grid(lond, latd) # create grid
+  names(spatial_grid) <- c('longitude', 'latitude')
+  spatial_grid$dist <- NA # calculate distance from nearest station
+  for (k in 1:nrow(spatial_grid)) {
+    dist <-  distance_function(spatial_grid$latitude[k],
+                               spatial_grid$longitude[k],
+                               train_data$latitude,
+                               train_data$longitude)
+    spatial_grid$dist[k] <- min(dist)
+  }
+  
+  # Add in LOESS interpolated values for phi and depth
+  spatial_grid$depth <- as.vector(predict(depth_loess,
+                                          newdata = spatial_grid))
+  spatial_grid$phi <- as.vector(predict(phi_loess,
+                                        newdata = spatial_grid))
+  
+  # Add median values for all other variables
+  spatial_grid$year_f <- as.factor('2010')
+  spatial_grid$julian <- median(train_data$julian, na.rm = T)
+  spatial_grid$temperature <- median(train_data$temperature, na.rm = T)
+  spatial_grid$ice_mean <- median(train_data$ice_mean, na.rm = T)
+  spatial_grid$female_loading <- median(train_data$female_loading, na.rm = T) 
+  spatial_grid$log_pcod_cpue <- median(train_data$log_pcod_cpue, na.rm = T)
+  spatial_grid$bcs_mature_female <- median(train_data$bcs_mature_female, na.rm = T)
+  return(spatial_grid)
+}
+
+map_pred_brt <- function(spatial_grid, train_data, title){
+  # Create palette dependent on scale
+  my_color = colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+  color_levels = 100
+  max_absolute_value = max(abs(c(min(spatial_grid$pred_brt, na.rm = T),
+                                 max(spatial_grid$pred_brt, na.rm = T))))
+  color_sequence = seq(max(spatial_grid$pred_brt, na.rm = T), 
+                       min(spatial_grid$pred_brt, na.rm = T),
+                       length.out = color_levels + 1)
+  n_in_class = hist(spatial_grid$pred_brt, breaks = color_sequence, plot = F)$counts > 0
+  col_to_include = min(which(n_in_class == T)):max(which(n_in_class == T))
+  breaks_to_include = min(which(n_in_class == T)):(max(which(n_in_class == T)) + 1)
+  
+  # Use for matrix
+  nlat = 40
+  nlon = 60
+  latd = seq(min(train_data$latitude), max(train_data$latitude), length.out = nlat)
+  lond = seq(min(train_data$longitude), max(train_data$longitude), length.out = nlon)
+  
+  # Make map
+  windows(width = 12, height = 10)
+  par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
+      oma = c(1, 1, 1, 1),
+      mgp = c(5, 2, 0),
+      family = "serif")
+  image(lond,
+        latd,
+        t(matrix(spatial_grid$pred_brt,
+                 nrow = length(latd),
+                 ncol = length(lond),
+                 byrow = T)),
+        xlim = c(-181, -156),
+        ylim = range(train_data$latitude, na.rm = TRUE) + c(-.4, .5),
+        axes = FALSE,
+        xlab = "",
+        ylab = "")
+  rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcream")
+  par(new = TRUE)
+  image(lond,
+        latd,
+        t(matrix(spatial_grid$pred_brt,
+                 nrow = length(latd),
+                 ncol = length(lond),
+                 byrow = T)),
+        col = my_color(n = color_levels)[col_to_include],
+        ylab = "Latitude",
+        xlab = "Longitude",
+        xlim = c(-181, -156),
+        ylim = range(train_data$latitude, na.rm = TRUE) + c(-.4, .5),
+        main = title,
+        cex.main = 2,
+        cex.lab = 2,
+        cex.axis = 1.8)
+  maps::map("worldHires",
+            fill = T,
+            col = "wheat4",
+            add = T)
+  image.plot(legend.only = T,
+             col = jet.colors(100),
+             legend.shrink = 0.2,
+             smallplot = c(.18, .21, .17, .38),
+             legend.cex = 1.3,
+             axis.args = list(cex.axis = 1.6,
+                              family = "serif"),
+             legend.width = 0.8,
+             legend.mar = 6,
+             zlim = c(min(spatial_grid$pred_brt, na.rm = T), 
+                      max(spatial_grid$pred_brt, na.rm = T)),
+             legend.args = list("log(count+1)",
+                                side = 2,
+                                cex = 1.8,
+                                line = 1.3,
+                                family =  "serif"))
+  }
+
+brt_grid_preds <- function(spatial_grid, abun_brt, base_brt){
+  spatial_grid$pred_abun <- predict.gbm(abun_brt$model,
+                                        spatial_grid,
+                                        n.trees = abun_brt$model$gbm.call$best.trees,
+                                        type =  "response")
+  spatial_grid$pred_base <- predict.gbm(base_brt$model,
+                                        spatial_grid,
+                                        n.trees = base_brt$model$gbm.call$best.trees,
+                                        type = "response")
+  spatial_grid$pred_brt <- spatial_grid$pred_base * spatial_grid$pred_abun
+  
+  spatial_grid$pred_brt[spatial_grid$dist > 28000] <- NA # Remove predictions too far from samples
+  return(spatial_grid)
+}
 
 # GAMs ----
 ## Mature Female ----
@@ -419,20 +573,6 @@ rmse_sub_male_delta # 1.46
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
 
-grid_search <- function(data, response, family){
-  trainBRT(data = data,
-           preds = c(1:10, 14),
-           resp = response,
-           family = family,
-           treeComplexity = c(1, 5, 10),
-           learningRate = c(0.01, 0.05, 0.1),
-           bagFraction = c(0.25, 0.5, 0.75),
-           minTrees = 1000, # recommended minimum by Elith
-           maxTrees = 2000,
-           cores = 6, # increase speed
-           out = c('model', 'tuning')) # should return model and table with hyperparameters
-}
-
 ## Mature females ----
 # Get best models
 brt_mat_female_base <- grid_search(mat_female_train, 13, 'bernoulli')
@@ -463,7 +603,6 @@ rmse_mat_female_brt # 1.6
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
 saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base.rds'))
-
 
 # Plot the variables
 windows()
@@ -529,130 +668,20 @@ gbm.perspec(brt_mat_female_abun$model,
 
 # Plot map of the predicted distribution
 # Prediction grid map
-nlat = 40
-nlon = 60
-latd = seq(min(mat_female_train$latitude), max(mat_female_train$latitude), length.out = nlat)
-lond = seq(min(mat_female_train$longitude), max(mat_female_train$longitude), length.out = nlon)
-spatial_grid_mat_female <- expand.grid(lond, latd)
-names(spatial_grid_mat_female) <- c('longitude', 'latitude')
-spatial_grid_mat_female$dist <- NA
-for (k in 1:nrow(spatial_grid_mat_female)) {
-  dist <-  distance_function(spatial_grid_mat_female$latitude[k],
-                             spatial_grid_mat_female$longitude[k],
-                             mat_female_train$latitude,
-                             mat_female_train$longitude)
-  spatial_grid_mat_female$dist[k] <- min(dist)
-}
+spatial_grid_mat_female <- grid_development(mat_female_train)
+mat_female_preds <- brt_grid_preds(spatial_grid_mat_female, 
+                                   brt_mat_female_abun,
+                                   brt_mat_female_base)
 
-depth_loess <- loess(depth ~ longitude * latitude,
-                     data = crab_trans,
-                     span = 0.7,
-                     degree = 2,
-                     control = loess.control(surface = "interpolate"))
- summary(lm(depth_loess$fitted ~ crab_trans$depth)) # check R2
-
-spatial_grid_mat_female$depth <- as.vector(predict(depth_loess,
-                                                   newdata = spatial_grid_mat_female))
-
-phi_loess <- loess(phi ~ longitude * latitude,
-                   span = 0.1,
-                   degree = 2,
-                   data = crab_trans,
-                   family = "symmetric",
-                   control = loess.control(surface = "interpolate"))
- summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
-
-spatial_grid_mat_female$phi <- as.vector(predict(phi_loess,
-                                                 newdata = spatial_grid_mat_female))
-
-spatial_grid_mat_female$year_f <- as.factor('2010')
-spatial_grid_mat_female$julian <- median(mat_female_train$julian, na.rm = T)
-spatial_grid_mat_female$temperature <- median(mat_female_train$temperature, na.rm = T)
-spatial_grid_mat_female$ice_mean <- median(mat_female_train$ice_mean, na.rm = T)
-spatial_grid_mat_female$female_loading <- median(mat_female_train$female_loading, na.rm = T) 
-spatial_grid_mat_female$log_pcod_cpue <- median(mat_female_train$log_pcod_cpue, na.rm = T)
-spatial_grid_mat_female$bcs_mature_female <- median(mat_female_train$bcs_mature_female, na.rm = T)
-
-spatial_grid_mat_female$pred_abun <- predict.gbm(brt_mat_female_abun$model,
-                                           spatial_grid_mat_female,
-                                           n.trees = brt_mat_female_abun$model$gbm.call$best.trees,
-                                           type = "response")
-
-spatial_grid_mat_female$pred_abun[spatial_grid_mat_female$dist > 28000] <- NA
-
-my_color = colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
-color_levels = 100
-max_absolute_value = max(abs(c(min(spatial_grid_mat_female$pred, na.rm = T),
-                               max(spatial_grid_mat_female$pred, na.rm = T))))
-color_sequence = seq(max(spatial_grid_mat_female$pred, na.rm = T), 
-                     min(spatial_grid_mat_female$pred, na.rm = T),
-                     length.out = color_levels + 1)
-n_in_class = hist(spatial_grid_mat_female$pred, breaks = color_sequence, plot = F)$counts > 0
-col_to_include = min(which(n_in_class == T)):max(which(n_in_class == T))
-breaks_to_include = min(which(n_in_class == T)):(max(which(n_in_class == T)) + 1)
-
-windows(width = 12, height = 10)
-par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
-    oma = c(1, 1, 1, 1),
-    mgp = c(5, 2, 0),
-    family = "serif")
-image(lond,
-      latd,
-      t(matrix(spatial_grid_mat_female$pred_abun,
-               nrow = length(latd),
-               ncol = length(lond),
-               byrow = T)),
-      xlim = c(-181, -156),
-      ylim = range(mat_female_train$latitude, na.rm = TRUE) + c(-.4, .5),
-      axes = FALSE,
-      xlab = "",
-      ylab = "")
-rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcream")
-par(new = TRUE)
-image(lond,
-      latd,
-      t(matrix(spatial_grid_mat_female$pred_abun,
-               nrow = length(latd),
-               ncol = length(lond),
-               byrow = T)),
-      col = my_color(n = color_levels)[col_to_include],
-      ylab = "Latitude",
-      xlab = "Longitude",
-      xlim = c(-181, -156),
-      ylim = range(mat_female_train$latitude, na.rm = TRUE) + c(-.4, .5),
-      main = "Distribution of Mature Females (GAM)",
-      cex.main = 1.7,
-      cex.lab = 1.7,
-      cex.axis = 1.5)
-# symbols(mat_female_train$longitude[mat_female_train$lncount_mat_female > 0],
-#         mat_female_train$latitude[mat_female_train$lncount_mat_female > 0],
-#         circles = log(mat_female_train$lncount_mat_female + 1)[mat_female_train$lncount_mat_female > 0],
-#         inches = 0.1,
-#         bg = alpha('grey', 0.3),
-#         fg = alpha('black', 0.1),
-#         add = T)
-# points(mat_female_train$longitude[mat_female_train$lncount_mat_female == 0],
-#        mat_female_train$latitude[mat_female_train$lncount_mat_female == 0],
-#        pch =  '')
-maps::map("worldHires",
-          fill = T,
-          col = "wheat4",
-          add = T)
-image.plot(legend.only = T,
-           col = jet.colors(100),
-           legend.shrink = 0.2,
-           smallplot = c(.28, .31, .27, .42),
-           legend.cex = 1,
-           axis.args = list(cex.axis = 1.3,
-                            family = "serif"),
-           legend.width = 0.8,
-           legend.mar = 6,
-           zlim = c(min(spatial_grid_mat_female$pred_abun, na.rm = T), 
-                    max(spatial_grid_mat_female$pred_abun, na.rm = T)),
-           legend.args = list("log(count+1)",
-                              side = 2,
-                              cex = 1.5,
-                              family =  "serif"))
+map_pred_brt(mat_female_preds, mat_female_train, "Distribution of Mature Female Snow Crab (BRT)")
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_mat_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Immature females ----
 # Get best models
