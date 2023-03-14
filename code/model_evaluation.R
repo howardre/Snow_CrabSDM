@@ -130,6 +130,132 @@ phi_loess <- loess(phi ~ longitude * latitude,
                    control = loess.control(surface = "interpolate"))
 summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
 
+# Rewrite gbm.plot to use better variable names
+gbm.plot2 <- function (gbm.object, variable.no = 0, smooth = FALSE, rug = TRUE, 
+                       n.plots = length(pred.names), common.scale = TRUE, write.title = TRUE, 
+                       y.label = "fitted function", x.label = NULL, show.contrib = TRUE, 
+                       plot.layout = c(3, 4), ...) 
+{
+  if (!requireNamespace("gbm")) {
+    stop("you need to install the gbm package to run this function")
+  }
+  requireNamespace("splines")
+  gbm.call <- gbm.object$gbm.call
+  gbm.x <- gbm.call$gbm.x
+  pred.names <- gbm.call$predictor.names
+  response.name <- gbm.call$response.name
+  data <- gbm.call$dataframe
+  max.plots <- plot.layout[1] * plot.layout[2]
+  plot.count <- 0
+  n.pages <- 1
+  if (length(variable.no) > 1) {
+    stop("only one response variable can be plotted at a time")
+  }
+  if (variable.no > 0) {
+    n.plots <- 1
+  }
+  max.vars <- length(gbm.object$contributions$var)
+  if (n.plots > max.vars) {
+    n.plots <- max.vars
+    warning("reducing no of plotted predictors to maximum available (", 
+            max.vars, ")")
+  }
+  predictors <- list(rep(NA, n.plots))
+  responses <- list(rep(NA, n.plots))
+  for (j in c(1:n.plots)) {
+    if (n.plots == 1) {
+      k <- variable.no
+    }
+    else {
+      k <- match(gbm.object$contributions$var[j], pred.names)
+    }
+    if (is.null(x.label)) {
+      var.name <- labels[j]
+    }
+    else {
+      var.name <- labels[j]
+    }
+    pred.data <- data[, gbm.call$gbm.x[k]]
+    response.matrix <- gbm::plot.gbm(gbm.object, k, return.grid = TRUE)
+    predictors[[j]] <- response.matrix[, 1]
+    if (is.factor(data[, gbm.call$gbm.x[k]])) {
+      predictors[[j]] <- factor(predictors[[j]], levels = levels(data[, 
+                                                                      gbm.call$gbm.x[k]]))
+    }
+    responses[[j]] <- response.matrix[, 2] - mean(response.matrix[, 
+                                                                  2])
+    if (j == 1) {
+      ymin = min(responses[[j]])
+      ymax = max(responses[[j]])
+    }
+    else {
+      ymin = min(ymin, min(responses[[j]]))
+      ymax = max(ymax, max(responses[[j]]))
+    }
+  }
+  op <- graphics::par(no.readonly = TRUE)
+  graphics::par(mfrow = plot.layout)
+  for (j in c(1:n.plots)) {
+    if (plot.count == max.plots) {
+      plot.count = 0
+      n.pages <- n.pages + 1
+    }
+    plot.count <- plot.count + 1
+    if (n.plots == 1) {
+      k <- match(pred.names[variable.no], gbm.object$contributions$var)
+      if (show.contrib) {
+        x.label <- paste(var.name, "  (", round(gbm.object$contributions[k, 
+                                                                         2], 1), "%)", sep = "")
+      }
+    }
+    else {
+      k <- match(gbm.object$contributions$var[j], pred.names)
+      var.name <- labels[j]
+      if (show.contrib) {
+        x.label <- paste(var.name, "  (", round(gbm.object$contributions[j, 
+                                                                         2], 1), "%)", sep = "")
+      }
+      else x.label <- var.name
+    }
+    if (common.scale) {
+      plot(predictors[[j]], responses[[j]], ylim = c(ymin, 
+                                                     ymax), type = "l", xlab = x.label, ylab = y.label, 
+           ...)
+    }
+    else {
+      plot(predictors[[j]], responses[[j]], type = "l", 
+           xlab = x.label, ylab = y.label, ...)
+    }
+    if (smooth & is.vector(predictors[[j]])) {
+      temp.lo <- loess(responses[[j]] ~ predictors[[j]], 
+                       span = 0.3)
+      lines(predictors[[j]], fitted(temp.lo), lty = 2, 
+            col = 2)
+    }
+    if (plot.count == 1 & n.plots == 1) {
+      if (write.title) {
+        title(paste(response.name, " - page ", n.pages, 
+                    sep = ""))
+      }
+      if (rug & is.vector(data[, gbm.call$gbm.x[variable.no]])) {
+        rug(quantile(data[, gbm.call$gbm.x[variable.no]], 
+                     probs = seq(0, 1, 0.1), na.rm = TRUE))
+      }
+    }
+    else {
+      if (write.title & j == 1) {
+        title(response.name)
+      }
+      if (rug & is.vector(data[, gbm.call$gbm.x[k]])) {
+        rug(quantile(data[, gbm.call$gbm.x[k]], probs = seq(0, 
+                                                            1, 0.1), na.rm = TRUE))
+      }
+    }
+  }
+  graphics::par(op)
+}
+
+
 grid_search <- function(data, response, family){
   trainBRT(data = data,
            preds = c(1:10, 14),
@@ -142,6 +268,42 @@ grid_search <- function(data, response, family){
            maxTrees = 2000,
            cores = 6, # increase speed
            out = c('model', 'tuning')) # should return model and table with hyperparameters
+}
+
+rel_inf <- function(abun_brt, title){
+  windows()
+  effects <- tibble::as_tibble(summary.gbm(abun_brt$model, plotit = FALSE))
+  effects %>% arrange(desc(rel.inf)) %>%
+    ggplot(aes(x = forcats::fct_reorder(.f = var,
+                                        .x = rel.inf),
+               y = rel.inf,
+               fill = rel.inf)) +
+    geom_col() +
+    coord_flip() +
+    scale_color_brewer(palette = "Dark2") +
+    labs(x = 'Variable',
+         y = 'Relative Influence',
+         title = title) +
+    theme_minimal() +
+    theme(legend.position = "none",       
+          plot.title = element_text(size = 22, family = "serif", face = "bold"),
+          axis.text = element_text(family = "serif", size = 16),
+          axis.title = element_text(family = "serif", size = 20),
+          strip.text = element_text(family = "serif", size = 20)) 
+  }
+
+part_depen <- function(abun_brt){
+  windows()
+  gbm.plot2(abun_brt$model,
+           plot.layout = c(3, 4),
+           write.title = F,
+           smooth = T,
+           common.scale = T,
+           cex.axis = 1.7,
+           cex.lab = 1.7,
+           lwd = 1.5,
+           show.contrib = FALSE,
+           family = "serif")
 }
 
 grid_development <- function(train_data){
@@ -171,9 +333,7 @@ grid_development <- function(train_data){
   spatial_grid$julian <- median(train_data$julian, na.rm = T)
   spatial_grid$temperature <- median(train_data$temperature, na.rm = T)
   spatial_grid$ice_mean <- median(train_data$ice_mean, na.rm = T)
-  spatial_grid$female_loading <- median(train_data$female_loading, na.rm = T) 
   spatial_grid$log_pcod_cpue <- median(train_data$log_pcod_cpue, na.rm = T)
-  spatial_grid$bcs_mature_female <- median(train_data$bcs_mature_female, na.rm = T)
   return(spatial_grid)
 }
 
@@ -572,6 +732,7 @@ rmse_sub_male_delta # 1.46
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
+vars <- c(1:10, 14)
 
 ## Mature females ----
 # Get best models
@@ -604,35 +765,42 @@ rmse_mat_female_brt # 1.6
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
 saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base.rds'))
 
+# Read in BRTs
+brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
+brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
+
+# Variable names
+match_labels <- column_labels[match(colnames(mat_female_train)[vars], column_labels$column_names), ]
+
+brt_mat_female_summary <- summary(brt_mat_female_abun$model)
+
+brt_labels <- match_labels[order(match(names(mat_female_train)[vars], brt_mat_female_summary$var)), ]
+labels <- brt_labels$final_names
+
+# Variable importance
+rel_inf(brt_mat_female_abun, 'Variable Influence on Mature Female Snow Crab')
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_mat_rel_inf.jpg'),
+         height = 12,
+         width = 9,
+         res = 200,
+         units = 'in')
+dev.off()
+
 # Plot the variables
 windows()
-gbm.plot(brt_mat_female_abun$model,
-         n.plots = 10,
-         plot.layout = c(2, 5),
-         write.title = F,
-         smooth = T,
-         common.scale = T,
-         cex.axis = 1.7,
-         cex.lab = 1.7,
-         lwd = 1.5,
-         show.contrib = FALSE,
-         family = "serif")
+gbm.plot2(brt_mat_female_abun$model,
+          plot.layout = c(3, 4),
+          write.title = F,
+          smooth = T,
+          common.scale = T,
+          cex.axis = 1.7,
+          cex.lab = 1.7,
+          lwd = 1.5,
+          show.contrib = FALSE,
+          family = "serif")
 
-windows()
-female_mat_effects <- tibble::as_tibble(summary.gbm(brt_mat_female_abun$model, plotit = F))
-female_mat_effects %>% arrange(desc(rel.inf)) %>%
-  ggplot(aes(x = forcats::fct_reorder(.f = var,
-                                      .x = rel.inf),
-             y = rel.inf,
-             fill = rel.inf)) +
-  geom_col() +
-  coord_flip() +
-  scale_color_brewer(palette = "Dark2") +
-  theme_minimal() +
-  theme(axis.title = element_text()) +
-  xlab('Variable') +
-  ylab('Relative Influence') +
-  ggtitle('Variable Influence on Mature Female Snow Crab')
 
 # Plot the fits
 females_mat_int <- gbm.interactions(brt_mat_female_abun$model)
@@ -689,7 +857,7 @@ brt_imm_female_base <- grid_search(imm_female_train, 13, 'bernoulli')
 brt_imm_female_base
 
 brt_imm_female_abun <- grid_search(imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                                    11, 'gaussian')
+                                   11, 'gaussian')
 brt_imm_female_abun
 
 # Predict on test data
@@ -708,43 +876,48 @@ imm_female_test$pred_brt <- imm_female_test$pred_base * imm_female_test$pred_abu
 
 # Calculate RMSE
 rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
-rmse_imm_female_brt # 1.43
+rmse_imm_female_brt # 1.6
+
+# Save models for future use
+saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun.rds'))
+saveRDS(brt_imm_female_base, file = here('data', 'brt_imm_female_base.rds'))
+
+# Read in BRTs
+brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
+brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
+
+# Variable importance
+rel_inf(brt_imm_female_abun, 'Variable Influence on Immature Female Snow Crab')
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_imm_rel_inf.jpg'),
+         height = 12,
+         width = 9,
+         res = 200,
+         units = 'in')
+dev.off()
 
 # Plot the variables
 windows()
-gbm.plot(females_imm_final,
-         n.plots = 8,
-         plot.layout = c(3, 3),
-         write.title = F,
-         smooth = T,
-         common.scale = T,
-         cex.axis = 1.7,
-         cex.lab = 1.7,
-         lwd = 1.5)
+gbm.plot2(brt_imm_female_abun$model,
+          plot.layout = c(3, 4),
+          write.title = F,
+          smooth = T,
+          common.scale = T,
+          cex.axis = 1.7,
+          cex.lab = 1.7,
+          lwd = 1.5,
+          show.contrib = FALSE,
+          family = "serif")
 
-windows()
-female_imm_effects <- tibble::as_tibble(summary.gbm(females_imm_final, plotit = F))
-female_imm_effects %>% arrange(desc(rel.inf)) %>%
-  ggplot(aes(x = forcats::fct_reorder(.f = var,
-                                      .x = rel.inf),
-             y = rel.inf,
-             fill = rel.inf)) +
-  geom_col() +
-  coord_flip() +
-  scale_color_brewer(palette = "Dark2") +
-  theme_minimal() +
-  theme(axis.title = element_text()) +
-  xlab('Variable') +
-  ylab('Relative Influence') +
-  ggtitle('Variable Influence on Immature Female Snow Crab')
 
 # Plot the fits
-females_imm_int <- gbm.interactions(females_imm_final)
+females_imm_int <- gbm.interactions(brt_imm_female_abun$model)
 females_imm_int$interactions
 
 par(mfrow = c(1, 3))
-gbm.perspec(females_imm_final,
-            7, 2,
+gbm.perspec(brt_imm_female_abun$model,
+            2, 3,
             z.range = c(0, 6.25),
             theta = 60,
             col = "light blue",
@@ -752,8 +925,8 @@ gbm.perspec(females_imm_final,
             cex.lab = 1,
             ticktype = "detailed")
 
-gbm.perspec(females_imm_final,
-            6, 1,
+gbm.perspec(brt_imm_female_abun$model,
+            2, 7,
             z.range = c(-1.3, 4.8),
             theta = 60,
             col = "light blue",
@@ -761,8 +934,8 @@ gbm.perspec(females_imm_final,
             cex.lab = 1,
             ticktype = "detailed")
 
-gbm.perspec(females_imm_final,
-            2, 3,
+gbm.perspec(brt_imm_female_abun$model,
+            1, 3,
             z.range = c(-0.1, 5.7),
             theta = 60,
             col = "light blue",
@@ -770,14 +943,49 @@ gbm.perspec(females_imm_final,
             cex.lab = 1,
             ticktype = "detailed")
 
+# Plot map of the predicted distribution
+# Prediction grid map
+# Variable names
+match_labels <- column_labels[match(colnames(imm_female_train)[vars], column_labels$column_names), ]
 
-## Legal Males ----
+brt_imm_female_summary <- summary(brt_imm_female_abun$model)
+
+brt_labels <- match_labels[order(match(names(imm_female_train)[vars], brt_imm_female_summary$var)), ]
+labels <- brt_labels$final_names
+
+column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_immature_female", "longitude",
+                  "latitude", "julian", "female_loading", "log_pcod_cpue", "year_f")
+final_names <- c("depth", "temperature", "phi", "ice concentration",
+                 "proportion BCS", "longitude", "latitude", "julian",
+                 "female loading", "log(cod cpue + 1)", "year")
+column_labels <- data.frame(column_names, final_names)
+
+spatial_grid_imm_female <- grid_development(imm_female_train)
+spatial_grid_imm_female$female_loading <- median(imm_female_train$female_loading, na.rm = TRUE)
+spatial_grid_imm_female$bcs_immature_female <- median(imm_female_train$bcs_immature_female, na.rm = TRUE)
+
+imm_female_preds <- brt_grid_preds(spatial_grid_imm_female, 
+                                   brt_imm_female_abun,
+                                   brt_imm_female_base)
+
+map_pred_brt(imm_female_preds, imm_female_train, "Distribution of Immature Female Snow Crab (BRT)")
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_imm_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+
+##Legal Males ----
 # Get best models
 brt_leg_male_base <- grid_search(leg_male_train, 13, 'bernoulli')
 brt_leg_male_base
 
 brt_leg_male_abun <- grid_search(leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                                   11, 'gaussian')
+                                 11, 'gaussian')
 brt_leg_male_abun
 
 # Predict on test data
@@ -796,42 +1004,47 @@ leg_male_test$pred_brt <- leg_male_test$pred_base * leg_male_test$pred_abun
 
 # Calculate RMSE
 rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
-rmse_leg_male_brt # 1.20
+rmse_leg_male_brt # 1.6
+
+# Save models for future use
+saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
+saveRDS(brt_leg_male_base, file = here('data', 'brt_leg_male_base.rds'))
+
+# Read in BRTs
+brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
+brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
+
+# Variable importance
+rel_inf(brt_leg_male_abun, 'Variable Influence on Legal Male Snow Crab')
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_leg_rel_inf.jpg'),
+         height = 12,
+         width = 9,
+         res = 200,
+         units = 'in')
+dev.off()
 
 # Plot the variables
 windows()
-gbm.plot(leg_male_final,
-         n.plots = 8,
-         plot.layout = c(3, 3),
-         write.title = F,
-         smooth = T,
-         common.scale = T,
-         cex.axis = 1.7,
-         cex.lab = 1.7,
-         lwd = 1.5)
+gbm.plot2(brt_leg_male_abun$model,
+          plot.layout = c(3, 4),
+          write.title = F,
+          smooth = T,
+          common.scale = T,
+          cex.axis = 1.7,
+          cex.lab = 1.7,
+          lwd = 1.5,
+          show.contrib = FALSE,
+          family = "serif")
 
-windows()
-leg_male_effects <- tibble::as_tibble(summary.gbm(leg_male_final, plotit = F))
-leg_male_effects %>% arrange(desc(rel.inf)) %>%
-  ggplot(aes(x = forcats::fct_reorder(.f = var,
-                                      .x = rel.inf),
-             y = rel.inf,
-             fill = rel.inf)) +
-  geom_col() +
-  coord_flip() +
-  scale_color_brewer(palette = "Dark2") +
-  theme_minimal() +
-  theme(axis.title = element_text()) +
-  xlab('Variable') +
-  ylab('Relative Influence') +
-  ggtitle('Variable Influence on Legal Male Snow Crab')
 
 # Plot the fits
-leg_male_int <- gbm.interactions(leg_male_final)
-leg_male_int$interactions
+males_leg_int <- gbm.interactions(brt_leg_male_abun$model)
+males_leg_int$interactions
 
 par(mfrow = c(1, 3))
-gbm.perspec(leg_male_final,
+gbm.perspec(brt_leg_male_abun$model,
             2, 3,
             z.range = c(0, 6.25),
             theta = 60,
@@ -840,7 +1053,7 @@ gbm.perspec(leg_male_final,
             cex.lab = 1,
             ticktype = "detailed")
 
-gbm.perspec(leg_male_final,
+gbm.perspec(brt_leg_male_abun$model,
             2, 7,
             z.range = c(-1.3, 4.8),
             theta = 60,
@@ -849,7 +1062,7 @@ gbm.perspec(leg_male_final,
             cex.lab = 1,
             ticktype = "detailed")
 
-gbm.perspec(leg_male_final,
+gbm.perspec(brt_leg_male_abun$model,
             1, 3,
             z.range = c(-0.1, 5.7),
             theta = 60,
@@ -858,6 +1071,40 @@ gbm.perspec(leg_male_final,
             cex.lab = 1,
             ticktype = "detailed")
 
+# Plot map of the predicted distribution
+# Prediction grid map
+# Variable names
+match_labels <- column_labels[match(colnames(leg_male_train)[vars], column_labels$column_names), ]
+
+brt_leg_male_summary <- summary(brt_leg_male_abun$model)
+
+brt_labels <- match_labels[order(match(names(leg_male_train)[vars], brt_leg_male_summary$var)), ]
+labels <- brt_labels$final_names
+
+column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_legal_male", "longitude",
+                  "latitude", "julian", "legal_male_loading", "log_pcod_cpue", "year_f")
+final_names <- c("depth", "temperature", "phi", "ice concentration",
+                 "proportion BCS", "longitude", "latitude", "julian",
+                 "legal male loading", "log(cod cpue + 1)", "year")
+column_labels <- data.frame(column_names, final_names)
+
+spatial_grid_leg_male <- grid_development(leg_male_train)
+spatial_grid_leg_male$legal_male_loading <- median(leg_male_train$legal_male_loading, na.rm = TRUE)
+spatial_grid_leg_male$bcs_legal_male <- median(leg_male_train$bcs_legal_male, na.rm = TRUE)
+
+leg_male_preds <- brt_grid_preds(spatial_grid_leg_male,
+                                 brt_leg_male_abun,
+                                 brt_leg_male_base)
+
+map_pred_brt(leg_male_preds, leg_male_train, "Distribution of Legal Male Snow Crab (BRT)")
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_leg_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Sublegal Males ----
 # Get best models
@@ -884,51 +1131,69 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.59
+rmse_sub_male_brt # 1.6
+
+# Save models for future use
+saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
+saveRDS(brt_sub_male_base, file = here('data', 'brt_sub_male_base.rds'))
+
+# Read in BRTs
+brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
+brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
+
+# Variable names
+match_labels <- column_labels[match(colnames(sub_male_train)[vars], column_labels$column_names), ]
+
+brt_sub_male_summary <- summary(brt_sub_male_abun$model)
+
+brt_labels <- match_labels[order(match(names(sub_male_train)[vars], brt_sub_male_summary$var)), ]
+labels <- brt_labels$final_names
+
+column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_sublegal_male", "longitude",
+                  "latitude", "julian", "sublegal_male_loading", "log_pcod_cpue", "year_f")
+final_names <- c("depth", "temperature", "phi", "ice concentration",
+                 "proportion BCS", "longitude", "latitude", "julian",
+                 "sublegal male loading", "log(cod cpue + 1)", "year")
+column_labels <- data.frame(column_names, final_names)
+
+# Variable importance
+rel_inf(brt_sub_male_abun, 'Variable Influence on Sublegal Male Snow Crab')
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_sub_rel_inf.jpg'),
+         height = 12,
+         width = 9,
+         res = 200,
+         units = 'in')
+dev.off()
 
 # Plot the variables
-windows()
-gbm.plot(sub_male_final,
-         n.plots = 8,
-         plot.layout = c(3, 3),
-         write.title = F,
-         smooth = T,
-         common.scale = T,
-         cex.axis = 1.7,
-         cex.lab = 1.7,
-         lwd = 1.5)
-
-windows()
-sub_male_effects <- tibble::as_tibble(summary.gbm(sub_male_final, plotit = F))
-sub_male_effects %>% arrange(desc(rel.inf)) %>%
-  ggplot(aes(x = forcats::fct_reorder(.f = var,
-                                      .x = rel.inf),
-             y = rel.inf,
-             fill = rel.inf)) +
-  geom_col() +
-  coord_flip() +
-  scale_color_brewer(palette = "Dark2") +
-  theme_minimal() +
-  theme(axis.title = element_text()) +
-  xlab('Variable') +
-  ylab('Relative Influence') +
-  ggtitle('Variable Influence on Sublegal Male Snow Crab')
+part_depen(brt_sub_male_abun)
+dev.copy(jpeg,
+        here('results/BRT',
+             'brt_sub_male_plots.jpg'),
+        height = 9,
+        width = 12,
+        res = 200,
+        units = 'in')
+dev.off()
 
 # Plot the fits
-sub_male_int <- gbm.interactions(sub_male_final)
-sub_male_int$interactions
+males_sub_int <- gbm.interactions(brt_sub_male_abun$model)
+males_sub_int$interactions
 
+windows()
 par(mfrow = c(1, 3))
-gbm.perspec(sub_male_final,
-            2, 3,
-            z.range = c(0, 6.25),
+gbm.perspec(brt_sub_male_abun$model,
+            2, 7,
+            z.range = c(0, 8.3),
             theta = 60,
             col = "light blue",
             cex.axis = 0.8,
             cex.lab = 1,
             ticktype = "detailed")
 
-gbm.perspec(sub_male_final,
+gbm.perspec(brt_sub_male_abun$model,
             2, 7,
             z.range = c(-1.3, 4.8),
             theta = 60,
@@ -937,7 +1202,7 @@ gbm.perspec(sub_male_final,
             cex.lab = 1,
             ticktype = "detailed")
 
-gbm.perspec(sub_male_final,
+gbm.perspec(brt_sub_male_abun$model,
             1, 3,
             z.range = c(-0.1, 5.7),
             theta = 60,
@@ -945,3 +1210,28 @@ gbm.perspec(sub_male_final,
             cex.axis = 0.8,
             cex.lab = 1,
             ticktype = "detailed")
+
+# Plot map of the predicted distribution
+# Prediction grid map
+spatial_grid_sub_male <- grid_development(sub_male_train)
+spatial_grid_sub_male$sublegal_male_loading <- median(sub_male_train$sublegal_male_loading, na.rm = TRUE)
+spatial_grid_sub_male$bcs_sublegal_male <- median(sub_male_train$bcs_sublegal_male, na.rm = TRUE)
+
+sub_male_preds <- brt_grid_preds(spatial_grid_sub_male, 
+                                 brt_sub_male_abun,
+                                 brt_sub_male_base)
+
+map_pred_brt(sub_male_preds, sub_male_train, "Distribution of Sublegal Male Snow Crab (BRT)")
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_sub_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Test using SHAP values
+library(treeshap)
+
+unified_gbm <- gbm.unify(brt_sub_male_abun$model, sub_male_train)
