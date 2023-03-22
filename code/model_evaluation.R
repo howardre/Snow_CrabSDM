@@ -427,6 +427,12 @@ brt_grid_preds <- function(spatial_grid, abun_brt, base_brt){
   return(spatial_grid)
 }
 
+brt_deviance <- function(brt){
+  deviance <- (brt$model$self.statistics$mean.null - brt$model$cv.statistics$deviance.mean) /
+    brt$model$self.statistics$mean.null
+  return(deviance)
+}
+
 # GAMs ----
 ## Mature Female ----
 # Gaussian
@@ -761,6 +767,13 @@ mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abu
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
 rmse_mat_female_brt # 1.6
 
+# Calculate deviance explained
+dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
+dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
+
+dev_mat_female_abun # 52% deviance explained
+dev_mat_female_pres # 59% deviance explained
+
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
 saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base.rds'))
@@ -876,7 +889,14 @@ imm_female_test$pred_brt <- imm_female_test$pred_base * imm_female_test$pred_abu
 
 # Calculate RMSE
 rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
-rmse_imm_female_brt # 1.6
+rmse_imm_female_brt # 1.42
+
+# Calculate deviance
+dev_imm_female_abun <- brt_deviance(brt_imm_female_abun)
+dev_imm_female_pres <- brt_deviance(brt_imm_female_base)
+
+dev_imm_female_abun # 64% deviance explained
+dev_imm_female_pres # 54% deviance explained
 
 # Save models for future use
 saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun.rds'))
@@ -1004,7 +1024,14 @@ leg_male_test$pred_brt <- leg_male_test$pred_base * leg_male_test$pred_abun
 
 # Calculate RMSE
 rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
-rmse_leg_male_brt # 1.6
+rmse_leg_male_brt # 1.22
+
+# Calculate deviance
+dev_leg_male_abun <- brt_deviance(brt_leg_male_abun)
+dev_leg_male_pres <- brt_deviance(brt_leg_male_base)
+
+dev_leg_male_abun # 64% deviance explained
+dev_leg_male_pres # 62% deviance explained
 
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
@@ -1132,6 +1159,13 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
 rmse_sub_male_brt # 1.6
+
+# Calculate deviance explained
+dev_sub_male_abun <- brt_deviance(brt_sub_male_abun)
+dev_sub_male_pres <- brt_deviance(brt_sub_male_base)
+
+dev_sub_male_abun # 74% deviance explained
+dev_sub_male_pres # 66% deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
