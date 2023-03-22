@@ -294,16 +294,16 @@ rel_inf <- function(abun_brt, title){
 
 part_depen <- function(abun_brt){
   windows()
-  gbm.plot2(abun_brt$model,
-           plot.layout = c(3, 4),
-           write.title = F,
-           smooth = T,
-           common.scale = T,
-           cex.axis = 1.7,
-           cex.lab = 1.7,
-           lwd = 1.5,
-           show.contrib = FALSE,
-           family = "serif")
+  gbm.plot(abun_brt$model,
+            plot.layout = c(3, 4),
+            write.title = F,
+            smooth = T,
+            common.scale = T,
+            cex.axis = 1.7,
+            cex.lab = 1.7,
+            lwd = 1.5,
+            show.contrib = FALSE,
+            family = "serif")
 }
 
 grid_development <- function(train_data){
@@ -802,17 +802,15 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-windows()
-gbm.plot2(brt_mat_female_abun$model,
-          plot.layout = c(3, 4),
-          write.title = F,
-          smooth = T,
-          common.scale = T,
-          cex.axis = 1.7,
-          cex.lab = 1.7,
-          lwd = 1.5,
-          show.contrib = FALSE,
-          family = "serif")
+part_depen(brt_mat_female_abun)
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_mat_plots.jpg'),
+         height = 12,
+         width = 15,
+         res = 200,
+         units = 'in')
+dev.off()
 
 
 # Plot the fits
@@ -918,17 +916,15 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-windows()
-gbm.plot2(brt_imm_female_abun$model,
-          plot.layout = c(3, 4),
-          write.title = F,
-          smooth = T,
-          common.scale = T,
-          cex.axis = 1.7,
-          cex.lab = 1.7,
-          lwd = 1.5,
-          show.contrib = FALSE,
-          family = "serif")
+part_depen(brt_imm_female_abun)
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_imm_plots.jpg'),
+         height = 12,
+         width = 15,
+         res = 200,
+         units = 'in')
+dev.off()
 
 
 # Plot the fits
@@ -1053,18 +1049,15 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-windows()
-gbm.plot2(brt_leg_male_abun$model,
-          plot.layout = c(3, 4),
-          write.title = F,
-          smooth = T,
-          common.scale = T,
-          cex.axis = 1.7,
-          cex.lab = 1.7,
-          lwd = 1.5,
-          show.contrib = FALSE,
-          family = "serif")
-
+part_depen(brt_leg_male_abun)
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_leg_plots.jpg'),
+         height = 12,
+         width = 15,
+         res = 200,
+         units = 'in')
+dev.off()
 
 # Plot the fits
 males_leg_int <- gbm.interactions(brt_leg_male_abun$model)
@@ -1204,12 +1197,12 @@ dev.off()
 # Plot the variables
 part_depen(brt_sub_male_abun)
 dev.copy(jpeg,
-        here('results/BRT',
-             'brt_sub_male_plots.jpg'),
-        height = 9,
-        width = 12,
-        res = 200,
-        units = 'in')
+         here('results/BRT',
+              'male_sub_plots.jpg'),
+         height = 12,
+         width = 15,
+         res = 200,
+         units = 'in')
 dev.off()
 
 # Plot the fits
