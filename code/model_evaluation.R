@@ -24,7 +24,7 @@ jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 # Load data ----
 # Make sure to run PCA first if updating the data matching script
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
-  select(-geometry)
+  dplyr::select(-geometry)
 
 # Transform female and male data
 crab_trans <- mutate(crab_summary,
@@ -40,8 +40,7 @@ crab_trans <- mutate(crab_summary,
                      log_pcod_cpue = log(pcod_cpue + 1)) %>%
   filter(!is.na(temperature),
          !is.na(julian),
-         !is.na(depth), 
-         year_f != 2022) # REMOVE ONCE ICE DATA COMPLETE!!!!!!!!
+         !is.na(depth)) 
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -461,7 +460,7 @@ summary(mat_female_gam_abun) # 40.8%
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam_abun)
 
-par(mfrow = c(3, 3))
+par(mfrow = c(3, 4))
 plot(mat_female_gam_abun)
 
 # Tweedie
@@ -503,10 +502,10 @@ mat_female_test$pred_gam_abun <- predict(mat_female_gam_abun,
 mat_female_test$pred_gam_delta <- mat_female_test$pred_gam_base * mat_female_test$pred_gam_abun
 
 rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
-rmse_mat_female_tweedie # 3.72
+rmse_mat_female_tweedie # 3.69
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 3.90
+rmse_mat_female_delta # 3.95
 
 # Prediction grid map
 
@@ -537,7 +536,7 @@ summary(imm_female_gam_abun) # 47.8%
 par(mfrow = c(2, 2))
 gam.check(imm_female_gam_abun)
 
-par(mfrow = c(3, 3))
+par(mfrow = c(3, 4))
 plot(imm_female_gam_abun)
 
 # Tweedie
@@ -579,10 +578,10 @@ imm_female_test$pred_gam_abun <- predict(imm_female_gam_abun,
 imm_female_test$pred_gam_delta <- imm_female_test$pred_gam_base * imm_female_test$pred_gam_abun
 
 rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam)^2, na.rm = T))
-rmse_imm_female_tweedie # 2.48
+rmse_imm_female_tweedie # 2.51
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 2.12
+rmse_imm_female_delta # 2.15
 
 ## Legal Male ----
 # Gaussian
@@ -633,7 +632,7 @@ summary(leg_male_tweedie) # 64.7%
 par(mfrow = c(2, 2))
 gam.check(leg_male_tweedie)
 
-par(mfrow = c(3, 3))
+par(mfrow = c(3, 4))
 plot(leg_male_tweedie)
 
 # Predict on test data
@@ -653,10 +652,10 @@ leg_male_test$pred_gam_abun <- predict(leg_male_gam_abun,
 leg_male_test$pred_gam_delta <- leg_male_test$pred_gam_base * leg_male_test$pred_gam_abun
 
 rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam)^2, na.rm = T))
-rmse_leg_male_tweedie # 1.81
+rmse_leg_male_tweedie # 1.83
 
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_leg_male_delta # 5.51
+rmse_leg_male_delta # 5.54
 
 ## Sublegal Male ----
 # Gaussian
@@ -685,7 +684,7 @@ summary(sub_male_gam_abun) # 61.3%
 par(mfrow = c(2, 2))
 gam.check(sub_male_gam_abun)
 
-par(mfrow = c(3, 3))
+par(mfrow = c(3, 4))
 plot(sub_male_gam_abun)
 
 # Tweedie
@@ -707,7 +706,7 @@ summary(sub_male_tweedie) # 71.4%
 par(mfrow = c(2, 2))
 gam.check(sub_male_tweedie)
 
-par(mfrow = c(3, 3))
+par(mfrow = c(3, 4))
 plot(sub_male_tweedie)
 
 # Predict on test data
@@ -727,10 +726,10 @@ sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
 sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
 
 rmse_sub_male_tweedie <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam)^2, na.rm = T))
-rmse_sub_male_tweedie # 1.90
+rmse_sub_male_tweedie # 1.92
 
 rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_sub_male_delta # 1.46
+rmse_sub_male_delta # 1.48
 
 
 # Boosted regression trees ----
@@ -783,6 +782,13 @@ brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
 brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 
 # Variable names
+column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_mature_female", "longitude",
+                  "latitude", "julian", "female_loading", "log_pcod_cpue", "year_f")
+final_names <- c("depth", "temperature", "phi", "ice concentration",
+                 "proportion BCS", "longitude", "latitude", "julian",
+                 "female loading", "log(cod cpue + 1)", "year")
+
+column_labels <- data.frame(column_names, final_names)
 match_labels <- column_labels[match(colnames(mat_female_train)[vars], column_labels$column_names), ]
 
 brt_mat_female_summary <- summary(brt_mat_female_abun$model)
