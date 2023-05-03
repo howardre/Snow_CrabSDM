@@ -389,7 +389,7 @@ sst_data$month <- match(sst_data$month, month.abb)
 ice_data <- as.data.frame(read_csv(here('data', 'ice_latlon.csv'), col_select = -c(1)))
 ice_data$month <- match(ice_data$month, month.abb)
 
-ice_data_filtered <- filter(ice_data, month == c(1:4))
+ice_data_filtered <- dplyr::filter(ice_data, month %in% c(1:4))
 
 ice_sf <- st_as_sf(ice_data_filtered,
                    coords = c("lon", "lat"), 
@@ -399,8 +399,8 @@ ice_df <- ice_sf %>% st_join(EBS_trans, join = st_intersects, left = FALSE)
 
 ice_means <- ice_df %>%
   group_by(year, STATIONID) %>%
-  summarise(ice_early = mean(ice[month == c(1, 2)]),
-            ice_late = mean(ice[month == c(3, 4)]))
+  summarise(ice_early = mean(ice[month %in% c(1, 2)]),
+            ice_late = mean(ice[month %in% c(3, 4)]))
 
 ice_final <- ice_means %>%
   group_by(year, STATIONID) %>%
