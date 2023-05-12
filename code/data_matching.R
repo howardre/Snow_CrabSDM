@@ -231,7 +231,7 @@ bycatch_offload <- clean_offload(bycatch_retained)
 # Group observer data for each season (Nov - Mar)
 # Match closest observer data from preceding season to a station for a year
 # Get the survey grid
-EBS <- get_base_layers(select.region = 'sebs', set.crs = 'auto')
+EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
 class(EBS)
 
 # Plot the survey grid
@@ -261,6 +261,7 @@ survey_sf <- st_as_sf(survey_wide,
                       coords = c("longitude", "latitude"), 
                       crs = 4269)
 
+sf_use_s2(FALSE)
 observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
 bycatch_df <- st_join(bycatch_sf, EBS_trans, left = FALSE)
 
@@ -394,6 +395,15 @@ ice_data_filtered <- dplyr::filter(ice_data, month %in% c(1:4))
 ice_sf <- st_as_sf(ice_data_filtered,
                    coords = c("lon", "lat"), 
                    crs = 4269)
+
+ggplot() +
+  geom_sf(data = ice_sf) +
+  coord_sf(xlim = EBS$plot.boundary$x,
+           ylim = EBS$plot.boundary$y) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
 
 ice_df <- ice_sf %>% st_join(EBS_trans, join = st_intersects, left = FALSE)
 
