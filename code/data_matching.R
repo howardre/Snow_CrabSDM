@@ -523,4 +523,4 @@ survey_depth <- survey_temp %>% mutate(depth = coalesce(depth, depth_pred))
 crab_summary <- survey_depth %>% drop_na(temperature, depth, phi, julian)
 
 # Save final data set
-saveRDS(survey_depth, file = here('data/Snow_CrabData', 'crab_summary.rds'))
+saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_summary.rds'))
