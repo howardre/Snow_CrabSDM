@@ -180,35 +180,26 @@ legal_male_pca_st <- prcomp(legal_male_scaled_st,
 summary(legal_male_pca_st)
 head(summary(legal_male_pca_st))
 
-legal_male_pca$sdev # eigenvalues
-legal_male_pca$x[, 1][1:10] # first 10 values of pca 1
-legal_male_pca$rotation[, 1] # loadings for first pca
+legal_male_pca_st$sdev # eigenvalues
+scores(legal_male_pca_st, display = 'species', choices = 1)
 
-legal_male_pca_st$sdev
-legal_male_pca_st$loadings[, 1] # Use these in the model
-legal_male_pca_st$scores[, 1] 
-legal_male_pca_st$scale
-legal_male_pca_st$center
+sublegal_male_pca_st <- prcomp(sublegal_male_scaled_st,
+                               scale = F,
+                               center = F)
+summary(sublegal_male_pca_st)
+head(summary(sublegal_male_pca_st))
 
-sublegal_male_pca <- princomp(sublegal_male_scaled, cor = TRUE)
-summary(sublegal_male_pca)
-head(summary(sublegal_male_pca))
+sublegal_male_pca_st$sdev # eigenvalues
+scores(sublegal_male_pca_st, display = 'species', choices = 1)
 
-sublegal_male_pca$sdev
-sublegal_male_pca$loadings[, 1] # Use these in the model
-sublegal_male_pca$scores[, 1]
-sublegal_male_pca$scale
-sublegal_male_pca$center
+female_pca_st <- prcomp(female_scaled_st,
+                            scale = F,
+                            center = F)
+summary(female_pca_st)
+head(summary(female_pca_st))
 
-female_pca <- princomp(female_scaled, cor = TRUE)
-summary(female_pca)
-head(summary(female_pca))
-
-female_pca$sdev
-female_pca$loadings[, 1] # Use these in the model
-female_pca$scores[, 1]
-female_pca$scale
-female_pca$center
+female_pca_st$sdev # eigenvalues
+scores(female_pca_st, display = 'species', choices = 1)
 
 # Match to data ----
 legal_male_loadings <- as.data.frame(legal_male_pca$loadings[, 1])
@@ -247,46 +238,73 @@ plot(female_loadings,
      main = "Female Loadings",
      ylab = "value")
 
+legal_male_loadings_stations <- as.data.frame(scores(legal_male_pca_st, 
+                                                     display = 'species', 
+                                                     choices = 1))
+legal_male_loadings_stations <- tibble::rownames_to_column(legal_male_loadings_stations, 
+                                                           "station")
+colnames(legal_male_loadings_stations)[2] <- "legal_male_loadings_stations"
+
+sublegal_male_loadings_stations <- as.data.frame(scores(sublegal_male_pca_st, 
+                                                     display = 'species', 
+                                                     choices = 1))
+sublegal_male_loadings_stations <- tibble::rownames_to_column(sublegal_male_loadings_stations, 
+                                                           "station")
+colnames(sublegal_male_loadings_stations)[2] <- "sublegal_male_loadings_stations"
+
+female_loadings_stations <- as.data.frame(scores(female_pca_st, 
+                                                     display = 'species', 
+                                                     choices = 1))
+female_loadings_stations <- tibble::rownames_to_column(female_loadings_stations, 
+                                                           "station")
+colnames(female_loadings_stations)[2] <- "female_loadings_stations"
+
 crab_summary$legal_male_loading <- legal_male_loadings$legal_male_loadings[match(crab_summary$year, legal_male_loadings$year)]
 crab_summary$sublegal_male_loading <- sublegal_male_loadings$sublegal_male_loadings[match(crab_summary$year, sublegal_male_loadings$year)]
 crab_summary$female_loading <- female_loadings$female_loadings[match(crab_summary$year, female_loadings$year)]
 
+crab_summary$legal_male_loading_station <- legal_male_loadings_stations$legal_male_loadings_stations[match(crab_summary$station, legal_male_loadings_stations$station)]
+crab_summary$sublegal_male_loading_station <- sublegal_male_loadings_stations$sublegal_male_loadings_stations[match(crab_summary$station, sublegal_male_loadings_stations$station)]
+crab_summary$female_loading_station <- female_loadings_stations$female_loadings_stations[match(crab_summary$station, female_loadings_stations$station)]
 
+crab_summary$legal_male_loading_station[is.na(crab_summary$legal_male_loading_station)] <- 0
+crab_summary$sublegal_male_loading_station[is.na(crab_summary$sublegal_male_loading_station)] <- 0
+crab_summary$female_loading_station[is.na(crab_summary$female_loading_station)] <- 0
 
 # Save data
 saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_pca.rds'))
 
 # Plot ----
-legal_male_scores$latitude <- observer_df$latitude[match(legal_male_scores$station, observer_df$STATIONID)]
-legal_male_scores$longitude <- observer_df$longitude[match(legal_male_scores$station, observer_df$STATIONID)]
-sublegal_male_scores$latitude <- observer_df$latitude[match(sublegal_male_scores$station, observer_df$STATIONID)]
-sublegal_male_scores$longitude <- observer_df$longitude[match(sublegal_male_scores$station, observer_df$STATIONID)]
-female_scores$latitude <- observer_df$latitude[match(female_scores$station, observer_df$STATIONID)]
-female_scores$longitude <- observer_df$longitude[match(female_scores$station, observer_df$STATIONID)]
+legal_male_loadings_stations$latitude <- observer_df$latitude[match(legal_male_loadings_stations$station, observer_df$STATIONID)]
+legal_male_loadings_stations$longitude <- observer_df$longitude[match(legal_male_loadings_stations$station, observer_df$STATIONID)]
+sublegal_male_loadings_stations$latitude <- observer_df$latitude[match(sublegal_male_loadings_stations$station, observer_df$STATIONID)]
+sublegal_male_loadings_stations$longitude <- observer_df$longitude[match(sublegal_male_loadings_stations$station, observer_df$STATIONID)]
+female_loadings_stations$latitude <- observer_df$latitude[match(female_loadings_stations$station, observer_df$STATIONID)]
+female_loadings_stations$longitude <- observer_df$longitude[match(female_loadings_stations$station, observer_df$STATIONID)]
 
-legal_male_sf <- st_as_sf(legal_male_scores,
+legal_male_sf <- st_as_sf(legal_male_loadings_stations,
                           coords = c("longitude", "latitude"), 
                           crs = 4269)
-sublegal_male_sf <- st_as_sf(sublegal_male_scores,
+sublegal_male_sf <- st_as_sf(sublegal_male_loadings_stations,
                              coords = c("longitude", "latitude"), 
                              crs = 4269)
-female_sf <- st_as_sf(female_scores,
+female_sf <- st_as_sf(female_loadings_stations,
                       coords = c("longitude", "latitude"), 
                       crs = 4269)
 
 ggplot() +
   geom_sf(data = legal_male_sf,
-          aes(color = legal_male_scores),
+          aes(color = legal_male_loadings_stations),
           size = 4) 
 
 ggplot() +
   geom_sf(data = sublegal_male_sf,
-          aes(color = sublegal_male_scores),
+          aes(color = sublegal_male_loadings_stations),
           size = 4) 
 
 ggplot() +
   geom_sf(data = female_sf,
-          aes(color = female_scores),
+          aes(color = female_loadings_stations),
           size = 4) 
 
 # NMDS ----
