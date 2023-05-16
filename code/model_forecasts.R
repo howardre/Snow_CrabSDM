@@ -65,6 +65,13 @@ mat_female_train <- crab_train %>%
                 pres_mat_female, year_f, year) %>%
   tidyr::drop_na(lncount_mat_female) 
 
+mat_female_train1 <- crab_train1 %>%
+  dplyr::select(depth, temperature, phi, ice_mean,
+                longitude, latitude, julian, female_loading_station,
+                lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year) %>%
+  tidyr::drop_na(lncount_mat_female)
+
 imm_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean,
                 longitude, latitude, julian, female_loading_station,
@@ -73,6 +80,13 @@ imm_female_train <- crab_train %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
+  dplyr::select(depth, temperature, phi, ice_mean,
+                longitude, latitude, julian, legal_male_loading_station,
+                lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year) %>%
+  tidyr::drop_na(lncount_leg_male)
+
+leg_male_train1 <- crab_train1 %>%
   dplyr::select(depth, temperature, phi, ice_mean,
                 longitude, latitude, julian, legal_male_loading_station,
                 lncount_leg_male, legal_male, 
@@ -93,6 +107,13 @@ mat_female_test <- crab_test %>%
                 longitude, latitude, julian, female_loading_station,
                 lncount_mat_female, mature_female, 
                 pres_mat_female, year_f, year, station) %>%
+  tidyr::drop_na(lncount_mat_female)
+
+mat_female_test1 <- crab_test1 %>%
+  dplyr::select(depth, temperature, phi, ice_mean,
+                longitude, latitude, julian, female_loading_station,
+                lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year, station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_test <- crab_test %>%
@@ -103,6 +124,13 @@ imm_female_test <- crab_test %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean,
+                longitude, latitude, julian, legal_male_loading_station,
+                lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, station) %>%
+  tidyr::drop_na(lncount_leg_male)
+
+leg_male_test1 <- crab_test1 %>%
   dplyr::select(depth, temperature, phi, ice_mean,
                 longitude, latitude, julian, legal_male_loading_station,
                 lncount_leg_male, legal_male, 
@@ -731,30 +759,31 @@ vars <- c(1:8, 12) # including year as factor as done in Brodie et al., 2019
 ## Mature females ----
 # Test with included warm year
 # Get best models
-brt_mat_female_base <- grid_search(mat_female_train, 11, 'bernoulli')
-brt_mat_female_base
+brt_mat_female_base1 <- grid_search(mat_female_train1, 11, 'bernoulli')
+brt_mat_female_base1
 
-brt_mat_female_abun <- grid_search(mat_female_train[mat_female_train$lncount_mat_female > 0, ],
+brt_mat_female_abun1 <- grid_search(mat_female_train1[mat_female_train1$lncount_mat_female > 0, ],
                                    9, 'gaussian')
-brt_mat_female_abun
+brt_mat_female_abun1
 
 # Predict on test data
-mat_female_test$pred_base <- predict.gbm(brt_mat_female_base$model,
-                                         mat_female_test,
-                                         n.trees = brt_mat_female_base$model$gbm.call$best.trees,
+mat_female_test1$pred_base <- predict.gbm(brt_mat_female_base1$model,
+                                         mat_female_test1,
+                                         n.trees = brt_mat_female_base1$model$gbm.call$best.trees,
                                          type = "response")
 
-mat_female_test$pred_abun <- predict.gbm(brt_mat_female_abun$model,
-                                         mat_female_test,
-                                         n.trees = brt_mat_female_abun$model$gbm.call$best.trees,
+mat_female_test1$pred_abun <- predict.gbm(brt_mat_female_abun1$model,
+                                         mat_female_test1,
+                                         n.trees = brt_mat_female_abun1$model$gbm.call$best.trees,
                                          type = "response")
 
-mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abun
+mat_female_test1$pred_brt <- mat_female_test1$pred_base * mat_female_test1$pred_abun
 
 
 # Calculate RMSE
-rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.8
+rmse_mat_female_brt1 <- sqrt(mean((mat_female_test1$lncount_mat_female - mat_female_test1$pred_brt)^2))
+rmse_mat_female_brt1 # 1.6
+# try map with RMSE divided by the mean predicted abundance in a grid cell (percent error) CV
 
 # Map RMSE
 # Need to get average RMSE per station
@@ -765,21 +794,21 @@ EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
 
 EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
 
-mat_female_rmse <- mat_female_test %>%
+mat_female_rmse1 <- mat_female_test1 %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_mat_female,
                                  pred_brt)) # calculate by station
 
-mat_female_df <- merge(mat_female_rmse, 
+mat_female_df1 <- merge(mat_female_rmse1, 
                        EBS_trans, 
                        by.x = "station",
                        by.y = "STATIONID") # make spatial
 
-mat_female_sf <- st_as_sf(mat_female_df, # turn into sf object to plot
+mat_female_sf1 <- st_as_sf(mat_female_df1, # turn into sf object to plot
                           crs = 4269)
 
 ggplot() +
-  geom_sf(data = mat_female_sf,
+  geom_sf(data = mat_female_sf1,
           aes(fill = rmse)) +
   scale_x_continuous(name = "Longitude", 
                      breaks = EBS$lon.breaks) + 
@@ -787,11 +816,11 @@ ggplot() +
                      breaks = EBS$lat.breaks)
 
 # Calculate deviance explained
-dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
-dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
+dev_mat_female_abun1 <- brt_deviance(brt_mat_female_abun1)
+dev_mat_female_pres1 <- brt_deviance(brt_mat_female_base1)
 
-dev_mat_female_abun # 51% deviance explained
-dev_mat_female_pres # 59% deviance explained
+dev_mat_female_abun1 # 53% deviance explained
+dev_mat_female_pres1 # 59% deviance explained
 
 #### ORIGINAL
 # Get best models
@@ -818,7 +847,7 @@ mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abu
 
 # Calculate RMSE
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.8
+rmse_mat_female_brt # 1.6
 
 # Map RMSE
 # Need to get average RMSE per station
@@ -854,7 +883,7 @@ ggplot() +
 dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
 dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
 
-dev_mat_female_abun # 51% deviance explained
+dev_mat_female_abun # 53% deviance explained
 dev_mat_female_pres # 59% deviance explained
 
 # Save models for future use
@@ -1087,38 +1116,97 @@ dev.off()
 
 
 ##Legal Males ----
+# Test with included warm year
+# Get best models
+brt_leg_male_base1 <- grid_search(leg_male_train1, 11, 'bernoulli')
+brt_leg_male_base1
+
+brt_leg_male_abun1 <- grid_search(leg_male_train1[leg_male_train1$lncount_leg_male > 0, ],
+                                    9, 'gaussian')
+brt_leg_male_abun1
+
+# Predict on test data
+leg_male_test1$pred_base <- predict.gbm(brt_leg_male_base1$model,
+                                          leg_male_test1,
+                                          n.trees = brt_leg_male_base1$model$gbm.call$best.trees,
+                                          type = "response")
+
+leg_male_test1$pred_abun <- predict.gbm(brt_leg_male_abun1$model,
+                                          leg_male_test1,
+                                          n.trees = brt_leg_male_abun1$model$gbm.call$best.trees,
+                                          type = "response")
+
+leg_male_test1$pred_brt <- leg_male_test1$pred_base * leg_male_test1$pred_abun
+
+
+# Calculate RMSE
+rmse_leg_male_brt1 <- sqrt(mean((leg_male_test1$lncount_leg_male - leg_male_test1$pred_brt)^2))
+rmse_leg_male_brt1 # 1.2
+# try map with RMSE divided by the mean predicted abundance in a grid cell (percent error) CV
+
+# Map RMSE
+# Need to get average RMSE per station
+# Then plot by station to get spatial error
+EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
+EBS_grid <- EBS$survey.grid
+EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
+
+EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
+
+leg_male_rmse1 <- leg_male_test1 %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_leg_male,
+                                 pred_brt)) # calculate by station
+
+leg_male_df1 <- merge(leg_male_rmse1, 
+                        EBS_trans, 
+                        by.x = "station",
+                        by.y = "STATIONID") # make spatial
+
+leg_male_sf1 <- st_as_sf(leg_male_df1, # turn into sf object to plot
+                           crs = 4269)
+
+ggplot() +
+  geom_sf(data = leg_male_sf1,
+          aes(fill = rmse)) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
+
+# Calculate deviance explained
+dev_leg_male_abun1 <- brt_deviance(brt_leg_male_abun1)
+dev_leg_male_pres1 <- brt_deviance(brt_leg_male_base1)
+
+dev_leg_male_abun1 # 64% deviance explained
+dev_leg_male_pres1 # 54% deviance explained
+
+#### ORIGINAL
 # Get best models
 brt_leg_male_base <- grid_search(leg_male_train, 11, 'bernoulli')
 brt_leg_male_base
 
 brt_leg_male_abun <- grid_search(leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                                 9, 'gaussian')
+                                   9, 'gaussian')
 brt_leg_male_abun
 
 # Predict on test data
 leg_male_test$pred_base <- predict.gbm(brt_leg_male_base$model,
-                                       leg_male_test,
-                                       n.trees = brt_leg_male_base$model$gbm.call$best.trees,
-                                       type = "response")
+                                         leg_male_test,
+                                         n.trees = brt_leg_male_base$model$gbm.call$best.trees,
+                                         type = "response")
 
 leg_male_test$pred_abun <- predict.gbm(brt_leg_male_abun$model,
-                                       leg_male_test,
-                                       n.trees = brt_leg_male_abun$model$gbm.call$best.trees,
-                                       type = "response")
+                                         leg_male_test,
+                                         n.trees = brt_leg_male_abun$model$gbm.call$best.trees,
+                                         type = "response")
 
 leg_male_test$pred_brt <- leg_male_test$pred_base * leg_male_test$pred_abun
 
 
 # Calculate RMSE
 rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
-rmse_leg_male_brt # 1.37
-
-# Calculate deviance
-dev_leg_male_abun <- brt_deviance(brt_leg_male_abun)
-dev_leg_male_pres <- brt_deviance(brt_leg_male_base)
-
-dev_leg_male_abun # 65% deviance explained
-dev_leg_male_pres # 52% deviance explained
+rmse_leg_male_brt # 1.4
 
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun_for.rds'))
