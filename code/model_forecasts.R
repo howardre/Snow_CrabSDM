@@ -1345,30 +1345,30 @@ dev.off()
 
 ## Sublegal Males ----
 # Get best models
-brt_leg_male_base1 <- grid_search(leg_male_train1, 11, 'bernoulli')
-brt_leg_male_base1
+brt_sub_male_base1 <- grid_search(sub_male_train1, 11, 'bernoulli')
+brt_sub_male_base1
 
-brt_leg_male_abun1 <- grid_search(leg_male_train1[leg_male_train1$lncount_leg_male > 0, ],
+brt_sub_male_abun1 <- grid_search(sub_male_train1[sub_male_train1$lncount_sub_male > 0, ],
                                   9, 'gaussian')
-brt_leg_male_abun1
+brt_sub_male_abun1
 
 # Predict on test data
-leg_male_test1$pred_base <- predict.gbm(brt_leg_male_base1$model,
-                                        leg_male_test1,
-                                        n.trees = brt_leg_male_base1$model$gbm.call$best.trees,
+sub_male_test1$pred_base <- predict.gbm(brt_sub_male_base1$model,
+                                        sub_male_test1,
+                                        n.trees = brt_sub_male_base1$model$gbm.call$best.trees,
                                         type = "response")
 
-leg_male_test1$pred_abun <- predict.gbm(brt_leg_male_abun1$model,
-                                        leg_male_test1,
-                                        n.trees = brt_leg_male_abun1$model$gbm.call$best.trees,
+sub_male_test1$pred_abun <- predict.gbm(brt_sub_male_abun1$model,
+                                        sub_male_test1,
+                                        n.trees = brt_sub_male_abun1$model$gbm.call$best.trees,
                                         type = "response")
 
-leg_male_test1$pred_brt <- leg_male_test1$pred_base * leg_male_test1$pred_abun
+sub_male_test1$pred_brt <- sub_male_test1$pred_base * sub_male_test1$pred_abun
 
 
 # Calculate RMSE
-rmse_leg_male_brt1 <- sqrt(mean((leg_male_test1$lncount_leg_male - leg_male_test1$pred_brt)^2))
-rmse_leg_male_brt1 # 
+rmse_sub_male_brt1 <- sqrt(mean((sub_male_test1$lncount_sub_male - sub_male_test1$pred_brt)^2))
+rmse_sub_male_brt1 # 1.20
 # try map with RMSE divided by the mean predicted abundance in a grid cell (percent error) CV
 
 # Map RMSE
@@ -1562,7 +1562,44 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-# Test using SHAP values
-library(treeshap)
+# SHAP values ----
+library(kernelshap)
+library(shapviz)
+library(doFuture)
+registerDoFuture()
+plan(multisession, workers = 2)
 
-unified_gbm <- gbm.unify(brt_sub_male_abun$model, sub_male_train)
+## Legal Males ----
+leg_male_explain <- leg_male_test[c(1:8, 12)] # only use columns in model
+leg_male_x <- leg_male_explain[sample(nrow(leg_male_explain), 500), ]
+leg_male_shap <- kernelshap(brt_leg_male_abun$model, 
+                            leg_male_explain, 
+                            bg_X = leg_male_x)
+saveRDS(leg_male_shap, file = here('data', 'leg_male_shap.rds'))
+
+leg_male_sv <- shapviz(leg_male_shap)
+sv_importance(leg_male_sv)
+sv_importance(leg_male_sv)
+sv_importance(leg_male_sv, kind = "bee")
+sv_waterfall(leg_male_sv, 1) # one observation
+sv_waterfall(leg_male_sv, leg_male_sv$X$year_f == "2017") # observations in one year
+# Force plots 
+# Yellow means model score is higher, purple means model score is lower
+# Scores close to the f(x) value have more of an impact
+sv_force(leg_male_sv, 2) # one observation
+sv_force(leg_male_sv, leg_male_sv$X$year_f == "2017") # observations in one year
+sv_dependence(leg_male_sv, 
+              v = "year_f", 
+              color_var = "ice_mean") # specific variable relationships
+sv_dependence(leg_male_sv, v = x)
+
+# Could I make a heatmap for years by variable? Show change in SHAP over time
+
+## Mature Females ----
+mat_female_explain <- mat_female_test[c(1:8, 12)] # only use columns in model
+mat_female_x <- mat_female_explain[sample(nrow(mat_female_explain), 500), ]
+system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
+                                          mat_female_explain,
+                                          bg_X = mat_female_x)
+)
+saveRDS(mat_female_shap, file = here('data', 'mat_female_shap.rds'))
