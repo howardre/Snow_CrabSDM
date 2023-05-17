@@ -101,6 +101,14 @@ sub_male_train <- crab_train %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
+sub_male_train1 <- crab_train1 %>%
+  dplyr::select(depth, temperature, phi, ice_mean, 
+                longitude, latitude, julian, sublegal_male_loading_station,
+                lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year) %>%
+  tidyr::drop_na(lncount_sub_male) %>%
+  dplyr::rename(sublegal_male = sublegal_male)
+
 # Test data
 mat_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean,
@@ -138,6 +146,14 @@ leg_male_test1 <- crab_test1 %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_test <- crab_test %>%
+  dplyr::select(depth, temperature, phi, ice_mean,
+                longitude, latitude, julian, sublegal_male_loading_station,
+                lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year, station) %>%
+  tidyr::drop_na(lncount_sub_male) %>%
+  dplyr::rename(sublegal_male = sublegal_male)
+
+sub_male_test1 <- crab_test1 %>%
   dplyr::select(depth, temperature, phi, ice_mean,
                 longitude, latitude, julian, sublegal_male_loading_station,
                 lncount_sub_male, sublegal_male, 
@@ -1141,7 +1157,7 @@ leg_male_test1$pred_brt <- leg_male_test1$pred_base * leg_male_test1$pred_abun
 
 # Calculate RMSE
 rmse_leg_male_brt1 <- sqrt(mean((leg_male_test1$lncount_leg_male - leg_male_test1$pred_brt)^2))
-rmse_leg_male_brt1 # 1.2
+rmse_leg_male_brt1 # 1.17
 # try map with RMSE divided by the mean predicted abundance in a grid cell (percent error) CV
 
 # Map RMSE
@@ -1206,7 +1222,29 @@ leg_male_test$pred_brt <- leg_male_test$pred_base * leg_male_test$pred_abun
 
 # Calculate RMSE
 rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
-rmse_leg_male_brt # 1.4
+rmse_leg_male_brt # 1.22
+
+# Map RMSE
+leg_male_rmse <- leg_male_test %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_leg_male,
+                                 pred_brt)) # calculate by station
+
+leg_male_df <- merge(leg_male_rmse, 
+                      EBS_trans, 
+                      by.x = "station",
+                      by.y = "STATIONID") # make spatial
+
+leg_male_sf <- st_as_sf(leg_male_df, # turn into sf object to plot
+                         crs = 4269)
+
+ggplot() +
+  geom_sf(data = leg_male_sf,
+          aes(fill = rmse)) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
 
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun_for.rds'))
@@ -1307,6 +1345,71 @@ dev.off()
 
 ## Sublegal Males ----
 # Get best models
+brt_leg_male_base1 <- grid_search(leg_male_train1, 11, 'bernoulli')
+brt_leg_male_base1
+
+brt_leg_male_abun1 <- grid_search(leg_male_train1[leg_male_train1$lncount_leg_male > 0, ],
+                                  9, 'gaussian')
+brt_leg_male_abun1
+
+# Predict on test data
+leg_male_test1$pred_base <- predict.gbm(brt_leg_male_base1$model,
+                                        leg_male_test1,
+                                        n.trees = brt_leg_male_base1$model$gbm.call$best.trees,
+                                        type = "response")
+
+leg_male_test1$pred_abun <- predict.gbm(brt_leg_male_abun1$model,
+                                        leg_male_test1,
+                                        n.trees = brt_leg_male_abun1$model$gbm.call$best.trees,
+                                        type = "response")
+
+leg_male_test1$pred_brt <- leg_male_test1$pred_base * leg_male_test1$pred_abun
+
+
+# Calculate RMSE
+rmse_leg_male_brt1 <- sqrt(mean((leg_male_test1$lncount_leg_male - leg_male_test1$pred_brt)^2))
+rmse_leg_male_brt1 # 
+# try map with RMSE divided by the mean predicted abundance in a grid cell (percent error) CV
+
+# Map RMSE
+# Need to get average RMSE per station
+# Then plot by station to get spatial error
+EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
+EBS_grid <- EBS$survey.grid
+EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
+
+EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
+
+sub_male_rmse1 <- sub_male_test1 %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_sub_male,
+                                 pred_brt)) # calculate by station
+
+sub_male_df1 <- merge(sub_male_rmse1, 
+                      EBS_trans, 
+                      by.x = "station",
+                      by.y = "STATIONID") # make spatial
+
+sub_male_sf1 <- st_as_sf(sub_male_df1, # turn into sf object to plot
+                         crs = 4269)
+
+ggplot() +
+  geom_sf(data = sub_male_sf1,
+          aes(fill = rmse)) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
+
+# Calculate deviance explained
+dev_sub_male_abun1 <- brt_deviance(brt_sub_male_abun1)
+dev_sub_male_pres1 <- brt_deviance(brt_sub_male_base1)
+
+dev_sub_male_abun1 # % deviance explained
+dev_sub_male_pres1 # % deviance explained
+
+#### ORIGINAL
+# Get best models
 brt_sub_male_base <- grid_search(sub_male_train, 11, 'bernoulli')
 brt_sub_male_base
 
@@ -1330,14 +1433,36 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.64
+rmse_sub_male_brt # 
+
+# Map RMSE
+sub_male_rmse <- sub_male_test %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_sub_male,
+                                 pred_brt)) # calculate by station
+
+sub_male_df <- merge(sub_male_rmse, 
+                     EBS_trans, 
+                     by.x = "station",
+                     by.y = "STATIONID") # make spatial
+
+sub_male_sf <- st_as_sf(sub_male_df, # turn into sf object to plot
+                        crs = 4269)
+
+ggplot() +
+  geom_sf(data = sub_male_sf,
+          aes(fill = rmse)) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
 
 # Calculate deviance explained
 dev_sub_male_abun <- brt_deviance(brt_sub_male_abun)
 dev_sub_male_pres <- brt_deviance(brt_sub_male_base)
 
-dev_sub_male_abun # 74% deviance explained
-dev_sub_male_pres # 59% deviance explained
+dev_sub_male_abun # % deviance explained
+dev_sub_male_pres # % deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun_for.rds'))
