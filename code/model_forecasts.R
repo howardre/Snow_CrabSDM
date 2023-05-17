@@ -1563,11 +1563,17 @@ dev.copy(jpeg,
 dev.off()
 
 # SHAP values ----
+# SHapley Additive exPlanations
 library(kernelshap)
 library(shapviz)
 library(doFuture)
 registerDoFuture()
 plan(multisession, workers = 2)
+
+leg_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                    "latitude", "julian", "legal_male_loading_station")
+female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                  "latitude", "julian", "female_loading_station")
 
 ## Legal Males ----
 leg_male_explain <- leg_male_test[c(1:8, 12)] # only use columns in model
@@ -1577,23 +1583,25 @@ leg_male_shap <- kernelshap(brt_leg_male_abun$model,
                             bg_X = leg_male_x)
 saveRDS(leg_male_shap, file = here('data', 'leg_male_shap.rds'))
 
+# Visualize
 leg_male_sv <- shapviz(leg_male_shap)
+# Gives the global effect of variables (absolute value, not directional)
 sv_importance(leg_male_sv)
-sv_importance(leg_male_sv)
-sv_importance(leg_male_sv, kind = "bee")
+sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 sv_waterfall(leg_male_sv, 1) # one observation
 sv_waterfall(leg_male_sv, leg_male_sv$X$year_f == "2017") # observations in one year
 # Force plots 
-# Yellow means model score is higher, purple means model score is lower
-# Scores close to the f(x) value have more of an impact
+# Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
+# Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
 sv_force(leg_male_sv, 2) # one observation
-sv_force(leg_male_sv, leg_male_sv$X$year_f == "2017") # observations in one year
+sv_force(leg_male_sv, leg_male_sv$X$year_f == "2018") # observations in one year
 sv_dependence(leg_male_sv, 
-              v = "year_f", 
-              color_var = "ice_mean") # specific variable relationships
-sv_dependence(leg_male_sv, v = x)
+              v = "temperature", 
+              color_var = "phi") # specific variable relationships
+sv_dependence(leg_male_sv, v = leg_male_names)
 
 # Could I make a heatmap for years by variable? Show change in SHAP over time
+# Could just do heatmap by stage/sex
 
 ## Mature Females ----
 mat_female_explain <- mat_female_test[c(1:8, 12)] # only use columns in model
@@ -1603,3 +1611,27 @@ system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
                                           bg_X = mat_female_x)
 )
 saveRDS(mat_female_shap, file = here('data', 'mat_female_shap.rds'))
+
+# Visualize
+mat_female_sv <- shapviz(mat_female_shap)
+mat_female_subgroups <- c("2017" = mat_female_sv[mat_female_test$year_f == "2017"],
+                          "2018" = mat_female_sv[mat_female_test$year_f == "2018"],
+                          "2019" = mat_female_sv[mat_female_test$year_f == "2019"])
+mat_female_levels <- setNames(mat_female_shap, 
+                              levels(mat_female_explain$year_f))
+# Gives the global effect of variables (absolute value, not directional)
+sv_importance(mat_female_sv)
+sv_importance(mat_female_sv, kind = "bee") 
+sv_waterfall(mat_female_sv, 1) # one observation
+sv_waterfall(mat_female_sv, mat_female_sv$X$year_f == "2017") # observations in one year
+sv_force(mat_female_sv, mat_female_sv$X$year_f == "2018")
+
+sv_force(mat_female_subgroups, v = "temperature") +
+  plot_layout(nrow = 3,
+              ncol = 1,
+              widths = c(1))
+
+sv_dependence(mat_female_sv, 
+              v = "depth", 
+              color_var = "auto")
+sv_dependence(mat_female_sv, v = female_names)
