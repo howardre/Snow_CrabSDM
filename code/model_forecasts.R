@@ -1597,7 +1597,7 @@ sv_force(leg_male_sv, 2) # one observation
 sv_force(leg_male_sv, leg_male_sv$X$year_f == "2018") # observations in one year
 sv_dependence(leg_male_sv, 
               v = "temperature", 
-              color_var = "phi") # specific variable relationships
+              color_var = "depth") # specific variable relationships
 sv_dependence(leg_male_sv, v = leg_male_names)
 
 # Could I make a heatmap for years by variable? Show change in SHAP over time
