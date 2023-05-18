@@ -15,6 +15,8 @@ library(mapdata)
 library(fields)
 library(ggplot2)
 library(enmSdmX) # use for grid search, wrapper for dismo
+library(kernelshap)
+library(shapviz)
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
 
@@ -44,7 +46,6 @@ crab_trans <- mutate(crab_summary,
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
-# Need to filter out stations without observer data in order to get accurate comparison
 crab_train <- as.data.frame(crab_trans %>% 
                               filter(year < 2015))
 crab_test <- as.data.frame(crab_trans %>% 
@@ -56,28 +57,28 @@ mat_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year) %>%
+                pres_mat_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year) %>%
+                pres_imm_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year) %>%
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
                 longitude, latitude, julian, sublegal_male_loading,
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year) %>%
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
@@ -86,30 +87,29 @@ mat_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year) %>%
+                pres_mat_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year) %>%
+                pres_imm_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year) %>%
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
                 longitude, latitude, julian, sublegal_male_loading,
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year) %>%
-  tidyr::drop_na(lncount_sub_male) %>%
-  dplyr::rename(sublegal_male = sublegal_male)
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
+  tidyr::drop_na(lncount_sub_male)
 
 # Functions and LOESS ----
 # Use LOESS for prediction grid, works better than fixed values for depth and phi
@@ -128,6 +128,80 @@ phi_loess <- loess(phi ~ longitude * latitude,
                    family = "symmetric",
                    control = loess.control(surface = "interpolate"))
 summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
+
+# Plot GAM output
+plot_variable <- function(gam, covariate, bounds, variable, ylabel, yvalues){
+  plot(gam,
+       pages = 0,
+       select = covariate, 
+       shade = T,
+       shade.col = "#eb8055b2",
+       ylim = bounds,
+       xlab = variable,
+       ylab = ylabel,
+       yaxt = yvalues,
+       seWithMean = T,
+       scale = 0,
+       cex.axis = 6.5,
+       cex.lab = 6.5,
+       family = "serif",
+       lwd = 2.5)
+}
+
+variable_figure <- function(gam, range){
+  par(mfrow = c(3, 3),
+      mar = c(17, 21, .5, 0.6) + 0.1,
+      oma = c(3, 1, 1, 1),
+      mgp =  c(9, 3, 0))
+  plot_variable(gam,
+                covariate = 3,
+                bounds = range,
+                "Day of Year",
+                "Species Abundance Anomalies",
+                "s")
+  plot_variable(gam,
+                covariate = 4,
+                bounds = range,
+                "Depth",
+                " ",
+                "n")
+  plot_variable(gam,
+                covariate = 5,
+                bounds = range,
+                "Phi",
+                " ",
+                "n")
+  plot_variable(gam,
+                covariate = 6,
+                bounds = range,
+                "Temperature",
+                "Species Abundance Anomalies",
+                "s")
+  plot_variable(gam,
+                covariate = 7,
+                bounds = range,
+                "Ice Concentration",
+                " ",
+                "n")
+  plot_variable(gam,
+                covariate = 8,
+                bounds = range,
+                "PCA Loading",
+                " ",
+                "n")
+  plot_variable(gam,
+                covariate = 9,
+                bounds = range,
+                "Cod Abundance",
+                "Species Abundance Anomalies",
+                "s")
+  plot_variable(gam,
+                covariate = 10,
+                bounds = range,
+                "BCS Prevalence",
+                " ",
+                "n")
+  }
 
 # Rewrite gbm.plot to use better variable names
 gbm.plot2 <- function (gbm.object, variable.no = 0, smooth = FALSE, rug = TRUE, 
@@ -257,7 +331,7 @@ gbm.plot2 <- function (gbm.object, variable.no = 0, smooth = FALSE, rug = TRUE,
 
 grid_search <- function(data, response, family){
   trainBRT(data = data,
-           preds = c(1:10, 14),
+           preds = vars,
            resp = response,
            family = family,
            treeComplexity = c(1, 5, 10),
@@ -433,6 +507,9 @@ brt_deviance <- function(brt){
 }
 
 # GAMs ----
+# Must use random effect for year in order to use train/test data set
+# Unsure why not needed for BRTs
+
 ## Mature Female ----
 # Gaussian
 # Base model with presence/absence
@@ -441,21 +518,21 @@ mat_female_gam_base <- gam(pres_mat_female ~ s(year, bs = "re") +
                              s(julian),
                            data = mat_female_train,
                            family = "binomial")
-summary(mat_female_gam_base) # 54.2% explained
+summary(mat_female_gam_base) # 51.2% explained
 
 # Abundance model
 mat_female_gam_abun <- gam(lncount_mat_female ~ s(year, bs = "re") +
                              s(longitude, latitude) +
                              s(julian) +
-                             s(depth) +
-                             s(phi) +
-                             s(temperature) +
-                             s(ice_mean) +
-                             s(longitude, latitude, by = female_loading) +
-                             s(log_pcod_cpue) +
-                             s(bcs_mature_female),
+                             s(depth, k = 5) +
+                             s(phi, k = 5) +
+                             s(temperature, k = 5) +
+                             s(ice_mean, k = 5) +
+                             s(female_loading_station, k = 5) +
+                             s(log_pcod_cpue, k = 5) +
+                             s(bcs_mature_female, k = 5),
                            data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
-summary(mat_female_gam_abun) # 40.8%
+summary(mat_female_gam_abun) # 33.4%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam_abun)
@@ -467,17 +544,17 @@ plot(mat_female_gam_abun)
 mat_female_tweedie <- gam(mature_female + 1 ~ s(year, bs = 're') +
                              s(longitude, latitude) +
                              s(julian) +
-                             s(depth) +
-                             s(phi) +
-                             s(temperature) +
-                             s(ice_mean) +
-                             s(longitude, latitude, by = female_loading) +
-                             s(log_pcod_cpue) +
-                             s(bcs_mature_female),
+                             s(depth, k = 5) +
+                             s(phi, k = 5) +
+                             s(temperature, k = 5) +
+                             s(ice_mean, k = 5) +
+                             s(female_loading_station, k = 5) +
+                             s(log_pcod_cpue, k = 5) +
+                             s(bcs_mature_female, k = 5),
                            data = mat_female_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(mat_female_tweedie) # 67.5%
+summary(mat_female_tweedie) # 61.5%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_tweedie)
@@ -487,9 +564,9 @@ plot(mat_female_tweedie)
 
 # Predict on test data
 mat_female_test$pred_gam <- predict(mat_female_tweedie,
-                                        mat_female_test,
-                                        type = "link",
-                                        exclude = "s(year)") # remove to allow predictions on new years
+                                    mat_female_test,
+                                    type = "link",
+                                    exclude = "s(year)") # remove to allow predictions on new years
 mat_female_test$pred_gam_base <- predict(mat_female_gam_base,
                                          mat_female_test,
                                          type = "response",
@@ -502,12 +579,29 @@ mat_female_test$pred_gam_abun <- predict(mat_female_gam_abun,
 mat_female_test$pred_gam_delta <- mat_female_test$pred_gam_base * mat_female_test$pred_gam_abun
 
 rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
-rmse_mat_female_tweedie # 3.69
+rmse_mat_female_tweedie # 2.80
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 3.95
+rmse_mat_female_delta # 3.59
 
-# Prediction grid map
+# Variable plots
+tiff(here('results/GAM',
+          'gaussian_mat_female_plots.jpg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(mat_female_gam_abun, c(-5, 4))
+dev.off()
+
+tiff(here('results/GAM',
+          'tweedie_mat_female_plots.jpg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(mat_female_tweedie, c(-6, 4))
+dev.off()
 
 ## Immature Female ----
 # Gaussian
@@ -523,15 +617,15 @@ summary(imm_female_gam_base) # 44.1% explained
 imm_female_gam_abun <- gam(lncount_imm_female ~ s(year, bs = "re") +
                              s(longitude, latitude) +
                              s(julian) +
-                             s(depth) +
-                             s(phi) +
-                             s(temperature) +
-                             s(ice_mean) +
-                             s(longitude, latitude, by = female_loading) +
-                             s(log_pcod_cpue) +
-                             s(bcs_immature_female),
+                             s(depth, k = 5) +
+                             s(phi, k = 5) +
+                             s(temperature, k = 5) +
+                             s(ice_mean, k = 5) +
+                             s(female_loading_station, k = 5) +
+                             s(log_pcod_cpue, k = 5) +
+                             s(bcs_immature_female, k = 5),
                            data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
-summary(imm_female_gam_abun) # 47.8%
+summary(imm_female_gam_abun) # 48.1%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_gam_abun)
@@ -543,17 +637,17 @@ plot(imm_female_gam_abun)
 imm_female_tweedie <- gam(immature_female + 1 ~ s(year, bs = 're') +
                             s(longitude, latitude) +
                             s(julian) +
-                            s(depth) +
-                            s(phi) +
-                            s(temperature) +
-                            s(ice_mean) +
-                            s(longitude, latitude, by = female_loading) +
-                            s(log_pcod_cpue) +
-                            s(bcs_immature_female),
+                            s(depth, k = 5) +
+                            s(phi, k = 5) +
+                            s(temperature, k = 5) +
+                            s(ice_mean, k = 5) +
+                            s(female_loading_station, k = 5) +
+                            s(log_pcod_cpue, k = 5) +
+                            s(bcs_immature_female, k = 5),
                           data = imm_female_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(imm_female_tweedie) # 69.3%
+summary(imm_female_tweedie) # 69.7%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_tweedie)
@@ -578,10 +672,29 @@ imm_female_test$pred_gam_abun <- predict(imm_female_gam_abun,
 imm_female_test$pred_gam_delta <- imm_female_test$pred_gam_base * imm_female_test$pred_gam_abun
 
 rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam)^2, na.rm = T))
-rmse_imm_female_tweedie # 2.51
+rmse_imm_female_tweedie # 2.43
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 2.15
+rmse_imm_female_delta # 2.59
+
+# Variable plots
+tiff(here('results/GAM',
+          'gaussian_imm_female_plots.jpg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(imm_female_gam_abun, c(-4.5, 3.5))
+dev.off()
+
+tiff(here('results/GAM',
+          'tweedie_imm_female_plots.jpg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(imm_female_tweedie, c(-5, 2.5))
+dev.off()
 
 ## Legal Male ----
 # Gaussian
@@ -597,15 +710,15 @@ summary(leg_male_gam_base) # 56% explained
 leg_male_gam_abun <- gam(lncount_leg_male ~ s(year, bs = "re") +
                            s(longitude, latitude) +
                            s(julian) +
-                           s(depth) +
-                           s(phi) +
-                           s(temperature) +
-                           s(ice_mean) +
-                           s(longitude, latitude, by = legal_male_loading) +
-                           s(log_pcod_cpue) +
-                           s(bcs_legal_male),
+                           s(depth, k = 5) +
+                           s(phi, k = 5) +
+                           s(temperature, k = 5) +
+                           s(ice_mean, k = 5) +
+                           s(legal_male_loading_station, k = 5) +
+                           s(log_pcod_cpue, k = 5) +
+                           s(bcs_legal_male, k = 5),
                          data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
-summary(leg_male_gam_abun) # 46.1%
+summary(leg_male_gam_abun) # 41.8%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_gam_abun)
@@ -617,17 +730,17 @@ plot(leg_male_gam_abun)
 leg_male_tweedie <- gam(legal_male + 1 ~ s(year, bs = 're') +
                           s(longitude, latitude) +
                           s(julian) +
-                          s(depth) +
-                          s(phi) +
-                          s(temperature) +
-                          s(ice_mean) +
-                          s(longitude, latitude, by = legal_male_loading) +
-                          s(log_pcod_cpue) +
-                          s(bcs_legal_male),
+                          s(depth, k = 5) +
+                          s(phi, k = 5) +
+                          s(temperature, k = 5) +
+                          s(ice_mean, k = 5) +
+                          s(legal_male_loading_station, k = 5) +
+                          s(log_pcod_cpue, k = 5) +
+                          s(bcs_legal_male, k = 5),
                         data = leg_male_train,
                         family = tw(link = "log"),
                         method = "REML")
-summary(leg_male_tweedie) # 64.7%
+summary(leg_male_tweedie) # 61.5%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_tweedie)
@@ -652,10 +765,29 @@ leg_male_test$pred_gam_abun <- predict(leg_male_gam_abun,
 leg_male_test$pred_gam_delta <- leg_male_test$pred_gam_base * leg_male_test$pred_gam_abun
 
 rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam)^2, na.rm = T))
-rmse_leg_male_tweedie # 1.83
+rmse_leg_male_tweedie # 1.74
 
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_leg_male_delta # 5.54
+rmse_leg_male_delta # 9.28
+
+# Variable plots
+tiff(here('results/GAM',
+          'gaussian_leg_male_plots.jpg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(leg_male_gam_abun, c(-3.5, 4))
+dev.off()
+
+tiff(here('results/GAM',
+          'tweedie_leg_male_plots.jpg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(leg_male_tweedie, c(-3, 2.5))
+dev.off()
 
 ## Sublegal Male ----
 # Gaussian
@@ -671,15 +803,15 @@ summary(sub_male_gam_base) # 59.9% explained
 sub_male_gam_abun <- gam(lncount_sub_male ~ s(year, bs = "re") +
                            s(longitude, latitude) +
                            s(julian) +
-                           s(depth) +
-                           s(phi) +
-                           s(temperature) +
-                           s(ice_mean) +
-                           s(longitude, latitude, by = sublegal_male_loading) +
-                           s(log_pcod_cpue) +
-                           s(bcs_sublegal_male),
+                           s(depth, k = 5) +
+                           s(phi, k = 5) +
+                           s(temperature, k = 5) +
+                           s(ice_mean, k = 5) +
+                           s(sublegal_male_loading_station, k = 5) +
+                           s(log_pcod_cpue, k = 5) +
+                           s(bcs_sublegal_male, k = 5),
                          data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
-summary(sub_male_gam_abun) # 61.3%
+summary(sub_male_gam_abun) # 61%
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_gam_abun)
@@ -691,17 +823,17 @@ plot(sub_male_gam_abun)
 sub_male_tweedie <- gam(sublegal_male + 1 ~ s(year, bs = 're') +
                           s(longitude, latitude) +
                           s(julian) +
-                          s(depth) +
-                          s(phi) +
-                          s(temperature) +
-                          s(ice_mean) +
-                          s(longitude, latitude, by = sublegal_male_loading) +
-                          s(log_pcod_cpue) +
-                          s(bcs_sublegal_male),
+                          s(depth, k = 5) +
+                          s(phi, k = 5) +
+                          s(temperature, k = 5) +
+                          s(ice_mean, k = 5) +
+                          s(sublegal_male_loading_station, k = 5) +
+                          s(log_pcod_cpue, k = 5) +
+                          s(bcs_sublegal_male, k = 5),
                         data = sub_male_train,
                         family = tw(link = "log"),
                         method = "REML")
-summary(sub_male_tweedie) # 71.4%
+summary(sub_male_tweedie) # 70.6%
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_tweedie)
@@ -726,10 +858,10 @@ sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
 sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
 
 rmse_sub_male_tweedie <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam)^2, na.rm = T))
-rmse_sub_male_tweedie # 1.92
+rmse_sub_male_tweedie # 2.23
 
 rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_sub_male_delta # 1.48
+rmse_sub_male_delta # 10.12
 
 
 # Boosted regression trees ----
@@ -737,7 +869,7 @@ rmse_sub_male_delta # 1.48
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
-vars <- c(1:10, 14)
+vars <- c(1:8, 10, 14, 16)
 
 ## Mature females ----
 # Get best models
@@ -764,14 +896,14 @@ mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abu
 
 # Calculate RMSE
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.6
+rmse_mat_female_brt # 1.5
 
 # Calculate deviance explained
 dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
 dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
 
-dev_mat_female_abun # 52% deviance explained
-dev_mat_female_pres # 59% deviance explained
+dev_mat_female_abun # 53.4% deviance explained
+dev_mat_female_pres # 58.6% deviance explained
 
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
@@ -783,7 +915,7 @@ brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 
 # Variable names
 column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_mature_female", "longitude",
-                  "latitude", "julian", "female_loading", "log_pcod_cpue", "year_f")
+                  "latitude", "julian", "female_loading_station", "log_pcod_cpue", "year_f")
 final_names <- c("depth", "temperature", "phi", "ice concentration",
                  "proportion BCS", "longitude", "latitude", "julian",
                  "female loading", "log(cod cpue + 1)", "year")
@@ -854,6 +986,8 @@ gbm.perspec(brt_mat_female_abun$model,
 # Plot map of the predicted distribution
 # Prediction grid map
 spatial_grid_mat_female <- grid_development(mat_female_train)
+spatial_grid_mat_female$female_loading_station <- median(mat_female_train$female_loading_station, na.rm = T)
+spatial_grid_mat_female$bcs_mature_female <- median(mat_female_train$bcs_mature_female, na.rm = T)
 mat_female_preds <- brt_grid_preds(spatial_grid_mat_female, 
                                    brt_mat_female_abun,
                                    brt_mat_female_base)
@@ -899,7 +1033,7 @@ rmse_imm_female_brt # 1.42
 dev_imm_female_abun <- brt_deviance(brt_imm_female_abun)
 dev_imm_female_pres <- brt_deviance(brt_imm_female_base)
 
-dev_imm_female_abun # 64% deviance explained
+dev_imm_female_abun # 63% deviance explained
 dev_imm_female_pres # 54% deviance explained
 
 # Save models for future use
@@ -976,14 +1110,14 @@ brt_labels <- match_labels[order(match(names(imm_female_train)[vars], brt_imm_fe
 labels <- brt_labels$final_names
 
 column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_immature_female", "longitude",
-                  "latitude", "julian", "female_loading", "log_pcod_cpue", "year_f")
+                  "latitude", "julian", "female_loading_station", "log_pcod_cpue", "year_f")
 final_names <- c("depth", "temperature", "phi", "ice concentration",
                  "proportion BCS", "longitude", "latitude", "julian",
                  "female loading", "log(cod cpue + 1)", "year")
 column_labels <- data.frame(column_names, final_names)
 
 spatial_grid_imm_female <- grid_development(imm_female_train)
-spatial_grid_imm_female$female_loading <- median(imm_female_train$female_loading, na.rm = TRUE)
+spatial_grid_imm_female$female_loading_station <- median(imm_female_train$female_loading_station, na.rm = TRUE)
 spatial_grid_imm_female$bcs_immature_female <- median(imm_female_train$bcs_immature_female, na.rm = TRUE)
 
 imm_female_preds <- brt_grid_preds(spatial_grid_imm_female, 
@@ -1264,7 +1398,70 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-# Test using SHAP values
-library(treeshap)
+# SHAP values ----
+# SHapley Additive exPlanations
+leg_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                    "latitude", "julian", "legal_male_loading_station")
+female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                  "latitude", "julian", "female_loading_station")
 
-unified_gbm <- gbm.unify(brt_sub_male_abun$model, sub_male_train)
+## Legal Males ----
+leg_male_explain <- leg_male_test[c(1:8, 12)] # only use columns in model
+leg_male_x <- leg_male_explain[sample(nrow(leg_male_explain), 500), ]
+leg_male_shap <- kernelshap(brt_leg_male_abun$model, 
+                            leg_male_explain, 
+                            bg_X = leg_male_x)
+saveRDS(leg_male_shap, file = here('data', 'leg_male_shap.rds'))
+
+# Visualize
+leg_male_sv <- shapviz(leg_male_shap)
+# Gives the global effect of variables (absolute value, not directional)
+sv_importance(leg_male_sv)
+sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+sv_waterfall(leg_male_sv, 1) # one observation
+sv_waterfall(leg_male_sv, leg_male_sv$X$year_f == "2017") # observations in one year
+# Force plots 
+# Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
+# Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
+sv_force(leg_male_sv, 2) # one observation
+sv_force(leg_male_sv, leg_male_sv$X$year_f == "2018") # observations in one year
+sv_dependence(leg_male_sv, 
+              v = "temperature", 
+              color_var = "depth") # specific variable relationships
+sv_dependence(leg_male_sv, v = leg_male_names)
+
+# Could I make a heatmap for years by variable? Show change in SHAP over time
+# Could just do heatmap by stage/sex
+
+## Mature Females ----
+mat_female_explain <- mat_female_test[c(1:8, 12)] # only use columns in model
+mat_female_x <- mat_female_explain[sample(nrow(mat_female_explain), 500), ]
+system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
+                                          mat_female_explain,
+                                          bg_X = mat_female_x)
+)
+saveRDS(mat_female_shap, file = here('data', 'mat_female_shap.rds'))
+
+# Visualize
+mat_female_sv <- shapviz(mat_female_shap)
+mat_female_subgroups <- c("2017" = mat_female_sv[mat_female_test$year_f == "2017"],
+                          "2018" = mat_female_sv[mat_female_test$year_f == "2018"],
+                          "2019" = mat_female_sv[mat_female_test$year_f == "2019"])
+mat_female_levels <- setNames(mat_female_shap, 
+                              levels(mat_female_explain$year_f))
+# Gives the global effect of variables (absolute value, not directional)
+sv_importance(mat_female_sv)
+sv_importance(mat_female_sv, kind = "bee") 
+sv_waterfall(mat_female_sv, 1) # one observation
+sv_waterfall(mat_female_sv, mat_female_sv$X$year_f == "2017") # observations in one year
+sv_force(mat_female_sv, mat_female_sv$X$year_f == "2018")
+
+sv_force(mat_female_subgroups, v = "temperature") +
+  plot_layout(nrow = 3,
+              ncol = 1,
+              widths = c(1))
+
+sv_dependence(mat_female_sv, 
+              v = "depth", 
+              color_var = "auto")
+sv_dependence(mat_female_sv, v = female_names)
