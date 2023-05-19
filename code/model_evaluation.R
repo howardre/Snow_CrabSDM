@@ -869,7 +869,7 @@ rmse_sub_male_delta # 10.12
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
-vars <- c(1:8, 10, 14, 16)
+vars <- c(1:8, 10, 16)
 
 ## Mature females ----
 # Get best models
@@ -1291,14 +1291,14 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.15
+rmse_sub_male_brt # 1.60
 
 # Calculate deviance explained
 dev_sub_male_abun <- brt_deviance(brt_sub_male_abun)
 dev_sub_male_pres <- brt_deviance(brt_sub_male_base)
 
-dev_sub_male_abun # 64% deviance explained
-dev_sub_male_pres # 63% deviance explained
+dev_sub_male_abun # 74% deviance explained
+dev_sub_male_pres # 59% deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
