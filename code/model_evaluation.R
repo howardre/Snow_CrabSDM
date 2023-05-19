@@ -1291,14 +1291,14 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.6
+rmse_sub_male_brt # 1.15
 
 # Calculate deviance explained
 dev_sub_male_abun <- brt_deviance(brt_sub_male_abun)
 dev_sub_male_pres <- brt_deviance(brt_sub_male_base)
 
-dev_sub_male_abun # 74% deviance explained
-dev_sub_male_pres # 66% deviance explained
+dev_sub_male_abun # 64% deviance explained
+dev_sub_male_pres # 63% deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
@@ -1401,12 +1401,20 @@ dev.off()
 # SHAP values ----
 # SHapley Additive exPlanations
 leg_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
-                    "latitude", "julian", "legal_male_loading_station")
-female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
-                  "latitude", "julian", "female_loading_station")
+                    "latitude", "julian", "legal_male_loading_station",
+                    "bcs_legal_male", "log_pcod_cpue")
+sub_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                    "latitude", "julian", "sublegal_male_loading_station",
+                    "bcs_sublegal_male", "log_pcod_cpue")
+mat_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                      "latitude", "julian", "female_loading_station",
+                      "bcs_mature_female", "log_pcod_cpue")
+imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
+                      "latitude", "julian", "female_loading_station",
+                      "bcs_immature_female", "log_pcod_cpue")
 
 ## Legal Males ----
-leg_male_explain <- leg_male_test[c(1:8, 12)] # only use columns in model
+leg_male_explain <- leg_male_train[vars] # only use columns in model
 leg_male_x <- leg_male_explain[sample(nrow(leg_male_explain), 500), ]
 leg_male_shap <- kernelshap(brt_leg_male_abun$model, 
                             leg_male_explain, 
@@ -1433,13 +1441,20 @@ sv_dependence(leg_male_sv, v = leg_male_names)
 # Could I make a heatmap for years by variable? Show change in SHAP over time
 # Could just do heatmap by stage/sex
 
+## Sublegal Males ----
+sub_male_explain <- sub_male_train[vars] # only use columns in model
+sub_male_x <- sub_male_explain[sample(nrow(sub_male_explain), 500), ]
+sub_male_shap <- kernelshap(brt_sub_male_abun$model, 
+                            sub_male_explain, 
+                            bg_X = sub_male_x)
+saveRDS(sub_male_shap, file = here('data', 'sub_male_shap.rds'))
+
 ## Mature Females ----
-mat_female_explain <- mat_female_test[c(1:8, 12)] # only use columns in model
+mat_female_explain <- mat_female_train[vars] # only use columns in model
 mat_female_x <- mat_female_explain[sample(nrow(mat_female_explain), 500), ]
 system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
                                           mat_female_explain,
-                                          bg_X = mat_female_x)
-)
+                                          bg_X = mat_female_x))
 saveRDS(mat_female_shap, file = here('data', 'mat_female_shap.rds'))
 
 # Visualize
@@ -1464,4 +1479,12 @@ sv_force(mat_female_subgroups, v = "temperature") +
 sv_dependence(mat_female_sv, 
               v = "depth", 
               color_var = "auto")
-sv_dependence(mat_female_sv, v = female_names)
+sv_dependence(mat_female_sv, v = mat_female_names)
+
+## Immature Females ----
+imm_female_explain <- imm_female_train[vars] # only use columns in model
+imm_female_x <- imm_female_explain[sample(nrow(imm_female_explain), 500), ]
+system.time(imm_female_shap <- kernelshap(brt_imm_female_abun$model,
+                                          imm_female_explain,
+                                          bg_X = imm_female_x))
+saveRDS(imm_female_shap, file = here('data', 'imm_female_shap.rds'))
