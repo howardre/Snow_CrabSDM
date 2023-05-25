@@ -869,7 +869,7 @@ rmse_sub_male_delta # 10.12
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
-vars <- c(1:8, 10, 16)
+vars <- c(1:8, 10, 15, 16)
 
 ## Mature females ----
 # Get best models
@@ -1408,7 +1408,7 @@ sub_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                     "bcs_sublegal_male", "log_pcod_cpue")
 mat_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
-                      "bcs_mature_female", "log_pcod_cpue")
+                      "bcs_mature_female", "log_pcod_cpue", "year")
 imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
                       "bcs_immature_female", "log_pcod_cpue")
@@ -1455,7 +1455,7 @@ mat_female_x <- mat_female_explain[sample(nrow(mat_female_explain), 500), ]
 system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
                                           mat_female_explain,
                                           bg_X = mat_female_x))
-saveRDS(mat_female_shap, file = here('data', 'mat_female_shap.rds'))
+saveRDS(mat_female_shap, file = here('data', 'mat_female_shap_full.rds'))
 
 # Visualize
 mat_female_sv <- shapviz(mat_female_shap)
