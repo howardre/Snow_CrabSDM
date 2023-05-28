@@ -869,7 +869,7 @@ rmse_sub_male_delta # 10.12
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
 # Depending on the number of samples, want tree complexity to be high enough (likely using 5)
 # Want at least 1000 trees, but don't need to go way beyond it
-vars <- c(1:8, 10, 15, 16)
+vars <- c(1:8, 10, 16)
 
 ## Mature females ----
 # Get best models
@@ -1412,30 +1412,65 @@ mat_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
 imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
                       "bcs_immature_female", "log_pcod_cpue")
+## TreeSHAP ----
+# Legal Males ----
+library(treeshap)
+library(waterfalls)
+leg_male_data <- crab_trans %>% # can use full data set
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
+  tidyr::drop_na(lncount_leg_male, ice_mean)
+leg_male_explain <- leg_male_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
+leg_male_gbm <- gbm.unify(brt_leg_male_abun$model, leg_male_explain)
+leg_male_gbm_temp <- treeshap(leg_male_gbm, leg_male_explain)
+plot_contribution(leg_male_gbm_temp)
+leg_male_sv <- shapviz(leg_male_gbm_temp)
 
+sv_importance(leg_male_sv)
+sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+sv_waterfall(leg_male_sv, 1) # one observation
+sv_force(leg_male_sv, 2) # one observation
+sv_dependence(leg_male_sv, 
+              v = "temperature", 
+              color_var = "ice_mean") # specific variable relationships
+sv_dependence(leg_male_sv, v = leg_male_names)
+leg_male_shap <- leg_male_gbm_temp$shaps
+leg_male_df <- cbind(leg_male_shap, year = leg_male_data[, 14])
+leg_male_final <- leg_male_df[, c(11, 1:10)]
+leg_male_waterfall <- leg_male_final %>% 
+  group_by(year) %>%
+  summarise(across(everything(), list(sum)))
+
+waterfall(leg_male_waterfall)
+ggplot(leg_male_df, aes(x = temperature, y = temp_shap)) +
+  geom_point(aes(color = ice_mean))
+
+## KernelSHAP ----
 ## Legal Males ----
 leg_male_explain <- leg_male_train[vars] # only use columns in model
 leg_male_x <- leg_male_explain[sample(nrow(leg_male_explain), 500), ]
-leg_male_shap <- kernelshap(brt_leg_male_abun$model, 
+leg_male_shap_abun <- kernelshap(brt_leg_male_abun$model, 
                             leg_male_explain, 
                             bg_X = leg_male_x)
-saveRDS(leg_male_shap, file = here('data', 'leg_male_shap.rds'))
+saveRDS(leg_male_shap_abun, file = here('data', 'leg_male_shap_full.rds'))
 
 # Visualize
-leg_male_sv <- shapviz(leg_male_shap)
+leg_male_sv <- shapviz(leg_male_shap_abun)
 # Gives the global effect of variables (absolute value, not directional)
 sv_importance(leg_male_sv)
 sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 sv_waterfall(leg_male_sv, 1) # one observation
-sv_waterfall(leg_male_sv, leg_male_sv$X$year_f == "2017") # observations in one year
+sv_waterfall(leg_male_sv, leg_male_sv$X$year == "1996") # observations in one year
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
 # Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
 sv_force(leg_male_sv, 2) # one observation
-sv_force(leg_male_sv, leg_male_sv$X$year_f == "2018") # observations in one year
+sv_force(leg_male_sv, leg_male_sv$X$year == "1995") # observations in one year
 sv_dependence(leg_male_sv, 
               v = "temperature", 
-              color_var = "depth") # specific variable relationships
+              color_var = "ice_mean") # specific variable relationships
 sv_dependence(leg_male_sv, v = leg_male_names)
 
 # Could I make a heatmap for years by variable? Show change in SHAP over time
@@ -1457,6 +1492,8 @@ system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
                                           bg_X = mat_female_x))
 saveRDS(mat_female_shap, file = here('data', 'mat_female_shap_full.rds'))
 
+mat_female_shap <- readRDS(file = here('data', 'mat_female_shap_full.rds'))
+
 # Visualize
 mat_female_sv <- shapviz(mat_female_shap)
 mat_female_subgroups <- c("2017" = mat_female_sv[mat_female_test$year_f == "2017"],
@@ -1468,8 +1505,8 @@ mat_female_levels <- setNames(mat_female_shap,
 sv_importance(mat_female_sv)
 sv_importance(mat_female_sv, kind = "bee") 
 sv_waterfall(mat_female_sv, 1) # one observation
-sv_waterfall(mat_female_sv, mat_female_sv$X$year_f == "2017") # observations in one year
-sv_force(mat_female_sv, mat_female_sv$X$year_f == "2018")
+sv_waterfall(mat_female_sv, mat_female_sv$X$year == "1999") # observations in one year
+sv_force(mat_female_sv, mat_female_sv$X$year == "1999")
 
 sv_force(mat_female_subgroups, v = "temperature") +
   plot_layout(nrow = 3,
@@ -1477,7 +1514,7 @@ sv_force(mat_female_subgroups, v = "temperature") +
               widths = c(1))
 
 sv_dependence(mat_female_sv, 
-              v = "depth", 
+              v = "temperature", 
               color_var = "auto")
 sv_dependence(mat_female_sv, v = mat_female_names)
 
