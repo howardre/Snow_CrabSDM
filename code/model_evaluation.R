@@ -1169,6 +1169,9 @@ dev_leg_male_pres <- brt_deviance(brt_leg_male_base)
 dev_leg_male_abun # 64% deviance explained
 dev_leg_male_pres # 62% deviance explained
 
+# Coefficient of determination
+brt_leg_male_abun$model
+
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
 saveRDS(brt_leg_male_base, file = here('data', 'brt_leg_male_base.rds'))
@@ -1412,8 +1415,8 @@ mat_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
 imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
                       "bcs_immature_female", "log_pcod_cpue")
-## TreeSHAP ----
-# Legal Males ----
+## Legal Males ----
+### TreeSHAP ----
 library(treeshap)
 library(waterfalls)
 leg_male_data <- crab_trans %>% # can use full data set
@@ -1424,7 +1427,7 @@ leg_male_data <- crab_trans %>% # can use full data set
   tidyr::drop_na(lncount_leg_male, ice_mean)
 leg_male_explain <- leg_male_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
 leg_male_gbm <- gbm.unify(brt_leg_male_abun$model, leg_male_explain)
-leg_male_gbm_temp <- treeshap(leg_male_gbm, leg_male_explain)
+leg_male_gbm_abun <- treeshap(leg_male_gbm, leg_male_explain)
 plot_contribution(leg_male_gbm_temp)
 leg_male_sv <- shapviz(leg_male_gbm_temp)
 
@@ -1436,6 +1439,12 @@ sv_dependence(leg_male_sv,
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
 sv_dependence(leg_male_sv, v = leg_male_names)
+
+sv_dependence(leg_male_sv,
+              v = "temperature",
+              color_var = NULL)
+
+# Try waterfall split out by year
 leg_male_shap <- leg_male_gbm_temp$shaps
 leg_male_df <- cbind(leg_male_shap, year = leg_male_data[, 14])
 leg_male_final <- leg_male_df[, c(11, 1:10)]
@@ -1447,13 +1456,38 @@ waterfall(leg_male_waterfall)
 ggplot(leg_male_df, aes(x = temperature, y = temp_shap)) +
   geom_point(aes(color = ice_mean))
 
-## KernelSHAP ----
-## Legal Males ----
+### mSHAP ----
+library(mshap)
+leg_male_data <- crab_trans %>% # can use full data set
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
+  tidyr::drop_na(lncount_leg_male, ice_mean)
+leg_male_explain <- leg_male_data[vars] %>% tidyr::drop_na()
+leg_male_pres <- leg_male_data[, 13]
+leg_male_abun <- leg_male_data[, 11]
+
+leg_male_gbm_abun <- gbm.unify(brt_leg_male_abun$model, leg_male_explain)
+leg_male_gbm_pres <- gbm.unify(brt_leg_male_base$model, leg_male_explain)
+
+leg_male_mshap_abun <- treeshap(leg_male_gbm_abun, leg_male_explain)
+leg_male_mshap_pres <- treeshap(leg_male_gbm_pres, leg_male_explain)
+
+leg_male_mshap_comb <- mshap(shap_1 = leg_male_mshap_pres$shaps,
+                             shap_2 = leg_male_mshap_abun$shaps,
+                             ex_1 = leg_male_mshap_pres, # need to figure out how to get expected values
+                             ex_2 = leg_male_train[, 11])
+
+mshap::summary_plot(variable_values = leg_male_explain,
+                    shap_values = leg_male_mshap_comb)
+
+### KernelSHAP ----
 leg_male_explain <- leg_male_train[vars] # only use columns in model
 leg_male_x <- leg_male_explain[sample(nrow(leg_male_explain), 500), ]
 leg_male_shap_abun <- kernelshap(brt_leg_male_abun$model, 
-                            leg_male_explain, 
-                            bg_X = leg_male_x)
+                                 leg_male_explain, 
+                                 bg_X = leg_male_x)
 saveRDS(leg_male_shap_abun, file = here('data', 'leg_male_shap_full.rds'))
 
 # Visualize
