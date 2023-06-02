@@ -877,7 +877,7 @@ brt_mat_female_base <- grid_search(mat_female_train, 13, 'bernoulli')
 brt_mat_female_base
 
 brt_mat_female_abun <- grid_search(mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                                    11, 'gaussian')
+                                   11, 'gaussian')
 brt_mat_female_abun
 
 # Predict on test data
@@ -1411,7 +1411,7 @@ sub_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                     "bcs_sublegal_male", "log_pcod_cpue")
 mat_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
-                      "bcs_mature_female", "log_pcod_cpue", "year")
+                      "bcs_mature_female", "log_pcod_cpue")
 imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
                       "bcs_immature_female", "log_pcod_cpue")
@@ -1477,10 +1477,14 @@ leg_male_mshap_pres <- treeshap(leg_male_gbm_pres, leg_male_explain)
 leg_male_mshap_comb <- mshap(shap_1 = leg_male_mshap_pres$shaps,
                              shap_2 = leg_male_mshap_abun$shaps,
                              ex_1 = leg_male_mshap_pres, # need to figure out how to get expected values
-                             ex_2 = leg_male_train[, 11])
+                             ex_2 = leg_male_mshap_abun)
 
 mshap::summary_plot(variable_values = leg_male_explain,
                     shap_values = leg_male_mshap_comb)
+
+leg_male_mshap_sv <- shapviz(leg_male_mshap_abun)
+sv_importance(leg_male_mshap_sv)
+sv_importance(leg_male_mshap_sv, kind = "bee")
 
 ### KernelSHAP ----
 leg_male_explain <- leg_male_train[vars] # only use columns in model
@@ -1518,7 +1522,61 @@ sub_male_shap <- kernelshap(brt_sub_male_abun$model,
                             bg_X = sub_male_x)
 saveRDS(sub_male_shap, file = here('data', 'sub_male_shap.rds'))
 
+### TreeSHAP ----
+sub_male_data <- crab_trans %>% # can use full data set
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
+  tidyr::drop_na(lncount_sub_male, ice_mean)
+sub_male_explain <- sub_male_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
+sub_male_gbm <- gbm.unify(brt_sub_male_abun$model, sub_male_explain)
+sub_male_gbm_abun <- treeshap(sub_male_gbm, sub_male_explain)
+plot_contribution(sub_male_gbm_abun)
+sub_male_sv <- shapviz(sub_male_gbm_abun)
+
+sv_importance(sub_male_sv)
+sv_importance(sub_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+sv_waterfall(sub_male_sv, 1) # one observation
+sv_force(sub_male_sv, 2) # one observation
+sv_dependence(sub_male_sv, 
+              v = "temperature", 
+              color_var = "ice_mean") # specific variable relationships
+sv_dependence(sub_male_sv, v = sub_male_names)
+
+sv_dependence(sub_male_sv,
+              v = "temperature",
+              color_var = NULL)
+
+
 ## Mature Females ----
+### TreeSHAP ----
+mat_female_data <- crab_trans %>% # can use full data set
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year, female_loading_station) %>%
+  tidyr::drop_na(lncount_mat_female, ice_mean)
+mat_female_explain <- mat_female_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
+mat_female_gbm <- gbm.unify(brt_mat_female_abun$model, mat_female_explain)
+mat_female_gbm_abun <- treeshap(mat_female_gbm, mat_female_explain)
+plot_contribution(mat_female_gbm_abun)
+mat_female_sv <- shapviz(mat_female_gbm_abun)
+
+sv_importance(mat_female_sv)
+sv_importance(mat_female_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+sv_waterfall(mat_female_sv, 1) # one observation
+sv_force(mat_female_sv, 2) # one observation
+sv_dependence(mat_female_sv, 
+              v = "temperature", 
+              color_var = "ice_mean") # specific variable relationships
+sv_dependence(mat_female_sv, v = mat_female_names)
+
+sv_dependence(mat_female_sv,
+              v = "temperature",
+              color_var = NULL)
+
+### KernelSHAP ----
 mat_female_explain <- mat_female_train[vars] # only use columns in model
 mat_female_x <- mat_female_explain[sample(nrow(mat_female_explain), 500), ]
 system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
@@ -1559,3 +1617,29 @@ system.time(imm_female_shap <- kernelshap(brt_imm_female_abun$model,
                                           imm_female_explain,
                                           bg_X = imm_female_x))
 saveRDS(imm_female_shap, file = here('data', 'imm_female_shap.rds'))
+
+### TreeSHAP ----
+imm_female_data <- crab_trans %>% # can use full data set
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year, female_loading_station) %>%
+  tidyr::drop_na(lncount_imm_female, ice_mean)
+imm_female_explain <- imm_female_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
+imm_female_gbm <- gbm.unify(brt_imm_female_abun$model, imm_female_explain)
+imm_female_gbm_abun <- treeshap(imm_female_gbm, imm_female_explain)
+plot_contribution(imm_female_gbm_abun)
+imm_female_sv <- shapviz(imm_female_gbm_abun)
+
+sv_importance(imm_female_sv)
+sv_importance(imm_female_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+sv_waterfall(imm_female_sv, 1) # one observation
+sv_force(imm_female_sv, 2) # one observation
+sv_dependence(imm_female_sv, 
+              v = "temperature", 
+              color_var = "ice_mean") # specific variable relationships
+sv_dependence(imm_female_sv, v = imm_female_names)
+
+sv_dependence(imm_female_sv,
+              v = "temperature",
+              color_var = NULL)
