@@ -1438,7 +1438,10 @@ sv_force(leg_male_sv, 2) # one observation
 sv_dependence(leg_male_sv, 
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
-sv_dependence(leg_male_sv, v = leg_male_names)
+sv_dependence(leg_male_sv, 
+              v = leg_male_names, 
+              color_var = NULL,
+              color = "#6666CC30")
 
 sv_dependence(leg_male_sv,
               v = "temperature",
@@ -1542,11 +1545,12 @@ sv_force(sub_male_sv, 2) # one observation
 sv_dependence(sub_male_sv, 
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
-sv_dependence(sub_male_sv, v = sub_male_names)
-
+sv_dependence(sub_male_sv, 
+              v = sub_male_names, 
+              color_var = NULL,
+              color = "#6666CC30")
 sv_dependence(sub_male_sv,
-              v = "temperature",
-              color_var = NULL)
+              v = "phi")
 
 
 ## Mature Females ----
@@ -1570,7 +1574,10 @@ sv_force(mat_female_sv, 2) # one observation
 sv_dependence(mat_female_sv, 
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
-sv_dependence(mat_female_sv, v = mat_female_names)
+sv_dependence(mat_female_sv, 
+              v = mat_female_names, 
+              color_var = NULL,
+              color = "#6666CC30")
 
 sv_dependence(mat_female_sv,
               v = "temperature",
@@ -1638,7 +1645,10 @@ sv_force(imm_female_sv, 2) # one observation
 sv_dependence(imm_female_sv, 
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
-sv_dependence(imm_female_sv, v = imm_female_names)
+sv_dependence(imm_female_sv, 
+              v = imm_female_names, 
+              color_var = NULL,
+              color = "#6666CC30")
 
 sv_dependence(imm_female_sv,
               v = "temperature",
