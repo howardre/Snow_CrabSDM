@@ -1443,9 +1443,7 @@ sv_dependence(leg_male_sv,
               color_var = NULL,
               color = "#6666CC30")
 
-sv_dependence(leg_male_sv,
-              v = "temperature",
-              color_var = NULL)
+
 
 # Try waterfall split out by year
 leg_male_shap <- leg_male_gbm_temp$shaps
