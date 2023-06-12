@@ -1169,9 +1169,6 @@ dev_leg_male_pres <- brt_deviance(brt_leg_male_base)
 dev_leg_male_abun # 64% deviance explained
 dev_leg_male_pres # 62% deviance explained
 
-# Coefficient of determination
-brt_leg_male_abun$model
-
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
 saveRDS(brt_leg_male_base, file = here('data', 'brt_leg_male_base.rds'))
@@ -1459,6 +1456,13 @@ ggplot(leg_male_df, aes(x = temperature, y = temp_shap)) +
 
 ### mSHAP ----
 library(mshap)
+library(shapper)
+library(DALEX)
+library(r2pmml)
+
+# May need to specify using anaconda if on Windows machine before attempting to use shap package
+# reticulate::use_condaenv("C:/Users/howar/anaconda3")
+
 leg_male_data <- crab_trans %>% # can use full data set
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
@@ -1469,15 +1473,27 @@ leg_male_explain <- leg_male_data[vars] %>% tidyr::drop_na()
 leg_male_pres <- leg_male_data[, 13]
 leg_male_abun <- leg_male_data[, 11]
 
+# Convert to model usable in treeshap
 leg_male_gbm_abun <- gbm.unify(brt_leg_male_abun$model, leg_male_explain)
 leg_male_gbm_pres <- gbm.unify(brt_leg_male_base$model, leg_male_explain)
 
-leg_male_mshap_abun <- treeshap(leg_male_gbm_abun, leg_male_explain)
-leg_male_mshap_pres <- treeshap(leg_male_gbm_pres, leg_male_explain)
+# Calculate SHAP values for each model
+leg_male_tshap_abun <- treeshap(leg_male_gbm_abun, leg_male_explain)
+leg_male_tshap_pres <- treeshap(leg_male_gbm_pres, leg_male_explain)
+
+# Calculate expected values for mshap
+p_function <- function(model, data) {
+  predict(model, newdata = data, type = "prob")}
+leg_male_abun_exp <- DALEX::explain(brt_leg_male_abun$model,
+                                    data = leg_male_train[leg_male_train$lncount_leg_male > 0,][vars],
+                                    y = leg_male_train[leg_male_train$lncount_leg_male > 0,]$lncount_leg_male,
+                                    precalculate = TRUE,
+                                    predict_function_target_column = leg_male_train[leg_male_train$lncount_leg_male > 0, ]$lncount_leg_male)
+leg_male_abun_exp <- shap(leg_male_abun_exp, new_observation = )
 
 leg_male_mshap_comb <- mshap(shap_1 = leg_male_mshap_pres$shaps,
                              shap_2 = leg_male_mshap_abun$shaps,
-                             ex_1 = leg_male_mshap_pres, # need to figure out how to get expected values
+                             ex_1 = leg_male_abun_exp$y_hat, # need to figure out how to get expected values
                              ex_2 = leg_male_mshap_abun)
 
 mshap::summary_plot(variable_values = leg_male_explain,
