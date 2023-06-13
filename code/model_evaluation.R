@@ -1425,13 +1425,13 @@ leg_male_data <- crab_trans %>% # can use full data set
 leg_male_explain <- leg_male_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
 leg_male_gbm <- gbm.unify(brt_leg_male_abun$model, leg_male_explain)
 leg_male_gbm_abun <- treeshap(leg_male_gbm, leg_male_explain)
-plot_contribution(leg_male_gbm_temp)
-leg_male_sv <- shapviz(leg_male_gbm_temp)
+plot_contribution(leg_male_gbm_abun)
+leg_male_sv <- shapviz(leg_male_gbm_abun)
 
 sv_importance(leg_male_sv)
 sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 sv_waterfall(leg_male_sv, 1) # one observation
-sv_force(leg_male_sv, 2) # one observation
+sv_force(leg_male_sv, 3) # one observation
 sv_dependence(leg_male_sv, 
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
@@ -1439,8 +1439,6 @@ sv_dependence(leg_male_sv,
               v = leg_male_names, 
               color_var = NULL,
               color = "#6666CC30")
-
-
 
 # Try waterfall split out by year
 leg_male_shap <- leg_male_gbm_temp$shaps
@@ -1481,25 +1479,36 @@ leg_male_gbm_pres <- gbm.unify(brt_leg_male_base$model, leg_male_explain)
 leg_male_tshap_abun <- treeshap(leg_male_gbm_abun, leg_male_explain)
 leg_male_tshap_pres <- treeshap(leg_male_gbm_pres, leg_male_explain)
 
+leg_male_abun_sv <- shapviz(leg_male_tshap_abun)
+leg_male_pres_sv <- shapviz(leg_male_tshap_pres)
+sv_waterfall(leg_male_abun_sv, 50)
+sv_force(leg_male_pres_sv, 50)
+sv_dependence(leg_male_pres_sv, 
+              v = "temperature", 
+              color_var = "ice_mean")
+
 # Calculate expected values for mshap
 p_function <- function(model, data) {
   predict(model, newdata = data, type = "prob")}
 leg_male_abun_exp <- DALEX::explain(brt_leg_male_abun$model,
-                                    data = leg_male_train[leg_male_train$lncount_leg_male > 0,][vars],
-                                    y = leg_male_train[leg_male_train$lncount_leg_male > 0,]$lncount_leg_male,
+                                    data = leg_male_explain,
+                                    y = leg_male_abun,
                                     precalculate = TRUE,
-                                    predict_function_target_column = leg_male_train[leg_male_train$lncount_leg_male > 0, ]$lncount_leg_male)
-leg_male_abun_exp <- shap(leg_male_abun_exp, new_observation = )
+                                    predict_function_target_column = leg_male_abun)
 
-leg_male_mshap_comb <- mshap(shap_1 = leg_male_mshap_pres$shaps,
-                             shap_2 = leg_male_mshap_abun$shaps,
-                             ex_1 = leg_male_abun_exp$y_hat, # need to figure out how to get expected values
-                             ex_2 = leg_male_mshap_abun)
+test <- DALEX::predict_parts_shap(explainer = leg_male_abun_exp,
+                                  new_observation = leg_male_explain)
+
+t
+leg_male_mshap <- mshap(shap_1 = leg_male_tshap_pres$shaps,
+                        shap_2 = leg_male_tshap_abun$shaps,
+                        ex_1 = leg_male_abun_exp$y_hat, # need to figure out how to get expected values
+                        ex_2 = leg_male_pres_exp$y_hat)
 
 mshap::summary_plot(variable_values = leg_male_explain,
-                    shap_values = leg_male_mshap_comb)
+                    shap_values = leg_male_mshap$shap_vals)
 
-leg_male_mshap_sv <- shapviz(leg_male_mshap_abun)
+leg_male_mshap_sv <- shapviz(leg_male_mshap)
 sv_importance(leg_male_mshap_sv)
 sv_importance(leg_male_mshap_sv, kind = "bee")
 
