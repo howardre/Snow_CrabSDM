@@ -7,8 +7,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::knit_engines$set(python = reticulate::eng_python)
+# knitr::knit_engines$set(python = reticulate::eng_python)
 library(reticulate)
+library(dplyr)
+library(here)
+library(dismo)
+library(gbm)
+library(utils)
 ```
 
 ```{python}
@@ -21,7 +26,6 @@ import pyper
 ```
 
 ```{r}
-library(reticulate)
 use_condaenv("C:/Users/howar/anaconda3")
 
 # if (!py_module_available("numpy")) py_install("numpy", pip = TRUE)
@@ -68,35 +72,18 @@ leg_male_train <- crab_train %>%
 
 
 ```{python}
-r.leg_male_train
-```
-
-
-
-
-```{r}
-r2pmml(brt_leg_male_abun$model, 
-       here('data', 'brt_leg_male_abun.pmml'))
-```
-
-```{python}
 from pyper import *
 import json
 r = R(use_pandas = True)
-model_rds_path = "brt_leg_male_abun.rds"
+model_rds_path = "C:/Users/howar/Documents/Oregon State/Snow_CrabSDM/data/brt_leg_male_abun.rds"
 r.assign("rmodel", model_rds_path)
 
-
-
-model <- readRDS(rmodel)
+expr = 'model <- readRDS(rmodel); result <- gbm::predict.gbm(model$model, leg_male_train,                                       n.trees = model$model$gbm.call$best.trees, type = "response"')
+r(expr)
+res = r.get('result')
 ```
 
 
 
-```{python}
-from pypmml import Model
-model = Model.fromFile('brt_leg_male_abun.pmml')
 
-explainer = shap.Explainer(model)
-```
 
