@@ -1025,7 +1025,7 @@ pred_fun <- function(X_model, newdata){
 }
 
 ## Legal Males ----
-leg_male_data <- crab_trans %>% # can use full data set
+leg_male_data <- crab_trans %>% 
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
@@ -1066,12 +1066,10 @@ leg_male_sv <- shapviz(leg_male_shap_abun)
 sv_importance(leg_male_sv)
 sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 sv_waterfall(leg_male_sv, 1) # one observation
-sv_waterfall(leg_male_sv, leg_male_sv$X$year == "1996") # observations in one year
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
 # Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
 sv_force(leg_male_sv, 2) # one observation
-sv_force(leg_male_sv, leg_male_sv$X$year == "1995") # observations in one year
 sv_dependence(leg_male_sv, 
               v = "temperature", 
               color_var = "ice_mean") # specific variable relationships
