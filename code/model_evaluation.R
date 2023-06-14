@@ -145,16 +145,14 @@ summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
 ## Mature Female ----
 # Gaussian
 # Base model with presence/absence
-mat_female_gam_base <- gam(pres_mat_female ~ s(year, bs = "re") +
-                             s(longitude, latitude) +
+mat_female_gam_base <- gam(pres_mat_female ~ s(longitude, latitude) +
                              s(julian),
                            data = mat_female_train,
                            family = "binomial")
 summary(mat_female_gam_base) # 51.2% explained
 
 # Abundance model
-mat_female_gam_abun <- gam(lncount_mat_female ~ s(year, bs = "re") +
-                             s(longitude, latitude) +
+mat_female_gam_abun <- gam(lncount_mat_female ~ s(longitude, latitude) +
                              s(julian) +
                              s(depth, k = 5) +
                              s(phi, k = 5) +
@@ -173,8 +171,7 @@ par(mfrow = c(3, 4))
 plot(mat_female_gam_abun)
 
 # Tweedie
-mat_female_tweedie <- gam(mature_female + 1 ~ s(year, bs = 're') +
-                             s(longitude, latitude) +
+mat_female_tweedie <- gam(mature_female + 1 ~ s(longitude, latitude) +
                              s(julian) +
                              s(depth, k = 5) +
                              s(phi, k = 5) +
@@ -197,16 +194,13 @@ plot(mat_female_tweedie)
 # Predict on test data
 mat_female_test$pred_gam <- predict(mat_female_tweedie,
                                     mat_female_test,
-                                    type = "link",
-                                    exclude = "s(year)") # remove to allow predictions on new years
+                                    type = "link") # remove to allow predictions on new years
 mat_female_test$pred_gam_base <- predict(mat_female_gam_base,
                                          mat_female_test,
-                                         type = "response",
-                                         exclude = "s(year)")
+                                         type = "response")
 mat_female_test$pred_gam_abun <- predict(mat_female_gam_abun,
                                          mat_female_test,
-                                         type = "response",
-                                         exclude = "s(year)")
+                                         type = "response")
 
 mat_female_test$pred_gam_delta <- mat_female_test$pred_gam_base * mat_female_test$pred_gam_abun
 
@@ -238,16 +232,14 @@ dev.off()
 ## Immature Female ----
 # Gaussian
 # Base model with presence/absence
-imm_female_gam_base <- gam(pres_imm_female ~ s(year, bs = "re") +
-                             s(longitude, latitude) +
+imm_female_gam_base <- gam(pres_imm_female ~ s(longitude, latitude) +
                              s(julian),
                            data = imm_female_train,
                            family = "binomial")
 summary(imm_female_gam_base) # 44.1% explained
 
 # Abundance model
-imm_female_gam_abun <- gam(lncount_imm_female ~ s(year, bs = "re") +
-                             s(longitude, latitude) +
+imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
                              s(julian) +
                              s(depth, k = 5) +
                              s(phi, k = 5) +
@@ -266,8 +258,7 @@ par(mfrow = c(3, 4))
 plot(imm_female_gam_abun)
 
 # Tweedie
-imm_female_tweedie <- gam(immature_female + 1 ~ s(year, bs = 're') +
-                            s(longitude, latitude) +
+imm_female_tweedie <- gam(immature_female + 1 ~ s(longitude, latitude) +
                             s(julian) +
                             s(depth, k = 5) +
                             s(phi, k = 5) +
@@ -290,16 +281,13 @@ plot(imm_female_tweedie)
 # Predict on test data
 imm_female_test$pred_gam <- predict(imm_female_tweedie,
                                     imm_female_test,
-                                    type = "link",
-                                    exclude = "s(year)") 
+                                    type = "link") 
 imm_female_test$pred_gam_base <- predict(imm_female_gam_base,
                                          imm_female_test,
-                                         type = "response",
-                                         exclude = "s(year)")
+                                         type = "response")
 imm_female_test$pred_gam_abun <- predict(imm_female_gam_abun,
                                          imm_female_test,
-                                         type = "response",
-                                         exclude = "s(year)")
+                                         type = "response")
 
 imm_female_test$pred_gam_delta <- imm_female_test$pred_gam_base * imm_female_test$pred_gam_abun
 
@@ -331,16 +319,14 @@ dev.off()
 ## Legal Male ----
 # Gaussian
 # Base model with presence/absence
-leg_male_gam_base <- gam(pres_leg_male ~ s(year, bs = "re") +
-                           s(longitude, latitude) +
+leg_male_gam_base <- gam(pres_leg_male ~ s(longitude, latitude) +
                            s(julian),
                          data = leg_male_train,
                          family = "binomial")
 summary(leg_male_gam_base) # 56% explained
 
 # Abundance model
-leg_male_gam_abun <- gam(lncount_leg_male ~ s(year, bs = "re") +
-                           s(longitude, latitude) +
+leg_male_gam_abun <- gam(lncount_leg_male ~ s(longitude, latitude) +
                            s(julian) +
                            s(depth, k = 5) +
                            s(phi, k = 5) +
@@ -359,8 +345,7 @@ par(mfrow = c(3, 3))
 plot(leg_male_gam_abun)
 
 # Tweedie
-leg_male_tweedie <- gam(legal_male + 1 ~ s(year, bs = 're') +
-                          s(longitude, latitude) +
+leg_male_tweedie <- gam(legal_male + 1 ~ s(longitude, latitude) +
                           s(julian) +
                           s(depth, k = 5) +
                           s(phi, k = 5) +
@@ -383,16 +368,13 @@ plot(leg_male_tweedie)
 # Predict on test data
 leg_male_test$pred_gam <- predict(leg_male_tweedie,
                                   leg_male_test,
-                                  type = "link",
-                                  exclude = "s(year)") 
+                                  type = "link") 
 leg_male_test$pred_gam_base <- predict(leg_male_gam_base,
                                        leg_male_test,
-                                       type = "response",
-                                       exclude = "s(year)")
+                                       type = "response")
 leg_male_test$pred_gam_abun <- predict(leg_male_gam_abun,
                                        leg_male_test,
-                                       type = "response",
-                                       exclude = "s(year)")
+                                       type = "response")
 
 leg_male_test$pred_gam_delta <- leg_male_test$pred_gam_base * leg_male_test$pred_gam_abun
 
@@ -424,16 +406,14 @@ dev.off()
 ## Sublegal Male ----
 # Gaussian
 # Base model with presence/absence
-sub_male_gam_base <- gam(pres_sub_male ~ s(year, bs = "re") +
-                           s(longitude, latitude) +
+sub_male_gam_base <- gam(pres_sub_male ~ s(longitude, latitude) +
                            s(julian),
                          data = sub_male_train,
                          family = "binomial")
 summary(sub_male_gam_base) # 59.9% explained
 
 # Abundance model
-sub_male_gam_abun <- gam(lncount_sub_male ~ s(year, bs = "re") +
-                           s(longitude, latitude) +
+sub_male_gam_abun <- gam(lncount_sub_male ~ s(longitude, latitude) +
                            s(julian) +
                            s(depth, k = 5) +
                            s(phi, k = 5) +
@@ -452,8 +432,7 @@ par(mfrow = c(3, 4))
 plot(sub_male_gam_abun)
 
 # Tweedie
-sub_male_tweedie <- gam(sublegal_male + 1 ~ s(year, bs = 're') +
-                          s(longitude, latitude) +
+sub_male_tweedie <- gam(sublegal_male + 1 ~ s(longitude, latitude) +
                           s(julian) +
                           s(depth, k = 5) +
                           s(phi, k = 5) +
@@ -476,16 +455,13 @@ plot(sub_male_tweedie)
 # Predict on test data
 sub_male_test$pred_gam <- predict(sub_male_tweedie,
                                   sub_male_test,
-                                  type = "link",
-                                  exclude = "s(year)") 
+                                  type = "link") 
 sub_male_test$pred_gam_base <- predict(sub_male_gam_base,
                                        sub_male_test,
-                                       type = "response",
-                                       exclude = "s(year)")
+                                       type = "response")
 sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
                                        sub_male_test,
-                                       type = "response",
-                                       exclude = "s(year)")
+                                       type = "response")
 
 sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
 
