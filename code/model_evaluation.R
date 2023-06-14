@@ -1463,8 +1463,10 @@ leg_male_shaps <- calculate_shap(brt_leg_male_abun, brt_leg_male_base, leg_male_
 saveRDS(leg_male_shaps, file = here('data', 'leg_male_shaps.rds'))
 
 # Visualize
-leg_male_shaps <- as.matrix(leg_male_mshap$shap_vals)
-leg_male_mshap_sv <- shapviz(leg_male_shaps, X = leg_male_explain)
+leg_male_shaps <- readRDS(file = here('data', 'leg_male_shaps.rds'))
+
+leg_male_mshap <- as.matrix(leg_male_shaps[[3]]$shap_vals)
+leg_male_mshap_sv <- shapviz(leg_male_mshap, X = leg_male_explain)
 sv_importance(leg_male_mshap_sv)
 sv_importance(leg_male_mshap_sv, kind = "bee")
 
@@ -1506,138 +1508,34 @@ sv_dependence(leg_male_sv, v = leg_male_names)
 # Could just do heatmap by stage/sex
 
 ## Sublegal Males ----
-sub_male_explain <- sub_male_train[vars] # only use columns in model
-sub_male_x <- sub_male_explain[sample(nrow(sub_male_explain), 500), ]
-sub_male_shap <- kernelshap(brt_sub_male_abun$model, 
-                            sub_male_explain, 
-                            bg_X = sub_male_x)
-saveRDS(sub_male_shap, file = here('data', 'sub_male_shap.rds'))
-
-### TreeSHAP ----
 sub_male_data <- crab_trans %>% # can use full data set
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, sublegal_male_loading,
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
-  tidyr::drop_na(lncount_sub_male, ice_mean)
-sub_male_explain <- sub_male_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
-sub_male_gbm <- gbm.unify(brt_sub_male_abun$model, sub_male_explain)
-sub_male_gbm_abun <- treeshap(sub_male_gbm, sub_male_explain)
-plot_contribution(sub_male_gbm_abun)
-sub_male_sv <- shapviz(sub_male_gbm_abun)
+  tidyr::drop_na(lncount_sub_male, ice_mean) # full data set with just important variables
 
-sv_importance(sub_male_sv)
-sv_importance(sub_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
-sv_waterfall(sub_male_sv, 1) # one observation
-sv_force(sub_male_sv, 2) # one observation
-sv_dependence(sub_male_sv, 
-              v = "temperature", 
-              color_var = "ice_mean") # specific variable relationships
-sv_dependence(sub_male_sv, 
-              v = sub_male_names, 
-              color_var = NULL,
-              color = "#6666CC30")
-sv_dependence(sub_male_sv,
-              v = "phi")
-
+sub_male_shaps <- calculate_shap(brt_sub_male_abun, brt_sub_male_base, sub_male_data)
+saveRDS(sub_male_shaps, file = here('data', 'sub_male_shaps.rds'))
 
 ## Mature Females ----
-### TreeSHAP ----
 mat_female_data <- crab_trans %>% # can use full data set
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, mature_female_loading,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
                 pres_mat_female, year_f, year, female_loading_station) %>%
-  tidyr::drop_na(lncount_mat_female, ice_mean)
-mat_female_explain <- mat_female_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
-mat_female_gbm <- gbm.unify(brt_mat_female_abun$model, mat_female_explain)
-mat_female_gbm_abun <- treeshap(mat_female_gbm, mat_female_explain)
-plot_contribution(mat_female_gbm_abun)
-mat_female_sv <- shapviz(mat_female_gbm_abun)
+  tidyr::drop_na(lncount_mat_female, ice_mean) # full data set with just important variables
 
-sv_importance(mat_female_sv)
-sv_importance(mat_female_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
-sv_waterfall(mat_female_sv, 1) # one observation
-sv_force(mat_female_sv, 2) # one observation
-sv_dependence(mat_female_sv, 
-              v = "temperature", 
-              color_var = "ice_mean") # specific variable relationships
-sv_dependence(mat_female_sv, 
-              v = mat_female_names, 
-              color_var = NULL,
-              color = "#6666CC30")
-
-sv_dependence(mat_female_sv,
-              v = "temperature",
-              color_var = NULL)
-
-### KernelSHAP ----
-mat_female_explain <- mat_female_train[vars] # only use columns in model
-mat_female_x <- mat_female_explain[sample(nrow(mat_female_explain), 500), ]
-system.time(mat_female_shap <- kernelshap(brt_mat_female_abun$model,
-                                          mat_female_explain,
-                                          bg_X = mat_female_x))
-saveRDS(mat_female_shap, file = here('data', 'mat_female_shap_full.rds'))
-
-mat_female_shap <- readRDS(file = here('data', 'mat_female_shap_full.rds'))
-
-# Visualize
-mat_female_sv <- shapviz(mat_female_shap)
-mat_female_subgroups <- c("2017" = mat_female_sv[mat_female_test$year_f == "2017"],
-                          "2018" = mat_female_sv[mat_female_test$year_f == "2018"],
-                          "2019" = mat_female_sv[mat_female_test$year_f == "2019"])
-mat_female_levels <- setNames(mat_female_shap, 
-                              levels(mat_female_explain$year_f))
-# Gives the global effect of variables (absolute value, not directional)
-sv_importance(mat_female_sv)
-sv_importance(mat_female_sv, kind = "bee") 
-sv_waterfall(mat_female_sv, 1) # one observation
-sv_waterfall(mat_female_sv, mat_female_sv$X$year == "1999") # observations in one year
-sv_force(mat_female_sv, mat_female_sv$X$year == "1999")
-
-sv_force(mat_female_subgroups, v = "temperature") +
-  plot_layout(nrow = 3,
-              ncol = 1,
-              widths = c(1))
-
-sv_dependence(mat_female_sv, 
-              v = "temperature", 
-              color_var = "auto")
-sv_dependence(mat_female_sv, v = mat_female_names)
+mat_female_shaps <- calculate_shap(brt_mat_female_abun, brt_mat_female_base, mat_female_data)
+saveRDS(mat_female_shaps, file = here('data', 'mat_female_shaps.rds'))
 
 ## Immature Females ----
-imm_female_explain <- imm_female_train[vars] # only use columns in model
-imm_female_x <- imm_female_explain[sample(nrow(imm_female_explain), 500), ]
-system.time(imm_female_shap <- kernelshap(brt_imm_female_abun$model,
-                                          imm_female_explain,
-                                          bg_X = imm_female_x))
-saveRDS(imm_female_shap, file = here('data', 'imm_female_shap.rds'))
-
-### TreeSHAP ----
 imm_female_data <- crab_trans %>% # can use full data set
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, immature_female_loading,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f, year, female_loading_station) %>%
-  tidyr::drop_na(lncount_imm_female, ice_mean)
-imm_female_explain <- imm_female_data[vars] %>% tidyr::drop_na() # cannot use year factor unless hot coded
-imm_female_gbm <- gbm.unify(brt_imm_female_abun$model, imm_female_explain)
-imm_female_gbm_abun <- treeshap(imm_female_gbm, imm_female_explain)
-plot_contribution(imm_female_gbm_abun)
-imm_female_sv <- shapviz(imm_female_gbm_abun)
+  tidyr::drop_na(lncount_imm_female, ice_mean) # full data set with just important variables
 
-sv_importance(imm_female_sv)
-sv_importance(imm_female_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
-sv_waterfall(imm_female_sv, 1) # one observation
-sv_force(imm_female_sv, 2) # one observation
-sv_dependence(imm_female_sv, 
-              v = "temperature", 
-              color_var = "ice_mean") # specific variable relationships
-sv_dependence(imm_female_sv, 
-              v = imm_female_names, 
-              color_var = NULL,
-              color = "#6666CC30")
-
-sv_dependence(imm_female_sv,
-              v = "temperature",
-              color_var = NULL)
+imm_female_shaps <- calculate_shap(brt_imm_female_abun, brt_imm_female_base, imm_female_data)
+saveRDS(imm_female_shaps, file = here('data', 'imm_female_shaps.rds'))
