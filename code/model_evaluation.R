@@ -15,9 +15,9 @@ library(mapdata)
 library(fields)
 library(ggplot2)
 library(enmSdmX) # use for grid search, wrapper for dismo
-library(fastshap)
-library(mshap)
-library(shapviz)
+library(fastshap) # calculate SHAP values quickly
+library(mshap) # combine SHAP values for two-part models
+library(shapviz) # visualize SHAP values
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
 source(here('code/functions', 'brt_grid_preds.R'))
@@ -1021,10 +1021,14 @@ imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
                       "bcs_immature_female", "log_pcod_cpue")
 pred_fun <- function(X_model, newdata){
-  predict.gbm(X_model, newdata)
+  gbm::predict.gbm(X_model, newdata)
 }
 
+num_cores <- detectCores() - 2
+
 ## Legal Males ----
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
 leg_male_data <- crab_trans %>% 
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
@@ -1033,6 +1037,8 @@ leg_male_data <- crab_trans %>%
   tidyr::drop_na(lncount_leg_male, ice_mean) # full data set with just important variables
 
 leg_male_shaps <- calculate_shap(brt_leg_male_abun, brt_leg_male_base, leg_male_data)
+stopCluster(cl)
+
 saveRDS(leg_male_shaps, file = here('data', 'leg_male_shaps.rds'))
 
 # Visualize
@@ -1079,34 +1085,46 @@ sv_dependence(leg_male_sv, v = leg_male_names)
 # Could just do heatmap by stage/sex
 
 ## Sublegal Males ----
-sub_male_data <- crab_trans %>% # can use full data set
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+sub_male_data <- crab_trans %>% 
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
                 longitude, latitude, julian, sublegal_male_loading,
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
-  tidyr::drop_na(lncount_sub_male, ice_mean) # full data set with just important variables
+  tidyr::drop_na(lncount_sub_male, ice_mean) 
 
 sub_male_shaps <- calculate_shap(brt_sub_male_abun, brt_sub_male_base, sub_male_data)
+stopCluster(cl)
+
 saveRDS(sub_male_shaps, file = here('data', 'sub_male_shaps.rds'))
 
 ## Mature Females ----
-mat_female_data <- crab_trans %>% # can use full data set
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+mat_female_data <- crab_trans %>% 
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, mature_female_loading,
+                longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
                 pres_mat_female, year_f, year, female_loading_station) %>%
-  tidyr::drop_na(lncount_mat_female, ice_mean) # full data set with just important variables
+  tidyr::drop_na(lncount_mat_female, ice_mean) 
 
 mat_female_shaps <- calculate_shap(brt_mat_female_abun, brt_mat_female_base, mat_female_data)
+stopCluster(cl)
+
 saveRDS(mat_female_shaps, file = here('data', 'mat_female_shaps.rds'))
 
 ## Immature Females ----
-imm_female_data <- crab_trans %>% # can use full data set
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+imm_female_data <- crab_trans %>% 
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, immature_female_loading,
+                longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f, year, female_loading_station) %>%
-  tidyr::drop_na(lncount_imm_female, ice_mean) # full data set with just important variables
+  tidyr::drop_na(lncount_imm_female, ice_mean) 
 
 imm_female_shaps <- calculate_shap(brt_imm_female_abun, brt_imm_female_base, imm_female_data)
+stopCluster(cl)
+
 saveRDS(imm_female_shaps, file = here('data', 'imm_female_shaps.rds'))

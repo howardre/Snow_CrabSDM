@@ -14,13 +14,15 @@ calculate_shap <- function(brt_abun, brt_pres, data){
                                  pred_wrapper = pred_fun,
                                  nsim = 50,
                                  shap_only = FALSE,
-                                 adjust = TRUE)
+                                 adjust = TRUE,
+                                 parallel = TRUE)
   pres_shap <- fastshap::explain(brt_pres$model,
                                  X = explain,
                                  pred_wrapper = pred_fun,
                                  nsim = 50,
                                  shap_only = FALSE,
-                                 adjust = TRUE)
+                                 adjust = TRUE,
+                                 parallel = TRUE)
   
   # Combine SHAP values
   mshap <- mshap(shap_1 = abun_shap$shapley_values,
