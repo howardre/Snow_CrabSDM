@@ -1099,6 +1099,32 @@ stopCluster(cl)
 
 saveRDS(sub_male_shaps, file = here('data', 'sub_male_shaps.rds'))
 
+# Visualize
+sub_male_shaps <- readRDS(file = here('data', 'sub_male_shaps.rds'))
+
+sub_male_mshap <- as.matrix(sub_male_shaps[[3]]$shap_vals)
+sub_male_mshap_sv <- shapviz(sub_male_mshap, X = sub_male_data)
+sv_importance(sub_male_mshap_sv)
+sv_importance(sub_male_mshap_sv, kind = "bee")
+
+sv_dependence(sub_male_mshap_sv, 
+              v = "temperature", 
+              color_var = "ice_mean")
+sv_dependence(sub_male_mshap_sv, 
+              v = "log_pcod_cpue", 
+              color_var = "phi")
+sv_dependence(sub_male_mshap_sv, 
+              v = sub_male_names,
+              color_var = NULL,
+              color = "aquamarine3",
+              alpha = 0.3)
+sv_dependence2D(sub_male_mshap_sv, 
+                x = "longitude", 
+                y = "latitude",
+                size = 2.5,
+                jitter_width = 0.5,
+                jitter_height = 0.5)
+
 ## Mature Females ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
@@ -1114,6 +1140,32 @@ stopCluster(cl)
 
 saveRDS(mat_female_shaps, file = here('data', 'mat_female_shaps.rds'))
 
+# Visualize
+mat_female_shaps <- readRDS(file = here('data', 'mat_female_shaps.rds'))
+
+mat_female_mshap <- as.matrix(mat_female_shaps[[3]]$shap_vals)
+mat_female_mshap_sv <- shapviz(mat_female_mshap, X = mat_female_data)
+sv_importance(mat_female_mshap_sv)
+sv_importance(mat_female_mshap_sv, kind = "bee")
+
+sv_dependence(mat_female_mshap_sv, 
+              v = "temperature", 
+              color_var = "ice_mean")
+sv_dependence(mat_female_mshap_sv, 
+              v = "phi", 
+              color_var = "depth")
+sv_dependence(mat_female_mshap_sv, 
+              v = mat_female_names,
+              color_var = NULL,
+              color = "aquamarine3",
+              alpha = 0.3)
+sv_dependence2D(mat_female_mshap_sv, 
+                x = "longitude", 
+                y = "latitude",
+                size = 2.5,
+                jitter_width = 0.5,
+                jitter_height = 0.5)
+
 ## Immature Females ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
@@ -1128,3 +1180,29 @@ imm_female_shaps <- calculate_shap(brt_imm_female_abun, brt_imm_female_base, imm
 stopCluster(cl)
 
 saveRDS(imm_female_shaps, file = here('data', 'imm_female_shaps.rds'))
+
+# Visualize
+imm_female_shaps <- readRDS(file = here('data', 'imm_female_shaps.rds'))
+
+imm_female_mshap <- as.matrix(imm_female_shaps[[3]]$shap_vals)
+imm_female_mshap_sv <- shapviz(imm_female_mshap, X = imm_female_data)
+sv_importance(imm_female_mshap_sv)
+sv_importance(imm_female_mshap_sv, kind = "bee")
+
+sv_dependence(imm_female_mshap_sv, 
+              v = "temperature", 
+              color_var = "ice_mean")
+sv_dependence(imm_female_mshap_sv, 
+              v = "log_pcod_cpue", 
+              color_var = "phi")
+sv_dependence(imm_female_mshap_sv, 
+              v = imm_female_names,
+              color_var = NULL,
+              color = "aquamarine3",
+              alpha = 0.3)
+sv_dependence2D(imm_female_mshap_sv, 
+                x = "longitude", 
+                y = "latitude",
+                size = 2.5,
+                jitter_width = 0.5,
+                jitter_height = 0.5)
