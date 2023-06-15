@@ -1045,7 +1045,7 @@ saveRDS(leg_male_shaps, file = here('data', 'leg_male_shaps.rds'))
 leg_male_shaps <- readRDS(file = here('data', 'leg_male_shaps.rds'))
 
 leg_male_mshap <- as.matrix(leg_male_shaps[[3]]$shap_vals)
-leg_male_mshap_sv <- shapviz(leg_male_mshap, X = leg_male_explain)
+leg_male_mshap_sv <- shapviz(leg_male_mshap, X = leg_male_data)
 sv_importance(leg_male_mshap_sv)
 sv_importance(leg_male_mshap_sv, kind = "bee")
 
@@ -1065,6 +1065,12 @@ sv_importance(leg_male_pres_sv, kind = "bee")
 sv_dependence(leg_male_pres_sv, 
               v = "temperature", 
               color_var = "ice_mean")
+sv_dependence2D(leg_male_mshap_sv, 
+                x = "longitude", 
+                y = "latitude",
+                size = 2.5,
+                jitter_width = 0.5,
+                jitter_height = 0.5)
 
 # Visualize
 leg_male_sv <- shapviz(leg_male_shap_abun)
