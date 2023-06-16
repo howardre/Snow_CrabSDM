@@ -30,9 +30,14 @@ source(here('code/functions', 'part_depen.R'))
 source(here('code/functions', 'plot_variable.R'))
 source(here('code/functions', 'rel_inf.R'))
 source(here('code/functions', 'variable_figure.R'))
+source(here('code/functions', 'sv_dependence2D2.R'))
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+options(shapviz.brewer_args = list(low = "darkslateblue",
+                                   mid = "gainsboro",
+                                   high = "darkred",
+                                   midpoint = 0)) # use to change color in sv_dependence2D2 function
 
 # Load data ----
 # Make sure to run PCA first if updating the data matching script
@@ -1051,10 +1056,16 @@ sv_importance(leg_male_mshap_sv, kind = "bee")
 
 sv_dependence(leg_male_mshap_sv, 
               v = "temperature", 
-              color_var = "ice_mean")
+              color_var = "ice_mean") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed", 
+             color = "black")
 sv_dependence(leg_male_mshap_sv, 
               v = "legal_male_loading_station", 
-              color_var = "depth")
+              color_var = "depth") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed", 
+             color = "black")
 
 sv_dependence(leg_male_mshap_sv, 
               v = leg_male_names,
@@ -1065,12 +1076,16 @@ sv_importance(leg_male_pres_sv, kind = "bee")
 sv_dependence(leg_male_pres_sv, 
               v = "temperature", 
               color_var = "ice_mean")
-sv_dependence2D(leg_male_mshap_sv, 
+
+sv_dependence2D2(leg_male_mshap_sv, 
                 x = "longitude", 
                 y = "latitude",
                 size = 2.5,
                 jitter_width = 0.5,
-                jitter_height = 0.5)
+                jitter_height = 0.5) +  
+  labs(y = "Latitude",
+       x = "Longitude",
+       title = "Spatial SHAP Values for Legal Male Crab")
 
 # Visualize
 leg_male_sv <- shapviz(leg_male_shap_abun)
@@ -1124,12 +1139,12 @@ sv_dependence(sub_male_mshap_sv,
               color_var = NULL,
               color = "aquamarine3",
               alpha = 0.3)
-sv_dependence2D(sub_male_mshap_sv, 
+sv_dependence2D2(sub_male_mshap_sv, 
                 x = "longitude", 
                 y = "latitude",
                 size = 2.5,
                 jitter_width = 0.5,
-                jitter_height = 0.5)
+                jitter_height = 0.5) 
 
 ## Mature Females ----
 cl <- makeCluster(num_cores)
@@ -1165,12 +1180,12 @@ sv_dependence(mat_female_mshap_sv,
               color_var = NULL,
               color = "aquamarine3",
               alpha = 0.3)
-sv_dependence2D(mat_female_mshap_sv, 
-                x = "longitude", 
-                y = "latitude",
-                size = 2.5,
-                jitter_width = 0.5,
-                jitter_height = 0.5)
+sv_dependence2D2(mat_female_mshap_sv,
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5)
 
 ## Immature Females ----
 cl <- makeCluster(num_cores)
