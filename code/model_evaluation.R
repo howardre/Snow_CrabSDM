@@ -18,6 +18,7 @@ library(enmSdmX) # use for grid search, wrapper for dismo
 library(fastshap) # calculate SHAP values quickly
 library(mshap) # combine SHAP values for two-part models
 library(shapviz) # visualize SHAP values
+library(parallel)
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
 source(here('code/functions', 'brt_grid_preds.R'))
@@ -31,6 +32,7 @@ source(here('code/functions', 'plot_variable.R'))
 source(here('code/functions', 'rel_inf.R'))
 source(here('code/functions', 'variable_figure.R'))
 source(here('code/functions', 'sv_dependence2D2.R'))
+source(here('code/functions', 'sv_dependence2.R'))
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
@@ -1013,8 +1015,8 @@ dev.off()
 
 # SHAP values ----
 # SHapley Additive exPlanations
-leg_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
-                    "latitude", "julian", "legal_male_loading_station",
+leg_male_names <- c("depth", "temperature", "phi", "ice_mean", 
+                    "julian", "legal_male_loading_station",
                     "bcs_legal_male", "log_pcod_cpue")
 sub_male_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                     "latitude", "julian", "sublegal_male_loading_station",
@@ -1026,7 +1028,10 @@ imm_female_names <- c("depth", "temperature", "phi", "ice_mean", "longitude",
                       "latitude", "julian", "female_loading_station",
                       "bcs_immature_female", "log_pcod_cpue")
 pred_fun <- function(X_model, newdata){
-  gbm::predict.gbm(X_model, newdata)
+  gbm::predict.gbm(X_model, 
+                   newdata,
+                   n.trees = X_model$model$gbm.call$best.trees,
+                   type = "response")
 }
 
 num_cores <- detectCores() - 2
@@ -1047,63 +1052,110 @@ stopCluster(cl)
 saveRDS(leg_male_shaps, file = here('data', 'leg_male_shaps.rds'))
 
 # Visualize
+# Gives the global effect of variables (absolute value, not directional)
 leg_male_shaps <- readRDS(file = here('data', 'leg_male_shaps.rds'))
 
 leg_male_mshap <- as.matrix(leg_male_shaps[[3]]$shap_vals)
 leg_male_mshap_sv <- shapviz(leg_male_mshap, X = leg_male_data)
+leg_male_pshap <- as.matrix(leg_male_shaps[[2]]$shapley_values)
+leg_male_pshap_sv <- shapviz(leg_male_pshap, X = leg_male_data)
+leg_male_ashap <- as.matrix(leg_male_shaps[[1]]$shapley_values)
+leg_male_ashap_sv <- shapviz(leg_male_ashap, X = leg_male_data)
+
+# Variable importance
 sv_importance(leg_male_mshap_sv)
-sv_importance(leg_male_mshap_sv, kind = "bee")
+dev.copy(jpeg,
+         here('results/BRT',
+              'leg_male_importance_shap.jpg'),
+         height = 8,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
 
-sv_dependence(leg_male_mshap_sv, 
-              v = "temperature", 
-              color_var = "ice_mean") +
-  geom_hline(yintercept = 0, 
-             linetype = "dashed", 
-             color = "black")
-sv_dependence(leg_male_mshap_sv, 
-              v = "legal_male_loading_station", 
-              color_var = "depth") +
-  geom_hline(yintercept = 0, 
-             linetype = "dashed", 
-             color = "black")
+# Swarm importance
+sv_importance(leg_male_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+dev.copy(jpeg,
+         here('results/BRT',
+              'leg_male_bee_shap.jpg'),
+         height = 8,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
+# Dependence plots for individual variables
+# Temperature
+sv_dependence2(leg_male_mshap_sv, 
+               v = "temperature",
+               color_var = "ice_mean") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'leg_male_temperature_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Phi
+sv_dependence2(leg_male_mshap_sv, 
+               v = "phi",
+               color_var = "depth") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'leg_male_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Full set of dependence plots
 sv_dependence(leg_male_mshap_sv, 
               v = leg_male_names,
-              color_var = NULL)
+              color_var = NULL,
+              color = "aquamarine3",
+              alpha = 0.3)
+dev.copy(jpeg,
+         here('results/BRT',
+              'leg_male_mshap.jpg'),
+         height = 6,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
 
-leg_male_pres_sv <- shapviz(leg_male_pres_shap)
-sv_importance(leg_male_pres_sv, kind = "bee")
-sv_dependence(leg_male_pres_sv, 
-              v = "temperature", 
-              color_var = "ice_mean")
-
+# Spatial dependence
 sv_dependence2D2(leg_male_mshap_sv, 
                 x = "longitude", 
                 y = "latitude",
                 size = 2.5,
                 jitter_width = 0.5,
                 jitter_height = 0.5) +  
-  labs(y = "Latitude",
-       x = "Longitude",
+  labs(x = "Longitude", 
+       y = "Latitude",
        title = "Spatial SHAP Values for Legal Male Crab")
+dev.copy(jpeg,
+         here('results/BRT',
+              'leg_male_spatial_shap.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
 
-# Visualize
-leg_male_sv <- shapviz(leg_male_shap_abun)
-# Gives the global effect of variables (absolute value, not directional)
-sv_importance(leg_male_sv)
-sv_importance(leg_male_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
-sv_waterfall(leg_male_sv, 1) # one observation
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
 # Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
+# Would like to figure out how to separate by year without including in the model
 sv_force(leg_male_sv, 2) # one observation
-sv_dependence(leg_male_sv, 
-              v = "temperature", 
-              color_var = "ice_mean") # specific variable relationships
-sv_dependence(leg_male_sv, v = leg_male_names)
-
-# Could I make a heatmap for years by variable? Show change in SHAP over time
-# Could just do heatmap by stage/sex
 
 ## Sublegal Males ----
 cl <- makeCluster(num_cores)
@@ -1125,26 +1177,100 @@ sub_male_shaps <- readRDS(file = here('data', 'sub_male_shaps.rds'))
 
 sub_male_mshap <- as.matrix(sub_male_shaps[[3]]$shap_vals)
 sub_male_mshap_sv <- shapviz(sub_male_mshap, X = sub_male_data)
-sv_importance(sub_male_mshap_sv)
-sv_importance(sub_male_mshap_sv, kind = "bee")
+sub_male_pshap <- as.matrix(sub_male_shaps[[2]]$shapley_values)
+sub_male_pshap_sv <- shapviz(sub_male_pshap, X = sub_male_data)
+sub_male_ashap <- as.matrix(sub_male_shaps[[1]]$shapley_values)
+sub_male_ashap_sv <- shapviz(sub_male_ashap, X = sub_male_data)
 
-sv_dependence(sub_male_mshap_sv, 
-              v = "temperature", 
-              color_var = "ice_mean")
-sv_dependence(sub_male_mshap_sv, 
-              v = "log_pcod_cpue", 
-              color_var = "phi")
+# Variable importance
+sv_importance(sub_male_mshap_sv)
+dev.copy(jpeg,
+         here('results/BRT',
+              'sub_male_importance_shap.jpg'),
+         height = 8,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Swarm importance
+sv_importance(sub_male_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+dev.copy(jpeg,
+         here('results/BRT',
+              'sub_male_bee_shap.jpg'),
+         height = 8,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Dependence plots for individual variables
+# Temperature
+sv_dependence2(sub_male_mshap_sv, 
+               v = "temperature",
+               color_var = "ice_mean") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'sub_male_temperature_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Phi
+sv_dependence2(sub_male_mshap_sv, 
+               v = "phi",
+               color_var = "depth") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'sub_male_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Full set of dependence plots
 sv_dependence(sub_male_mshap_sv, 
               v = sub_male_names,
               color_var = NULL,
               color = "aquamarine3",
               alpha = 0.3)
+dev.copy(jpeg,
+         here('results/BRT',
+              'sub_male_mshap.jpg'),
+         height = 6,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Spatial dependence
 sv_dependence2D2(sub_male_mshap_sv, 
-                x = "longitude", 
-                y = "latitude",
-                size = 2.5,
-                jitter_width = 0.5,
-                jitter_height = 0.5) 
+                 x = "longitude", 
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5) +  
+  labs(x = "Longitude", 
+       y = "Latitude",
+       title = "Spatial SHAP Values for Sublegal Male Crab")
+dev.copy(jpeg,
+         here('results/BRT',
+              'sub_male_spatial_shap.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
 
 ## Mature Females ----
 cl <- makeCluster(num_cores)
@@ -1166,26 +1292,100 @@ mat_female_shaps <- readRDS(file = here('data', 'mat_female_shaps.rds'))
 
 mat_female_mshap <- as.matrix(mat_female_shaps[[3]]$shap_vals)
 mat_female_mshap_sv <- shapviz(mat_female_mshap, X = mat_female_data)
-sv_importance(mat_female_mshap_sv)
-sv_importance(mat_female_mshap_sv, kind = "bee")
+mat_female_pshap <- as.matrix(mat_female_shaps[[2]]$shapley_values)
+mat_female_pshap_sv <- shapviz(mat_female_pshap, X = mat_female_data)
+mat_female_ashap <- as.matrix(mat_female_shaps[[1]]$shapley_values)
+mat_female_ashap_sv <- shapviz(mat_female_ashap, X = mat_female_data)
 
-sv_dependence(mat_female_mshap_sv, 
-              v = "temperature", 
-              color_var = "ice_mean")
-sv_dependence(mat_female_mshap_sv, 
-              v = "phi", 
-              color_var = "depth")
+# Variable importance
+sv_importance(mat_female_mshap_sv)
+dev.copy(jpeg,
+         here('results/BRT',
+              'mat_female_importance_shap.jpg'),
+         height = 8,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Swarm importance
+sv_importance(mat_female_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+dev.copy(jpeg,
+         here('results/BRT',
+              'mat_female_bee_shap.jpg'),
+         height = 8,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Dependence plots for individual variables
+# Temperature
+sv_dependence2(mat_female_mshap_sv, 
+               v = "temperature",
+               color_var = "ice_mean") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'mat_female_temperature_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Phi
+sv_dependence2(mat_female_mshap_sv, 
+               v = "phi",
+               color_var = "depth") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'mat_female_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Full set of dependence plots
 sv_dependence(mat_female_mshap_sv, 
               v = mat_female_names,
               color_var = NULL,
               color = "aquamarine3",
               alpha = 0.3)
-sv_dependence2D2(mat_female_mshap_sv,
-                 x = "longitude",
+dev.copy(jpeg,
+         here('results/BRT',
+              'mat_female_mshap.jpg'),
+         height = 6,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Spatial dependence
+sv_dependence2D2(mat_female_mshap_sv, 
+                 x = "longitude", 
                  y = "latitude",
                  size = 2.5,
                  jitter_width = 0.5,
-                 jitter_height = 0.5)
+                 jitter_height = 0.5) +  
+  labs(x = "Longitude", 
+       y = "Latitude",
+       title = "Spatial SHAP Values for Mature Female Crab")
+dev.copy(jpeg,
+         here('results/BRT',
+              'mat_female_spatial_shap.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
 
 ## Immature Females ----
 cl <- makeCluster(num_cores)
@@ -1207,23 +1407,96 @@ imm_female_shaps <- readRDS(file = here('data', 'imm_female_shaps.rds'))
 
 imm_female_mshap <- as.matrix(imm_female_shaps[[3]]$shap_vals)
 imm_female_mshap_sv <- shapviz(imm_female_mshap, X = imm_female_data)
-sv_importance(imm_female_mshap_sv)
-sv_importance(imm_female_mshap_sv, kind = "bee")
+imm_female_pshap <- as.matrix(imm_female_shaps[[2]]$shapley_values)
+imm_female_pshap_sv <- shapviz(imm_female_pshap, X = imm_female_data)
+imm_female_ashap <- as.matrix(imm_female_shaps[[1]]$shapley_values)
+imm_female_ashap_sv <- shapviz(imm_female_ashap, X = imm_female_data)
 
-sv_dependence(imm_female_mshap_sv, 
-              v = "temperature", 
-              color_var = "ice_mean")
-sv_dependence(imm_female_mshap_sv, 
-              v = "log_pcod_cpue", 
-              color_var = "phi")
+# Variable importance
+sv_importance(imm_female_mshap_sv)
+dev.copy(jpeg,
+         here('results/BRT',
+              'imm_female_importance_shap.jpg'),
+         height = 8,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Swarm importance
+sv_importance(imm_female_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
+dev.copy(jpeg,
+         here('results/BRT',
+              'imm_female_bee_shap.jpg'),
+         height = 8,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Dependence plots for individual variables
+# Temperature
+sv_dependence2(imm_female_mshap_sv, 
+               v = "temperature",
+               color_var = "ice_mean") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'imm_female_temperature_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Phi
+sv_dependence2(imm_female_mshap_sv, 
+               v = "phi",
+               color_var = "depth") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black")
+dev.copy(jpeg,
+         here('results/BRT',
+              'imm_female_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Full set of dependence plots
 sv_dependence(imm_female_mshap_sv, 
               v = imm_female_names,
               color_var = NULL,
               color = "aquamarine3",
               alpha = 0.3)
-sv_dependence2D(imm_female_mshap_sv, 
-                x = "longitude", 
-                y = "latitude",
-                size = 2.5,
-                jitter_width = 0.5,
-                jitter_height = 0.5)
+dev.copy(jpeg,
+         here('results/BRT',
+              'imm_female_mshap.jpg'),
+         height = 6,
+         width = 10,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Spatial dependence
+sv_dependence2D2(imm_female_mshap_sv, 
+                 x = "longitude", 
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5) +  
+  labs(x = "Longitude", 
+       y = "Latitude",
+       title = "Spatial SHAP Values for Immature Female Crab")
+dev.copy(jpeg,
+         here('results/BRT',
+              'imm_female_spatial_shap.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
