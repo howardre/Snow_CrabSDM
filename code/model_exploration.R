@@ -1008,7 +1008,7 @@ gbm.plot(females_mat_final,
          lwd = 1.5)
 
 windows()
-female_mat_effects <- tibble::as_tibble(summary.gbm(females_mat_final, plotit = F))
+female_mat_effects <- tibble::as_tibble(summary.gbm(females_mat_final, plotit = FALSE))
 female_mat_effects %>% arrange(desc(rel.inf)) %>%
   ggplot(aes(x = forcats::fct_reorder(.f = var,
                                       .x = rel.inf),
