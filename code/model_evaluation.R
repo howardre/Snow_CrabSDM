@@ -18,7 +18,7 @@ library(enmSdmX) # use for grid search, wrapper for dismo
 library(fastshap) # calculate SHAP values quickly
 library(mshap) # combine SHAP values for two-part models
 library(shapviz) # visualize SHAP values
-library(parallel)
+library(doParallel)
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
 source(here('code/functions', 'brt_grid_preds.R'))
@@ -529,14 +529,14 @@ mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abu
 
 # Calculate RMSE
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.5
+rmse_mat_female_brt # 1.62
 
 # Calculate deviance explained
 dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
 dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
 
-dev_mat_female_abun # 42.5% deviance explained
-dev_mat_female_pres # 55.4% deviance explained
+dev_mat_female_abun # 33.5% deviance explained
+dev_mat_female_pres # 56.6% deviance explained
 
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
