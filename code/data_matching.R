@@ -396,15 +396,6 @@ ice_sf <- st_as_sf(ice_data_filtered,
                    coords = c("lon", "lat"), 
                    crs = 4269)
 
-ggplot() +
-  geom_sf(data = ice_sf) +
-  coord_sf(xlim = EBS$plot.boundary$x,
-           ylim = EBS$plot.boundary$y) +
-  scale_x_continuous(name = "Longitude", 
-                     breaks = EBS$lon.breaks) + 
-  scale_y_continuous(name = "Latitude", 
-                     breaks = EBS$lat.breaks)
-
 ice_df <- ice_sf %>% st_join(EBS_trans, join = st_intersects, left = FALSE)
 
 ice_means <- ice_df %>%
@@ -415,6 +406,18 @@ ice_means <- ice_df %>%
 ice_final <- ice_means %>%
   group_by(year, STATIONID) %>%
   summarise(ice_mean = mean(c(ice_early, ice_late)))
+
+ggplot() +
+  geom_sf(data = EBS$survey.grid) +
+  geom_sf(data = ice_final,
+          aes(color = factor(ice_mean)),
+          size = 1.5) +
+  coord_sf(xlim = EBS$plot.boundary$x,
+           ylim = EBS$plot.boundary$y) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
 
 phi_raster <- raster(here('data', 'EBS_phi_1km.gri'))
 phi_pts <- rasterToPoints(phi_raster, spatial = T)
@@ -508,17 +511,17 @@ crab_temp <- merge(survey_pcod, temp_means,
                    by.y = c("year", "STATIONID"),
                    all.x = TRUE)
 
-survey_temp <- crab_temp %>% mutate(temperature = coalesce(temperature, mean_temp)) 
+# survey_temp <- crab_temp %>% mutate(temperature = coalesce(temperature, mean_temp)) 
 
 # Interpolate depths
 # Use other data to fill in missing depth values
 depth_loess <- loess(depth ~ longitude * latitude,
                      span = 0.01,
                      degree = 2,
-                     data = survey_temp)
-survey_temp$depth_pred <- predict(depth_loess, newdata = survey_temp)
+                     data = crab_temp)
+crab_temp$depth_pred <- predict(depth_loess, newdata = crab_temp)
 
-survey_depth <- survey_temp %>% mutate(depth = coalesce(depth, depth_pred))
+survey_depth <- crab_temp %>% mutate(depth = coalesce(depth, depth_pred))
 
 crab_summary <- survey_depth %>% drop_na(temperature, depth, phi, julian)
 
