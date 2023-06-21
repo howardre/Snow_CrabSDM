@@ -169,12 +169,12 @@ mat_female_gam_abun <- gam(lncount_mat_female ~ s(longitude, latitude) +
                              s(log_pcod_cpue, k = 5) +
                              s(bcs_mature_female, k = 5),
                            data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
-summary(mat_female_gam_abun) # 33.4%
+summary(mat_female_gam_abun) # 33.3%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam_abun)
 
-par(mfrow = c(3, 4))
+par(mfrow = c(3, 3))
 plot(mat_female_gam_abun)
 
 # Tweedie
@@ -215,11 +215,11 @@ rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_f
 rmse_mat_female_tweedie # 2.80
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 3.59
+rmse_mat_female_delta # 1.78
 
 # Variable plots
 tiff(here('results/GAM',
-          'gaussian_mat_female_plots.jpg'),
+          'gaussian_mat_female_plots.jpeg'),
      units = "in",
      width = 45,
      height = 40,
@@ -228,7 +228,7 @@ variable_figure(mat_female_gam_abun, c(-5, 4))
 dev.off()
 
 tiff(here('results/GAM',
-          'tweedie_mat_female_plots.jpg'),
+          'tweedie_mat_female_plots.jpeg'),
      units = "in",
      width = 45,
      height = 40,
@@ -243,7 +243,7 @@ imm_female_gam_base <- gam(pres_imm_female ~ s(longitude, latitude) +
                              s(julian),
                            data = imm_female_train,
                            family = "binomial")
-summary(imm_female_gam_base) # 44.1% explained
+summary(imm_female_gam_base) # 42.9% explained
 
 # Abundance model
 imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
@@ -256,7 +256,7 @@ imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
                              s(log_pcod_cpue, k = 5) +
                              s(bcs_immature_female, k = 5),
                            data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
-summary(imm_female_gam_abun) # 48.1%
+summary(imm_female_gam_abun) # 47.9%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_gam_abun)
@@ -277,7 +277,7 @@ imm_female_tweedie <- gam(immature_female + 1 ~ s(longitude, latitude) +
                           data = imm_female_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(imm_female_tweedie) # 69.7%
+summary(imm_female_tweedie) # 68.3%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_tweedie)
@@ -302,11 +302,11 @@ rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_f
 rmse_imm_female_tweedie # 2.43
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 2.59
+rmse_imm_female_delta # 1.72
 
 # Variable plots
 tiff(here('results/GAM',
-          'gaussian_imm_female_plots.jpg'),
+          'gaussian_imm_female_plots.jpeg'),
      units = "in",
      width = 45,
      height = 40,
@@ -315,7 +315,7 @@ variable_figure(imm_female_gam_abun, c(-4.5, 3.5))
 dev.off()
 
 tiff(here('results/GAM',
-          'tweedie_imm_female_plots.jpg'),
+          'tweedie_imm_female_plots.jpeg'),
      units = "in",
      width = 45,
      height = 40,
@@ -343,7 +343,7 @@ leg_male_gam_abun <- gam(lncount_leg_male ~ s(longitude, latitude) +
                            s(log_pcod_cpue, k = 5) +
                            s(bcs_legal_male, k = 5),
                          data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
-summary(leg_male_gam_abun) # 41.8%
+summary(leg_male_gam_abun) # 41.2%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_gam_abun)
@@ -389,11 +389,11 @@ rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_te
 rmse_leg_male_tweedie # 1.74
 
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_leg_male_delta # 9.28
+rmse_leg_male_delta # 1.25
 
 # Variable plots
 tiff(here('results/GAM',
-          'gaussian_leg_male_plots.jpg'),
+          'gaussian_leg_male_plots.jpeg'),
      units = "in",
      width = 45,
      height = 40,
@@ -402,7 +402,7 @@ variable_figure(leg_male_gam_abun, c(-3.5, 4))
 dev.off()
 
 tiff(here('results/GAM',
-          'tweedie_leg_male_plots.jpg'),
+          'tweedie_leg_male_plots.jpeg'),
      units = "in",
      width = 45,
      height = 40,
@@ -430,7 +430,7 @@ sub_male_gam_abun <- gam(lncount_sub_male ~ s(longitude, latitude) +
                            s(log_pcod_cpue, k = 5) +
                            s(bcs_sublegal_male, k = 5),
                          data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
-summary(sub_male_gam_abun) # 61%
+summary(sub_male_gam_abun) # 60.7%
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_gam_abun)
@@ -476,7 +476,26 @@ rmse_sub_male_tweedie <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_te
 rmse_sub_male_tweedie # 2.23
 
 rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_sub_male_delta # 10.12
+rmse_sub_male_delta # 1.69
+
+# Variable plots
+tiff(here('results/GAM',
+          'gaussian_sub_male_plots.jpeg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(sub_male_gam_abun, c(-5.5, 2))
+dev.off()
+
+tiff(here('results/GAM',
+          'tweedie_sub_male_plots.jpeg'),
+     units = "in",
+     width = 45,
+     height = 40,
+     res = 200)
+variable_figure(sub_male_tweedie, c(-5.5, 2))
+dev.off()
 
 
 # Boosted regression trees ----
