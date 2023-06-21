@@ -75,8 +75,7 @@ mat_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
                 longitude, latitude, julian, female_loading,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station) %>%
-  tidyr::drop_na(lncount_mat_female) 
+                pres_mat_female, year_f, year, female_loading_station)
 
 imm_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
@@ -156,7 +155,7 @@ mat_female_gam_base <- gam(pres_mat_female ~ s(longitude, latitude) +
                              s(julian),
                            data = mat_female_train,
                            family = "binomial")
-summary(mat_female_gam_base) # 51.2% explained
+summary(mat_female_gam_base) # 51.5% explained
 
 # Abundance model
 mat_female_gam_abun <- gam(lncount_mat_female ~ s(longitude, latitude) +
@@ -169,7 +168,7 @@ mat_female_gam_abun <- gam(lncount_mat_female ~ s(longitude, latitude) +
                              s(log_pcod_cpue, k = 5) +
                              s(bcs_mature_female, k = 5),
                            data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
-summary(mat_female_gam_abun) # 33.3%
+summary(mat_female_gam_abun) # 32%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_gam_abun)
@@ -190,7 +189,7 @@ mat_female_tweedie <- gam(mature_female + 1 ~ s(longitude, latitude) +
                            data = mat_female_train,
                            family = tw(link = "log"),
                            method = "REML")
-summary(mat_female_tweedie) # 61.5%
+summary(mat_female_tweedie) # 66%
 
 par(mfrow = c(2, 2))
 gam.check(mat_female_tweedie)
@@ -212,10 +211,10 @@ mat_female_test$pred_gam_abun <- predict(mat_female_gam_abun,
 mat_female_test$pred_gam_delta <- mat_female_test$pred_gam_base * mat_female_test$pred_gam_abun
 
 rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
-rmse_mat_female_tweedie # 2.80
+rmse_mat_female_tweedie # 2.65
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 1.78
+rmse_mat_female_delta # 2.58
 
 # Variable plots
 tiff(here('results/GAM',
@@ -224,7 +223,7 @@ tiff(here('results/GAM',
      width = 45,
      height = 40,
      res = 200)
-variable_figure(mat_female_gam_abun, c(-5, 4))
+variable_figure(mat_female_gam_abun, c(-7.5, 4))
 dev.off()
 
 tiff(here('results/GAM',
@@ -233,7 +232,7 @@ tiff(here('results/GAM',
      width = 45,
      height = 40,
      res = 200)
-variable_figure(mat_female_tweedie, c(-6, 4))
+variable_figure(mat_female_tweedie, c(-7.5, 4))
 dev.off()
 
 ## Immature Female ----
@@ -243,7 +242,7 @@ imm_female_gam_base <- gam(pres_imm_female ~ s(longitude, latitude) +
                              s(julian),
                            data = imm_female_train,
                            family = "binomial")
-summary(imm_female_gam_base) # 42.9% explained
+summary(imm_female_gam_base) # 43.3% explained
 
 # Abundance model
 imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
@@ -256,7 +255,7 @@ imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
                              s(log_pcod_cpue, k = 5) +
                              s(bcs_immature_female, k = 5),
                            data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
-summary(imm_female_gam_abun) # 47.9%
+summary(imm_female_gam_abun) # 34.2%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_gam_abun)
@@ -277,7 +276,7 @@ imm_female_tweedie <- gam(immature_female + 1 ~ s(longitude, latitude) +
                           data = imm_female_train,
                           family = tw(link = "log"),
                           method = "REML")
-summary(imm_female_tweedie) # 68.3%
+summary(imm_female_tweedie) # 69.2%
 
 par(mfrow = c(2, 2))
 gam.check(imm_female_tweedie)
@@ -299,10 +298,10 @@ imm_female_test$pred_gam_abun <- predict(imm_female_gam_abun,
 imm_female_test$pred_gam_delta <- imm_female_test$pred_gam_base * imm_female_test$pred_gam_abun
 
 rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam)^2, na.rm = T))
-rmse_imm_female_tweedie # 2.43
+rmse_imm_female_tweedie # 2.01
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 1.72
+rmse_imm_female_delta # 1.05
 
 # Variable plots
 tiff(here('results/GAM',
@@ -311,7 +310,7 @@ tiff(here('results/GAM',
      width = 45,
      height = 40,
      res = 200)
-variable_figure(imm_female_gam_abun, c(-4.5, 3.5))
+variable_figure(imm_female_gam_abun, c(-2.5, 2.5))
 dev.off()
 
 tiff(here('results/GAM',
@@ -320,7 +319,7 @@ tiff(here('results/GAM',
      width = 45,
      height = 40,
      res = 200)
-variable_figure(imm_female_tweedie, c(-5, 2.5))
+variable_figure(imm_female_tweedie, c(-2.5, 2.5))
 dev.off()
 
 ## Legal Male ----
@@ -330,7 +329,7 @@ leg_male_gam_base <- gam(pres_leg_male ~ s(longitude, latitude) +
                            s(julian),
                          data = leg_male_train,
                          family = "binomial")
-summary(leg_male_gam_base) # 56% explained
+summary(leg_male_gam_base) # 56.1% explained
 
 # Abundance model
 leg_male_gam_abun <- gam(lncount_leg_male ~ s(longitude, latitude) +
@@ -343,7 +342,7 @@ leg_male_gam_abun <- gam(lncount_leg_male ~ s(longitude, latitude) +
                            s(log_pcod_cpue, k = 5) +
                            s(bcs_legal_male, k = 5),
                          data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
-summary(leg_male_gam_abun) # 41.2%
+summary(leg_male_gam_abun) # 43.0%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_gam_abun)
@@ -364,7 +363,7 @@ leg_male_tweedie <- gam(legal_male + 1 ~ s(longitude, latitude) +
                         data = leg_male_train,
                         family = tw(link = "log"),
                         method = "REML")
-summary(leg_male_tweedie) # 61.5%
+summary(leg_male_tweedie) # 64.1%
 
 par(mfrow = c(2, 2))
 gam.check(leg_male_tweedie)
@@ -417,7 +416,7 @@ sub_male_gam_base <- gam(pres_sub_male ~ s(longitude, latitude) +
                            s(julian),
                          data = sub_male_train,
                          family = "binomial")
-summary(sub_male_gam_base) # 59.9% explained
+summary(sub_male_gam_base) # 60.4% explained
 
 # Abundance model
 sub_male_gam_abun <- gam(lncount_sub_male ~ s(longitude, latitude) +
@@ -430,7 +429,7 @@ sub_male_gam_abun <- gam(lncount_sub_male ~ s(longitude, latitude) +
                            s(log_pcod_cpue, k = 5) +
                            s(bcs_sublegal_male, k = 5),
                          data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
-summary(sub_male_gam_abun) # 60.7%
+summary(sub_male_gam_abun) # 53.3%
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_gam_abun)
@@ -451,7 +450,7 @@ sub_male_tweedie <- gam(sublegal_male + 1 ~ s(longitude, latitude) +
                         data = sub_male_train,
                         family = tw(link = "log"),
                         method = "REML")
-summary(sub_male_tweedie) # 70.6%
+summary(sub_male_tweedie) # 69.4%
 
 par(mfrow = c(2, 2))
 gam.check(sub_male_tweedie)
@@ -473,10 +472,10 @@ sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
 sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
 
 rmse_sub_male_tweedie <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam)^2, na.rm = T))
-rmse_sub_male_tweedie # 2.23
+rmse_sub_male_tweedie # 1.84
 
 rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_sub_male_delta # 1.69
+rmse_sub_male_delta # 1.29
 
 # Variable plots
 tiff(here('results/GAM',
@@ -485,7 +484,7 @@ tiff(here('results/GAM',
      width = 45,
      height = 40,
      res = 200)
-variable_figure(sub_male_gam_abun, c(-5.5, 2))
+variable_figure(sub_male_gam_abun, c(-7, 4.5))
 dev.off()
 
 tiff(here('results/GAM',
@@ -494,7 +493,7 @@ tiff(here('results/GAM',
      width = 45,
      height = 40,
      res = 200)
-variable_figure(sub_male_tweedie, c(-5.5, 2))
+variable_figure(sub_male_tweedie, c(-6.5, 2))
 dev.off()
 
 
@@ -536,8 +535,8 @@ rmse_mat_female_brt # 1.5
 dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
 dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
 
-dev_mat_female_abun # 53.4% deviance explained
-dev_mat_female_pres # 58.6% deviance explained
+dev_mat_female_abun # 42.5% deviance explained
+dev_mat_female_pres # 55.4% deviance explained
 
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
@@ -549,10 +548,10 @@ brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 
 # Variable names
 column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_mature_female", "longitude",
-                  "latitude", "julian", "female_loading_station", "log_pcod_cpue", "year_f")
+                  "latitude", "julian", "female_loading_station", "log_pcod_cpue")
 final_names <- c("depth", "temperature", "phi", "ice concentration",
                  "proportion BCS", "longitude", "latitude", "julian",
-                 "female loading", "log(cod cpue + 1)", "year")
+                 "female loading", "log(cod cpue + 1)")
 
 column_labels <- data.frame(column_names, final_names)
 match_labels <- column_labels[match(colnames(mat_female_train)[vars], column_labels$column_names), ]
