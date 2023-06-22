@@ -14,6 +14,7 @@ library(maps)
 library(mapdata)
 library(fields)
 library(ggplot2)
+library(data.table)
 library(enmSdmX) # use for grid search, wrapper for dismo
 library(fastshap) # calculate SHAP values quickly
 library(mshap) # combine SHAP values for two-part models
@@ -956,7 +957,7 @@ final_names <- c("depth", "temperature", "phi", "ice concentration",
                  "sublegal male loading", "log(cod cpue + 1)", "year")
 column_labels <- data.frame(column_names, final_names)
 
-# Variable importance
+# Relative influence
 rel_inf(brt_sub_male_abun, 'Variable Influence on Sublegal Male Snow Crab')
 dev.copy(jpeg,
          here('results/BRT',
@@ -967,8 +968,34 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+sub_male_abun_inf <- summary(brt_sub_male_abun$model)[-1]
+sub_male_pres_inf <- summary(brt_sub_male_base$model)[-1]
+sub_male_inf <- rbindlist(list(setDT(sub_male_abun_inf, keep.rownames = TRUE), 
+                               setDT(sub_male_pres_inf, keep.rownames = TRUE)), 
+                          fill = TRUE)[, lapply(.SD, function(x)
+                            dplyr::na_if(mean(x, na.rm = TRUE), 0)), rn]
+
+windows()
+sub_male_inf %>% arrange(desc(rel.inf)) %>%
+  ggplot(aes(x = forcats::fct_reorder(.f = rn,
+                                      .x = rel.inf),
+             y = rel.inf,
+             fill = rel.inf)) +
+  geom_col() +
+  coord_flip() +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = 'Variable',
+       y = 'Relative Influence',
+       title = 'Sublegal Male Relative Influence') +
+  theme_minimal() +
+  theme(legend.position = "none",       
+        plot.title = element_text(size = 22, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 16),
+        axis.title = element_text(family = "serif", size = 20),
+        strip.text = element_text(family = "serif", size = 20)) 
+
 # Plot the variables
-part_depen(brt_sub_male_abun)
+part_depen(brt_sub_male_pres)
 dev.copy(jpeg,
          here('results/BRT',
               'male_sub_plots.jpg'),
