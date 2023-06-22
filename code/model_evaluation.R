@@ -562,7 +562,7 @@ brt_labels <- match_labels[order(match(names(mat_female_train)[vars], brt_mat_fe
 labels <- brt_labels$final_names
 
 # Variable importance
-rel_inf(brt_mat_female_abun, 'Variable Influence on Mature Female Snow Crab')
+rel_inf(brt_mat_female_base, 'Variable Influence on Mature Female Snow Crab')
 dev.copy(jpeg,
          here('results/BRT',
               'female_mat_rel_inf.jpg'),
@@ -573,7 +573,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-part_depen(brt_mat_female_abun)
+part_depen(brt_mat_female_base)
 dev.copy(jpeg,
          here('results/BRT',
               'female_mat_plots.jpg'),
@@ -660,14 +660,14 @@ imm_female_test$pred_brt <- imm_female_test$pred_base * imm_female_test$pred_abu
 
 # Calculate RMSE
 rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
-rmse_imm_female_brt # 1.42
+rmse_imm_female_brt # 1.40
 
 # Calculate deviance
 dev_imm_female_abun <- brt_deviance(brt_imm_female_abun)
 dev_imm_female_pres <- brt_deviance(brt_imm_female_base)
 
-dev_imm_female_abun # 63% deviance explained
-dev_imm_female_pres # 54% deviance explained
+dev_imm_female_abun # 50.6% deviance explained
+dev_imm_female_pres # 47.1% deviance explained
 
 # Save models for future use
 saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun.rds'))
@@ -678,7 +678,7 @@ brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
 brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
 
 # Variable importance
-rel_inf(brt_imm_female_abun, 'Variable Influence on Immature Female Snow Crab')
+rel_inf(brt_imm_female_base, 'Variable Influence on Immature Female Snow Crab')
 dev.copy(jpeg,
          here('results/BRT',
               'female_imm_rel_inf.jpg'),
@@ -689,7 +689,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-part_depen(brt_imm_female_abun)
+part_depen(brt_imm_female_base)
 dev.copy(jpeg,
          here('results/BRT',
               'female_imm_plots.jpg'),
@@ -811,7 +811,7 @@ brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
 brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
 
 # Variable importance
-rel_inf(brt_leg_male_abun, 'Variable Influence on Legal Male Snow Crab')
+rel_inf(brt_leg_male_base, 'Variable Influence on Legal Male Snow Crab')
 dev.copy(jpeg,
          here('results/BRT',
               'male_leg_rel_inf.jpg'),
@@ -822,7 +822,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-part_depen(brt_leg_male_abun)
+part_depen(brt_leg_male_base)
 dev.copy(jpeg,
          here('results/BRT',
               'male_leg_plots.jpg'),
@@ -882,7 +882,7 @@ final_names <- c("depth", "temperature", "phi", "ice concentration",
 column_labels <- data.frame(column_names, final_names)
 
 spatial_grid_leg_male <- grid_development(leg_male_train)
-spatial_grid_leg_male$legal_male_loading <- median(leg_male_train$legal_male_loading, na.rm = TRUE)
+spatial_grid_leg_male$legal_male_loading_station <- median(leg_male_train$legal_male_loading_station, na.rm = TRUE)
 spatial_grid_leg_male$bcs_legal_male <- median(leg_male_train$bcs_legal_male, na.rm = TRUE)
 
 leg_male_preds <- brt_grid_preds(spatial_grid_leg_male,
@@ -924,14 +924,14 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.60
+rmse_sub_male_brt # 1.57
 
 # Calculate deviance explained
 dev_sub_male_abun <- brt_deviance(brt_sub_male_abun)
 dev_sub_male_pres <- brt_deviance(brt_sub_male_base)
 
-dev_sub_male_abun # 74% deviance explained
-dev_sub_male_pres # 59% deviance explained
+dev_sub_male_abun # 65.3%% deviance explained
+dev_sub_male_pres # 62.1% deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
