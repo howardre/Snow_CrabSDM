@@ -1,6 +1,6 @@
-rel_inf <- function(abun_brt, title){
+rel_inf <- function(base_brt, title){
   windows()
-  effects <- tibble::as_tibble(summary.gbm(abun_brt$model, plotit = FALSE))
+  effects <- tibble::as_tibble(summary.gbm(base_brt$model, plotit = FALSE))
   effects %>% arrange(desc(rel.inf)) %>%
     ggplot(aes(x = forcats::fct_reorder(.f = var,
                                         .x = rel.inf),
