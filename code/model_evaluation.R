@@ -15,6 +15,7 @@ library(mapdata)
 library(fields)
 library(ggplot2)
 library(data.table)
+library(RColorBrewer)
 library(enmSdmX) # use for grid search, wrapper for dismo
 library(fastshap) # calculate SHAP values quickly
 library(mshap) # combine SHAP values for two-part models
@@ -968,32 +969,6 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-sub_male_abun_inf <- summary(brt_sub_male_abun$model)[-1]
-sub_male_pres_inf <- summary(brt_sub_male_base$model)[-1]
-sub_male_inf <- rbindlist(list(setDT(sub_male_abun_inf, keep.rownames = TRUE), 
-                               setDT(sub_male_pres_inf, keep.rownames = TRUE)), 
-                          fill = TRUE)[, lapply(.SD, function(x)
-                            dplyr::na_if(mean(x, na.rm = TRUE), 0)), rn]
-
-windows()
-sub_male_inf %>% arrange(desc(rel.inf)) %>%
-  ggplot(aes(x = forcats::fct_reorder(.f = rn,
-                                      .x = rel.inf),
-             y = rel.inf,
-             fill = rel.inf)) +
-  geom_col() +
-  coord_flip() +
-  scale_color_brewer(palette = "Dark2") +
-  labs(x = 'Variable',
-       y = 'Relative Influence',
-       title = 'Sublegal Male Relative Influence') +
-  theme_minimal() +
-  theme(legend.position = "none",       
-        plot.title = element_text(size = 22, family = "serif", face = "bold"),
-        axis.text = element_text(family = "serif", size = 16),
-        axis.title = element_text(family = "serif", size = 20),
-        strip.text = element_text(family = "serif", size = 20)) 
-
 # Plot the variables
 part_depen(brt_sub_male_pres)
 dev.copy(jpeg,
@@ -1057,6 +1032,88 @@ dev.copy(jpeg,
          res = 200,
          units = 'in')
 dev.off()
+
+## Heatmap of relative influence ----
+# NEED TO STANDARDIZE (add up to 100%)
+mat_female_abun_inf <- summary(brt_mat_female_abun$model)[-1]
+colnames(mat_female_abun_inf)[1] <- "mature female"
+rownames(mat_female_abun_inf)[rownames(mat_female_abun_inf) == "female_loading_station"] <- "fishery loading"
+rownames(mat_female_abun_inf)[rownames(mat_female_abun_inf) == "bcs_mature_female"] <- "BCS"
+mat_female_pres_inf <- summary(brt_mat_female_base$model)[-1]
+colnames(mat_female_pres_inf)[1] <- "mature female"
+rownames(mat_female_pres_inf)[rownames(mat_female_pres_inf) == "female_loading_station"] <- "fishery loading"
+rownames(mat_female_pres_inf)[rownames(mat_female_pres_inf) == "bcs_mature_female"] <- "BCS"
+imm_female_abun_inf <- summary(brt_imm_female_abun$model)[-1]
+colnames(imm_female_abun_inf)[1] <- "immature female"
+rownames(imm_female_abun_inf)[rownames(imm_female_abun_inf) == "female_loading_station"] <- "fishery loading"
+rownames(imm_female_abun_inf)[rownames(imm_female_abun_inf) == "bcs_immature_female"] <- "BCS"
+imm_female_pres_inf <- summary(brt_imm_female_base$model)[-1]
+colnames(imm_female_pres_inf)[1] <- "immature female"
+rownames(imm_female_pres_inf)[rownames(imm_female_pres_inf) == "female_loading_station"] <- "fishery loading"
+rownames(imm_female_pres_inf)[rownames(imm_female_pres_inf) == "bcs_immature_female"] <- "BCS"
+leg_male_abun_inf <- summary(brt_leg_male_abun$model)[-1]
+colnames(leg_male_abun_inf)[1] <- "legal male"
+rownames(leg_male_abun_inf)[rownames(leg_male_abun_inf) == "legal_male_loading_station"] <- "fishery loading"
+rownames(leg_male_abun_inf)[rownames(leg_male_abun_inf) == "bcs_legal_male"] <- "BCS"
+leg_male_pres_inf <- summary(brt_leg_male_base$model)[-1]
+colnames(leg_male_pres_inf)[1] <- "legal male"
+rownames(leg_male_pres_inf)[rownames(leg_male_pres_inf) == "legal_male_loading_station"] <- "fishery loading"
+rownames(leg_male_pres_inf)[rownames(leg_male_pres_inf) == "bcs_legal_male"] <- "BCS"
+sub_male_abun_inf <- summary(brt_sub_male_abun$model)[-1]
+colnames(sub_male_abun_inf)[1] <- "sublegal male"
+rownames(sub_male_abun_inf)[rownames(sub_male_abun_inf) == "sublegal_male_loading_station"] <- "fishery loading"
+rownames(sub_male_abun_inf)[rownames(sub_male_abun_inf) == "bcs_sublegal_male"] <- "BCS"
+sub_male_pres_inf <- summary(brt_sub_male_base$model)[-1]
+colnames(sub_male_pres_inf)[1] <- "sublegal male"
+rownames(sub_male_pres_inf)[rownames(sub_male_pres_inf) == "sublegal_male_loading_station"] <- "fishery loading"
+rownames(sub_male_pres_inf)[rownames(sub_male_pres_inf) == "bcs_sublegal_male"] <- "BCS"
+
+all_abun_list <- list(mat_female_abun_inf,
+                      imm_female_abun_inf,
+                      leg_male_abun_inf,
+                      sub_male_abun_inf)
+all_abun_rel_inf <- Reduce(merge, 
+                           lapply(all_abun_list,
+                                  function(x) 
+                                    data.frame(x, rel_inf = row.names(x))))
+rownames(all_abun_rel_inf) <- all_abun_rel_inf[, 1]
+all_abun_rel_inf <- all_abun_rel_inf[, -1]
+colnames(all_abun_rel_inf) <- c("mature female", "immature female", "legal male", "sublegal male")
+rownames(all_abun_rel_inf)[rownames(all_abun_rel_inf) == "ice_mean"] <- "ice"
+rownames(all_abun_rel_inf)[rownames(all_abun_rel_inf) == "log_pcod_cpue"] <- "cod CPUE"
+all_abun_rel_inf <- as.matrix(all_abun_rel_inf)
+
+heatmap_palette <- colorRampPalette(c("lightgray", "deeppink4"))
+heatmap(all_abun_rel_inf, 
+        scale = "column",
+        Colv = NA,
+        Rowv = NA,
+        col = heatmap_palette(10))
+
+ggplot(as.data.frame(all_abun_rel_inf)) +
+  geom_tile()
+  
+
+all_pres_list <- list(mat_female_pres_inf,
+                      imm_female_pres_inf,
+                      leg_male_pres_inf,
+                      sub_male_pres_inf)
+all_pres_rel_inf <- Reduce(merge, 
+                           lapply(all_pres_list,
+                                  function(x) 
+                                    data.frame(x, rel_inf = row.names(x))))
+rownames(all_pres_rel_inf) <- all_pres_rel_inf[, 1]
+all_pres_rel_inf <- all_pres_rel_inf[, -1]
+colnames(all_pres_rel_inf) <- c("mature female", "immature female", "legal male", "sublegal male")
+rownames(all_pres_rel_inf)[rownames(all_pres_rel_inf) == "ice_mean"] <- "ice"
+rownames(all_pres_rel_inf)[rownames(all_pres_rel_inf) == "log_pcod_cpue"] <- "cod CPUE"
+all_pres_rel_inf <- as.matrix(all_pres_rel_inf)
+
+heatmap(all_pres_rel_inf, 
+        scale = "column",
+        Colv = NA,
+        Rowv = NA,
+        col = heatmap_palette(10))
 
 # SHAP values ----
 # SHapley Additive exPlanations
