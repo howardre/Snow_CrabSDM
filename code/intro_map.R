@@ -2,11 +2,12 @@
 library(marmap)
 library(ggOceanMaps)
 library(ggplot2)
+library(grid)
 
 # ggOceanMaps method
 bathy_palette <- colorRampPalette(c("lightsteelblue1", "lightsteelblue4"))(9)
-BS_bathy <- data.frame(lon = c(-176.6, -156.5),
-                       lat = c(51, 65.5))
+BS_bathy <- data.frame(lon = c(-176.6, -158.5),
+                       lat = c(51.5, 65.5))
 bering_map <- basemap(data = BS_bathy,
                       bathymetry = TRUE,
                       rotate = TRUE,
@@ -20,7 +21,13 @@ bering_map <- basemap(data = BS_bathy,
                fill = NA) +
   scale_fill_manual(values = bathy_palette) +
   labs(x = "Longitude",
-       y = "Latitude") 
+       y = "Latitude") +
+  
+
+bering_map + 
+  annotation_north_arrow() + # not working right now, may need to update packages
+  annotation_scale()
+
 
 # marmap method
 BS_bathy <- getNOAA.bathy(lon1 = -176.5, lon2 = -156.5, 
