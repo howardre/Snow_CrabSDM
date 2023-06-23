@@ -16,6 +16,7 @@ library(fields)
 library(ggplot2)
 library(data.table)
 library(RColorBrewer)
+library(gplots) # for heatmap
 library(enmSdmX) # use for grid search, wrapper for dismo
 library(fastshap) # calculate SHAP values quickly
 library(mshap) # combine SHAP values for two-part models
@@ -35,6 +36,7 @@ source(here('code/functions', 'rel_inf.R'))
 source(here('code/functions', 'variable_figure.R'))
 source(here('code/functions', 'sv_dependence2D2.R'))
 source(here('code/functions', 'sv_dependence2.R'))
+source(here('code/functions', 'rel_inf_fig.R'))
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
@@ -1072,48 +1074,34 @@ all_abun_list <- list(mat_female_abun_inf,
                       imm_female_abun_inf,
                       leg_male_abun_inf,
                       sub_male_abun_inf)
-all_abun_rel_inf <- Reduce(merge, 
-                           lapply(all_abun_list,
-                                  function(x) 
-                                    data.frame(x, rel_inf = row.names(x))))
-rownames(all_abun_rel_inf) <- all_abun_rel_inf[, 1]
-all_abun_rel_inf <- all_abun_rel_inf[, -1]
-colnames(all_abun_rel_inf) <- c("mature female", "immature female", "legal male", "sublegal male")
-rownames(all_abun_rel_inf)[rownames(all_abun_rel_inf) == "ice_mean"] <- "ice"
-rownames(all_abun_rel_inf)[rownames(all_abun_rel_inf) == "log_pcod_cpue"] <- "cod CPUE"
-all_abun_rel_inf <- as.matrix(all_abun_rel_inf)
-
-heatmap_palette <- colorRampPalette(c("lightgray", "deeppink4"))
-heatmap(all_abun_rel_inf, 
-        scale = "column",
-        Colv = NA,
-        Rowv = NA,
-        col = heatmap_palette(10))
-
-ggplot(as.data.frame(all_abun_rel_inf)) +
-  geom_tile()
-  
 
 all_pres_list <- list(mat_female_pres_inf,
                       imm_female_pres_inf,
                       leg_male_pres_inf,
                       sub_male_pres_inf)
-all_pres_rel_inf <- Reduce(merge, 
-                           lapply(all_pres_list,
-                                  function(x) 
-                                    data.frame(x, rel_inf = row.names(x))))
-rownames(all_pres_rel_inf) <- all_pres_rel_inf[, 1]
-all_pres_rel_inf <- all_pres_rel_inf[, -1]
-colnames(all_pres_rel_inf) <- c("mature female", "immature female", "legal male", "sublegal male")
-rownames(all_pres_rel_inf)[rownames(all_pres_rel_inf) == "ice_mean"] <- "ice"
-rownames(all_pres_rel_inf)[rownames(all_pres_rel_inf) == "log_pcod_cpue"] <- "cod CPUE"
-all_pres_rel_inf <- as.matrix(all_pres_rel_inf)
 
-heatmap(all_pres_rel_inf, 
-        scale = "column",
-        Colv = NA,
-        Rowv = NA,
-        col = heatmap_palette(10))
+# Create figures
+rel_inf_fig(all_abun_list, "Abundance")
+dev.copy(jpeg,
+         here('results/BRT',
+              'abun_rel_inf.jpg'),
+         height = 8,
+         width = 6,
+         res = 200,
+         units = 'in',
+         family = "serif")
+dev.off()
+
+rel_inf_fig(all_pres_list, "Presence/Absence")
+dev.copy(jpeg,
+         here('results/BRT',
+              'pres_rel_inf.jpg'),
+         height = 8,
+         width = 6,
+         res = 200,
+         units = 'in',
+         family = "serif")
+dev.off()
 
 # SHAP values ----
 # SHapley Additive exPlanations
