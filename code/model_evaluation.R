@@ -1125,6 +1125,7 @@ pred_fun <- function(X_model, newdata){
 }
 
 num_cores <- detectCores() - 2
+vars <- c(1:8, 10, 16)
 
 ## Legal Males ----
 cl <- makeCluster(num_cores)
