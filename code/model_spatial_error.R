@@ -65,119 +65,119 @@ crab_test_warm <- as.data.frame(crab_trans %>%
 # Split into each sex/stage
 # Training data
 mat_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 mat_female_train_warm <- crab_train_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_mat_female)
 
 imm_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 imm_female_train_warm <- crab_train_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, legal_male_loading_station,
-                lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 leg_male_train_warm <- crab_train_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, legal_male_loading_station,
-                lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, 
-                longitude, latitude, julian, sublegal_male_loading_station,
-                lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
 sub_male_train_warm <- crab_train_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean, 
-                longitude, latitude, julian, sublegal_male_loading_station,
-                lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
 # Test data
 mat_female_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_mat_female)
 
 mat_female_test_warm <- crab_test_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 imm_female_test_warm <- crab_test_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, female_loading_station,
-                lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
+                longitude, latitude, julian, female_loading,
+                log_pcod_cpue, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year, female_loading_station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, legal_male_loading_station,
-                lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 leg_male_test_warm <- crab_test_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, legal_male_loading_station,
-                lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, sublegal_male_loading_station,
-                lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
 sub_male_test_warm <- crab_test_warm %>%
-  dplyr::select(depth, temperature, phi, ice_mean,
-                longitude, latitude, julian, sublegal_male_loading_station,
-                lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, station) %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
+                longitude, latitude, julian, sublegal_male_loading,
+                log_pcod_cpue, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
@@ -208,45 +208,72 @@ vars <- c(1:8, 10, 16)
 
 ## Mature females ----
 # Get best models
-brt_mat_female_base <- grid_search(mat_female_train, 13, 'bernoulli')
-brt_mat_female_base
+# Read in BRTs
+brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun_base.rds'))
+brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base_pres.rds'))
 
-brt_mat_female_abun <- grid_search(mat_female_train[mat_female_train$lncount_mat_female > 0, ],
+brt_mat_female_base_warm <- grid_search(mat_female_train_warm, 13, 'bernoulli')
+brt_mat_female_base_warm
+
+brt_mat_female_abun_warm <- grid_search(mat_female_train_warm[mat_female_train_warm$lncount_mat_female > 0, ],
                                    11, 'gaussian')
-brt_mat_female_abun
+brt_mat_female_abun_warm
 
 # Predict on test data
-mat_female_test$pred_base <- predict.gbm(brt_mat_female_base$model,
-                                         mat_female_test,
-                                         n.trees = brt_mat_female_base$model$gbm.call$best.trees,
+mat_female_test_warm$pred_base <- predict.gbm(brt_mat_female_base_warm$model,
+                                         mat_female_test_warm,
+                                         n.trees = brt_mat_female_base_warm$model$gbm.call$best.trees,
                                          type = "response")
 
-mat_female_test$pred_abun <- predict.gbm(brt_mat_female_abun$model,
-                                         mat_female_test,
-                                         n.trees = brt_mat_female_abun$model$gbm.call$best.trees,
+mat_female_test_warm$pred_abun <- predict.gbm(brt_mat_female_abun_warm$model,
+                                         mat_female_test_warm,
+                                         n.trees = brt_mat_female_abun_warm$model$gbm.call$best.trees,
                                          type = "response")
 
-mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abun
+mat_female_test_warm$pred_brt <- mat_female_test_warm$pred_base * mat_female_test_warm$pred_abun
 
 
 # Calculate RMSE
-rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.62
+# 1.65 for base model
+rmse_mat_female_brt_warm <- sqrt(mean((mat_female_test_warm$lncount_mat_female - mat_female_test_warm$pred_brt)^2))
+rmse_mat_female_brt_warm # 1.57
 
 # Calculate deviance explained
-dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
-dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
+dev_mat_female_abun_warm <- brt_deviance(brt_mat_female_abun_warm)
+dev_mat_female_pres_warm <- brt_deviance(brt_mat_female_base_warm)
 
-dev_mat_female_abun # 33.5% deviance explained
-dev_mat_female_pres # 56.6% deviance explained
+dev_mat_female_abun_warm # 41.1% deviance explained
+dev_mat_female_pres_warm # 56.2% deviance explained
 
 # Save models for future use
-saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
-saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base.rds'))
+saveRDS(brt_mat_female_abun_warm, file = here('data', 'brt_mat_female_abun_warm.rds'))
+saveRDS(brt_mat_female_base_warm, file = here('data', 'brt_mat_female_pres_warm.rds'))
 
-# Read in BRTs
-brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
-brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
+# Spatial RMSE
+# Map RMSE
+# Need to get average RMSE per station
+# Then plot by station to get spatial error
+EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
+EBS_grid <- EBS$survey.grid
+EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
+EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
+mat_female_rmse1 <- mat_female_test1 %>%
+  group_by(station) %>%
+summarize(rmse = Metrics::rmse(lncount_mat_female, pred_brt)) # calculate by station
+mat_female_df1 <- merge(mat_female_rmse1,  
+                        EBS_trans, 
+                        by.x = "station",
+                        by.y = "STATIONID") # make spatial
+mat_female_sf1 <- st_as_sf(mat_female_df1, # turn into sf object to plot
+                           crs = 4269)
+
+ggplot() +
+  geom_sf(data = mat_female_sf1,
+          aes(fill = rmse)) +
+  scale_x_continuous(name = "Longitude", 
+                     breaks = EBS$lon.breaks) + 
+  scale_y_continuous(name = "Latitude", 
+                     breaks = EBS$lat.breaks)
 
 # Variable names
 column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_mature_female", "longitude",
@@ -262,61 +289,6 @@ brt_mat_female_summary <- summary(brt_mat_female_abun$model)
 
 brt_labels <- match_labels[order(match(names(mat_female_train)[vars], brt_mat_female_summary$var)), ]
 labels <- brt_labels$final_names
-
-# Variable importance
-rel_inf(brt_mat_female_base, 'Variable Influence on Mature Female Snow Crab')
-dev.copy(jpeg,
-         here('results/BRT',
-              'female_mat_rel_inf.jpg'),
-         height = 12,
-         width = 9,
-         res = 200,
-         units = 'in')
-dev.off()
-
-# Plot the variables
-part_depen(brt_mat_female_base)
-dev.copy(jpeg,
-         here('results/BRT',
-              'female_mat_plots.jpg'),
-         height = 12,
-         width = 15,
-         res = 200,
-         units = 'in')
-dev.off()
-
-
-# Plot the fits
-females_mat_int <- gbm.interactions(brt_mat_female_abun$model)
-females_mat_int$interactions
-
-par(mfrow = c(1, 3))
-gbm.perspec(brt_mat_female_abun$model,
-            2, 3,
-            z.range = c(0, 6.25),
-            theta = 60,
-            col = "light blue",
-            cex.axis = 0.8,
-            cex.lab = 1,
-            ticktype = "detailed")
-
-gbm.perspec(brt_mat_female_abun$model,
-            2, 7,
-            z.range = c(-1.3, 4.8),
-            theta = 60,
-            col = "light blue",
-            cex.axis = 0.8,
-            cex.lab = 1,
-            ticktype = "detailed")
-
-gbm.perspec(brt_mat_female_abun$model,
-            1, 3,
-            z.range = c(-0.1, 5.7),
-            theta = 60,
-            col = "light blue",
-            cex.axis = 0.8,
-            cex.lab = 1,
-            ticktype = "detailed")
 
 # Plot map of the predicted distribution
 # Prediction grid map
