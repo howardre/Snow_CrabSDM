@@ -178,7 +178,7 @@ legal_male_pca_st <- prcomp(legal_male_scaled_st,
                             scale = F,
                             center = F)
 summary(legal_male_pca_st)
-head(summary(legal_male_pca_st))
+head(summary(legal_male_pca_st)) # 18.7% PC1
 
 legal_male_pca_st$sdev # eigenvalues
 scores(legal_male_pca_st, display = 'species', choices = 1)
@@ -187,7 +187,7 @@ sublegal_male_pca_st <- prcomp(sublegal_male_scaled_st,
                                scale = F,
                                center = F)
 summary(sublegal_male_pca_st)
-head(summary(sublegal_male_pca_st))
+head(summary(sublegal_male_pca_st)) # 18.2% PC1
 
 sublegal_male_pca_st$sdev # eigenvalues
 scores(sublegal_male_pca_st, display = 'species', choices = 1)
@@ -196,7 +196,7 @@ female_pca_st <- prcomp(female_scaled_st,
                             scale = F,
                             center = F)
 summary(female_pca_st)
-head(summary(female_pca_st))
+head(summary(female_pca_st)) # 15.2% PC1
 
 female_pca_st$sdev # eigenvalues
 scores(female_pca_st, display = 'species', choices = 1)
