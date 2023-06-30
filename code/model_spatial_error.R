@@ -356,7 +356,7 @@ imm_female_rmse_warm <- imm_female_test_warm %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_imm_female, pred_brt)) # calculate by station
 
-##Legal Males ----
+## Legal Males ----
 # Get best models
 # Read in BRTs
 brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun_base.rds'))
