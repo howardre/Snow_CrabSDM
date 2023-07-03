@@ -15,13 +15,8 @@ library(akgfmaps)
 library(enmSdmX) # use for grid search, wrapper for dismo
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
-source(here('code/functions', 'brt_grid_preds.R'))
-source(here('code/functions', 'gbm.plot2.R'))
-source(here('code/functions', 'grid_development.R'))
 source(here('code/functions', 'grid_search.R'))
-source(here('code/functions', 'map_pred_brt.R'))
-source(here('code/functions', 'part_depen.R'))
-source(here('code/functions', 'rel_inf.R'))
+source(here('code/functions', 'map_rmse.R'))
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
@@ -201,24 +196,6 @@ sub_male_test_warm <- crab_test_warm %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
-# Functions and LOESS ----
-# Use LOESS for prediction grid, works better than fixed values for depth and phi
-depth_loess <- loess(depth ~ longitude * latitude,
-                     data = crab_trans,
-                     span = 0.7,
-                     degree = 2,
-                     control = loess.control(surface = "interpolate"))
-summary(lm(depth_loess$fitted ~ crab_trans$depth)) # check R2
-
-
-phi_loess <- loess(phi ~ longitude * latitude,
-                   span = 0.05,
-                   degree = 2,
-                   data = crab_trans,
-                   family = "symmetric",
-                   control = loess.control(surface = "interpolate"))
-summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
-
 # Boosted regression trees ----
 # Adjust the bag fraction to a value between 0.5-0.75 as suggested by Elith et al. (2008)
 # The learning rate could range from 0.1-0.0001, higher value usually means less trees
@@ -229,8 +206,8 @@ vars <- c(1:8, 10, 16)
 ## Mature females ----
 # Get best models
 # Read in BRTs
-brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun_base.rds'))
-brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base_pres.rds'))
+brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
+brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 
 brt_mat_female_base_warm <- grid_search(mat_female_train_warm, 13, 'bernoulli')
 brt_mat_female_base_warm
@@ -287,9 +264,18 @@ saveRDS(brt_mat_female_base_warm, file = here('data', 'brt_mat_female_pres_warm.
 # Map RMSE
 # Need to get average RMSE per station
 # Then plot by station to get spatial error
+brt_mat_female_abun_warm <- readRDS(file = here('data', 'brt_mat_female_abun_warm.rds'))
+brt_mat_female_base_warm <- readRDS(file = here('data', 'brt_mat_female_pres_warm.rds'))
+
 mat_female_rmse_warm <- mat_female_test_warm %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_mat_female, pred_brt)) # calculate by station
+
+mat_female_rmse <- mat_female_test %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_mat_female, pred_brt))
+
+map_rmse(mat_female_rmse)
 
 ## Immature females ----
 # Get best models
