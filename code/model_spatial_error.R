@@ -27,6 +27,7 @@ EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
 EBS_grid <- EBS$survey.grid
 EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
 EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
+bering_sea <- map_data("world")
 
 # Make sure to run PCA first if updating the data matching script
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
@@ -275,7 +276,7 @@ mat_female_rmse <- mat_female_test %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_mat_female, pred_brt))
 
-map_rmse(mat_female_rmse)
+map_rmse(mat_female_rmse_warm)
 
 ## Immature females ----
 # Get best models
