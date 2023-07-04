@@ -18,8 +18,6 @@ map_rmse <- function(rmse_avg, area){
     coord_sf(xlim = c(-180, -156), 
              ylim = c(54, 66), 
              expand = FALSE) +
-    scale_x_continuous(breaks = EBS$lon.breaks) + 
-    scale_y_continuous(breaks = EBS$lat.breaks) +
     scale_fill_viridis(option = "inferno") +
     theme_classic() +
     theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
