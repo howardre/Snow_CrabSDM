@@ -220,6 +220,17 @@ rmse_mat_female_tweedie # 2.65
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
 rmse_mat_female_delta # 2.58
 
+# Spearman correlation coefficient
+cor.test(mat_female_test$lncount_mat_female, 
+         mat_female_test$pred_gam_delta, 
+         method = 'spearman',
+         exact = FALSE) # 0.57
+
+cor.test(mat_female_test$lncount_mat_female, 
+         mat_female_test$pred_gam, 
+         method = 'spearman',
+         exact = FALSE) # 0.55
+
 # Variable plots
 tiff(here('results/GAM',
           'gaussian_mat_female_plots.jpeg'),
@@ -306,6 +317,17 @@ rmse_imm_female_tweedie # 2.01
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
 rmse_imm_female_delta # 1.05
+
+# Spearman correlation coefficient
+cor.test(imm_female_test$lncount_imm_female, 
+         imm_female_test$pred_gam_delta, 
+         method = 'spearman',
+         exact = FALSE) # 0.57
+
+cor.test(imm_female_test$lncount_imm_female, 
+         imm_female_test$pred_gam, 
+         method = 'spearman',
+         exact = FALSE) # 0.51
 
 # Variable plots
 tiff(here('results/GAM',
@@ -394,6 +416,17 @@ rmse_leg_male_tweedie # 1.74
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
 rmse_leg_male_delta # 1.25
 
+# Spearman correlation coefficient
+cor.test(leg_male_test$lncount_leg_male, 
+         leg_male_test$pred_gam_delta, 
+         method = 'spearman',
+         exact = FALSE) # 0.76
+
+cor.test(leg_male_test$lncount_leg_male, 
+         leg_male_test$pred_gam, 
+         method = 'spearman',
+         exact = FALSE) # 0.75
+
 # Variable plots
 tiff(here('results/GAM',
           'gaussian_leg_male_plots.jpeg'),
@@ -481,6 +514,17 @@ rmse_sub_male_tweedie # 1.84
 rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
 rmse_sub_male_delta # 1.29
 
+# Spearman correlation coefficient
+cor.test(sub_male_test$lncount_sub_male, 
+         sub_male_test$pred_gam_delta, 
+         method = 'spearman',
+         exact = FALSE) # 0.80
+
+cor.test(sub_male_test$lncount_sub_male, 
+         sub_male_test$pred_gam, 
+         method = 'spearman',
+         exact = FALSE) # 0.78
+
 # Variable plots
 tiff(here('results/GAM',
           'gaussian_sub_male_plots.jpeg'),
@@ -541,6 +585,12 @@ dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
 
 dev_mat_female_abun # 33.5% deviance explained
 dev_mat_female_pres # 56.6% deviance explained
+
+# Spearman correlation coefficient
+cor.test(mat_female_test$lncount_mat_female, 
+         mat_female_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE) # 0.68
 
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
@@ -672,6 +722,12 @@ dev_imm_female_pres <- brt_deviance(brt_imm_female_base)
 
 dev_imm_female_abun # 50.6% deviance explained
 dev_imm_female_pres # 47.1% deviance explained
+
+# Spearman correlation coefficient
+cor.test(imm_female_test$lncount_imm_female, 
+         imm_female_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE) # 0.73
 
 # Save models for future use
 saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun.rds'))
@@ -806,6 +862,12 @@ dev_leg_male_pres <- brt_deviance(brt_leg_male_base)
 dev_leg_male_abun # 64% deviance explained
 dev_leg_male_pres # 62% deviance explained
 
+# Spearman correlation coefficient
+cor.test(leg_male_test$lncount_leg_male, 
+         leg_male_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE) # 0.77
+
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
 saveRDS(brt_leg_male_base, file = here('data', 'brt_leg_male_base.rds'))
@@ -936,6 +998,12 @@ dev_sub_male_pres <- brt_deviance(brt_sub_male_base)
 
 dev_sub_male_abun # 65.3%% deviance explained
 dev_sub_male_pres # 62.1% deviance explained
+
+# Spearman correlation coefficient
+cor.test(sub_male_test$lncount_sub_male, 
+         sub_male_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE) # 0.83
 
 # Save models for future use
 saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
