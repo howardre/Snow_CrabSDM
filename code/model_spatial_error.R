@@ -276,13 +276,32 @@ mat_female_rmse <- mat_female_test %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_mat_female, pred_brt))
 
-map_rmse(mat_female_rmse_warm)
+
+map_rmse(mat_female_rmse_warm, "Spatial Error for Mature Female Crab - Warm Year")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'mat_female_rmse_warm.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_rmse(mat_female_rmse, "Spatial Error for Mature Female Crab")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'mat_female_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Immature females ----
 # Get best models
 # Read in BRTs
-brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun_base.rds'))
-brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base_pres.rds'))
+brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
+brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
 
 brt_imm_female_base_warm <- grid_search(imm_female_train_warm, 13, 'bernoulli')
 brt_imm_female_base_warm
@@ -339,15 +358,43 @@ saveRDS(brt_imm_female_base_warm, file = here('data', 'brt_imm_female_pres_warm.
 # Map RMSE
 # Need to get average RMSE per station
 # Then plot by station to get spatial error
+brt_imm_female_abun_warm <- readRDS(file = here('data', 'brt_imm_female_abun_warm.rds'))
+brt_imm_female_base_warm <- readRDS(file = here('data', 'brt_imm_female_pres_warm.rds'))
+
 imm_female_rmse_warm <- imm_female_test_warm %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_imm_female, pred_brt)) # calculate by station
 
+imm_female_rmse <- imm_female_test %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_imm_female, pred_brt))
+
+
+map_rmse(imm_female_rmse_warm, "Spatial Error for Immature Female Crab - Warm Year")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'imm_female_rmse_warm.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_rmse(imm_female_rmse, "Spatial Error for Immature Female Crab")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'imm_female_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
 ## Legal Males ----
 # Get best models
 # Read in BRTs
-brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun_base.rds'))
-brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base_pres.rds'))
+brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
+brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
 
 brt_leg_male_base_warm <- grid_search(leg_male_train_warm, 13, 'bernoulli')
 brt_leg_male_base_warm
@@ -404,15 +451,43 @@ saveRDS(brt_leg_male_base_warm, file = here('data', 'brt_leg_male_pres_warm.rds'
 # Map RMSE
 # Need to get average RMSE per station
 # Then plot by station to get spatial error
+brt_leg_male_abun_warm <- readRDS(file = here('data', 'brt_leg_male_abun_warm.rds'))
+brt_leg_male_base_warm <- readRDS(file = here('data', 'brt_leg_male_pres_warm.rds'))
+
 leg_male_rmse_warm <- leg_male_test_warm %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_leg_male, pred_brt)) # calculate by station
 
+leg_male_rmse <- leg_male_test %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_leg_male, pred_brt))
+
+
+map_rmse(leg_male_rmse_warm, "Spatial Error for Legal Male Crab - Warm Year")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'leg_male_rmse_warm.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_rmse(leg_male_rmse, "Spatial Error for Legal Male Crab")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'leg_male_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
 ## Sublegal Males ----
 # Get best models
 # Read in BRTs
-brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun_base.rds'))
-brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base_pres.rds'))
+brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
+brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
 
 brt_sub_male_base_warm <- grid_search(sub_male_train_warm, 13, 'bernoulli')
 brt_sub_male_base_warm
@@ -469,6 +544,34 @@ saveRDS(brt_sub_male_base_warm, file = here('data', 'brt_sub_male_pres_warm.rds'
 # Map RMSE
 # Need to get average RMSE per station
 # Then plot by station to get spatial error
+brt_sub_male_abun_warm <- readRDS(file = here('data', 'brt_sub_male_abun_warm.rds'))
+brt_sub_male_base_warm <- readRDS(file = here('data', 'brt_sub_male_pres_warm.rds'))
+
 sub_male_rmse_warm <- sub_male_test_warm %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_sub_male, pred_brt)) # calculate by station
+
+sub_male_rmse <- sub_male_test %>%
+  group_by(station) %>%
+  summarize(rmse = Metrics::rmse(lncount_sub_male, pred_brt))
+
+
+map_rmse(sub_male_rmse_warm, "Spatial Error for Sublegal Male Crab - Warm Year")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'sub_male_rmse_warm.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_rmse(sub_male_rmse, "Spatial Error for Sublegal Male Crab")
+dev.copy(jpeg,
+         here('results/RMSE',
+              'sub_male_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
