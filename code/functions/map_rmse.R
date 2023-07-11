@@ -4,27 +4,29 @@ map_rmse <- function(rmse_avg, area){
               EBS_trans,
               by.x = "station",
               by.y =  "STATIONID") # make spatial
-  sf <- st_as_sf(df, # turn into sf object to plot
-                 crs = 4269)
+  sf <- sf::st_as_sf(df, # turn into sf object to plot
+                     crs = st_crs(4269))
   # Plot RMSE
   ggplot() +
+    geom_polygon(aes(long, lat, group = group),
+                 data = bering_sea,
+                 fill = "lightyellow4",
+                 colour = "black") +
     geom_sf(data = sf,
-            aes(fill = rmse)) +
-    geom_polygon(aes(long, lat, group = group), data = bering_sea,
-                 fill = "lightyellow4", 
-                 colour = "black",
-                 inherit.aes = TRUE) +
-    scale_size_area() +
-    coord_sf(xlim = c(-180, -156), 
+            aes(fill = rmse),
+            inherit.aes = FALSE) +
+    coord_sf(xlim = c(-179.5, -156), 
              ylim = c(54, 66), 
-             expand = FALSE) +
+             expand = FALSE,
+             datum = st_crs(4269)) +
+    scale_size_area() +
     scale_fill_viridis(option = "inferno") +
     theme_classic() +
     theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
           axis.line = element_blank(),
           axis.ticks = element_blank(),
           plot.title = element_text(size = 22, family = "serif", face = "bold"),
-          axis.text = element_text(family = "serif", size = 14),
+          axis.text = element_text(family = "serif", size = 12),
           axis.title = element_text(family = "serif", size = 18),
           axis.text.x = element_text(angle = 45, vjust = 0.7),
           strip.text = element_text(family = "serif", size = 18),
