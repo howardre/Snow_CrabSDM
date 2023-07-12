@@ -307,8 +307,21 @@ brt_imm_female_base_warm <- grid_search(imm_female_train_warm, 13, 'bernoulli')
 brt_imm_female_base_warm
 
 brt_imm_female_abun_warm <- grid_search(imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,],
-                                        11, 'gaussian')
-brt_imm_female_abun_warm
+                                        11, 'gaussian') # can't get it to save model for some reason
+# using the converged model hyperparameters to re-run
+# No issues with minimum trees or convergence so not clear why this is happening
+brt_imm_female_model <- gbm.step(data = imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,],
+                                 gbm.x = vars,
+                                 gbm.y = 11,
+                                 family = "gaussian",
+                                 learning.rate = 0.01,
+                                 tree.complexity = 11,
+                                 bag.fraction = 0.75,
+                                 max.trees = 3000,
+                                 step.size = 40)
+brt_imm_female_abun_warm <- list(brt_imm_female_model, brt_imm_female_abun_warm$tuning)
+names(brt_imm_female_abun_warm)[[1]] <- "model"
+names(brt_imm_female_abun_warm)[[2]] <- "tuning"
 
 # Predict on test data
 # Original model
