@@ -64,7 +64,9 @@ crab_trans <- mutate(crab_summary,
                      log_pcod_cpue = log(pcod_cpue + 1)) %>%
   filter(!is.na(temperature),
          !is.na(julian),
-         !is.na(depth)) 
+         !is.na(depth),
+         !is.na(ice_mean),
+         year_f != 2022) 
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -215,21 +217,21 @@ mat_female_test$pred_gam_abun <- predict(mat_female_gam_abun,
 mat_female_test$pred_gam_delta <- mat_female_test$pred_gam_base * mat_female_test$pred_gam_abun
 
 rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam)^2, na.rm = T))
-rmse_mat_female_tweedie # 2.65
+rmse_mat_female_tweedie # 2.59
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 2.58
+rmse_mat_female_delta # 2.73
 
 # Spearman correlation coefficient
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.57
+         exact = FALSE) # 0.60
 
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_gam, 
          method = 'spearman',
-         exact = FALSE) # 0.55
+         exact = FALSE) # 0.58
 
 # Variable plots
 tiff(here('results/GAM',
@@ -313,21 +315,21 @@ imm_female_test$pred_gam_abun <- predict(imm_female_gam_abun,
 imm_female_test$pred_gam_delta <- imm_female_test$pred_gam_base * imm_female_test$pred_gam_abun
 
 rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam)^2, na.rm = T))
-rmse_imm_female_tweedie # 2.01
+rmse_imm_female_tweedie # 2.05
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 1.05
+rmse_imm_female_delta # 1.08
 
 # Spearman correlation coefficient
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.57
+         exact = FALSE) # 0.55
 
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_gam, 
          method = 'spearman',
-         exact = FALSE) # 0.51
+         exact = FALSE) # 0.48
 
 # Variable plots
 tiff(here('results/GAM',
@@ -414,7 +416,7 @@ rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_te
 rmse_leg_male_tweedie # 1.74
 
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_leg_male_delta # 1.25
+rmse_leg_male_delta # 1.23
 
 # Spearman correlation coefficient
 cor.test(leg_male_test$lncount_leg_male, 
@@ -509,16 +511,16 @@ sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
 sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
 
 rmse_sub_male_tweedie <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam)^2, na.rm = T))
-rmse_sub_male_tweedie # 1.84
+rmse_sub_male_tweedie # 1.83
 
 rmse_sub_male_delta <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_sub_male_delta # 1.29
+rmse_sub_male_delta # 1.30
 
 # Spearman correlation coefficient
 cor.test(sub_male_test$lncount_sub_male, 
          sub_male_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.80
+         exact = FALSE) # 0.79
 
 cor.test(sub_male_test$lncount_sub_male, 
          sub_male_test$pred_gam, 
@@ -577,7 +579,7 @@ mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abu
 
 # Calculate RMSE
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.62
+rmse_mat_female_brt # 1.63
 
 # Calculate deviance explained
 dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
@@ -590,7 +592,7 @@ dev_mat_female_pres # 56.6% deviance explained
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_brt, 
          method = 'spearman',
-         exact = FALSE) # 0.68
+         exact = FALSE) # 0.69
 
 # Save models for future use
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
@@ -714,7 +716,7 @@ imm_female_test$pred_brt <- imm_female_test$pred_base * imm_female_test$pred_abu
 
 # Calculate RMSE
 rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
-rmse_imm_female_brt # 1.40
+rmse_imm_female_brt # 1.42
 
 # Calculate deviance
 dev_imm_female_abun <- brt_deviance(brt_imm_female_abun)
@@ -727,7 +729,7 @@ dev_imm_female_pres # 47.1% deviance explained
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_brt, 
          method = 'spearman',
-         exact = FALSE) # 0.73
+         exact = FALSE) # 0.71
 
 # Save models for future use
 saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun.rds'))
@@ -866,7 +868,7 @@ dev_leg_male_pres # 62% deviance explained
 cor.test(leg_male_test$lncount_leg_male, 
          leg_male_test$pred_brt, 
          method = 'spearman',
-         exact = FALSE) # 0.77
+         exact = FALSE) # 0.76
 
 # Save models for future use
 saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
@@ -990,7 +992,7 @@ sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.57
+rmse_sub_male_brt # 1.56
 
 # Calculate deviance explained
 dev_sub_male_abun <- brt_deviance(brt_sub_male_abun)
@@ -1202,8 +1204,7 @@ leg_male_data <- crab_trans %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
                 longitude, latitude, julian, legal_male_loading,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station) %>%
-  tidyr::drop_na(lncount_leg_male, ice_mean) # full data set with just important variables
+                pres_leg_male, year_f, year, legal_male_loading_station) 
 
 leg_male_shaps <- calculate_shap(brt_leg_male_abun, brt_leg_male_base, leg_male_data)
 stopCluster(cl)
@@ -1224,7 +1225,7 @@ leg_male_ashap_sv <- shapviz(leg_male_ashap, X = leg_male_data)
 # Variable importance
 sv_importance(leg_male_mshap_sv)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'leg_male_importance_shap.jpg'),
          height = 8,
          width = 10,
@@ -1235,7 +1236,7 @@ dev.off()
 # Swarm importance
 sv_importance(leg_male_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'leg_male_bee_shap.jpg'),
          height = 8,
          width = 12,
@@ -1252,7 +1253,7 @@ sv_dependence2(leg_male_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'leg_male_temperature_shap.jpg'),
          height = 6,
          width = 8,
@@ -1268,7 +1269,7 @@ sv_dependence2(leg_male_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'leg_male_phi_shap.jpg'),
          height = 6,
          width = 8,
@@ -1283,7 +1284,7 @@ sv_dependence(leg_male_mshap_sv,
               color = "aquamarine3",
               alpha = 0.3)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'leg_male_mshap.jpg'),
          height = 6,
          width = 10,
@@ -1302,7 +1303,7 @@ sv_dependence2D2(leg_male_mshap_sv,
        y = "Latitude",
        title = "Spatial SHAP Values for Legal Male Crab")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'leg_male_spatial_shap.jpg'),
          height = 6,
          width = 6,
@@ -1344,7 +1345,7 @@ sub_male_ashap_sv <- shapviz(sub_male_ashap, X = sub_male_data)
 # Variable importance
 sv_importance(sub_male_mshap_sv)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'sub_male_importance_shap.jpg'),
          height = 8,
          width = 10,
@@ -1355,7 +1356,7 @@ dev.off()
 # Swarm importance
 sv_importance(sub_male_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'sub_male_bee_shap.jpg'),
          height = 8,
          width = 12,
@@ -1372,7 +1373,7 @@ sv_dependence2(sub_male_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'sub_male_temperature_shap.jpg'),
          height = 6,
          width = 8,
@@ -1388,7 +1389,7 @@ sv_dependence2(sub_male_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'sub_male_phi_shap.jpg'),
          height = 6,
          width = 8,
@@ -1403,7 +1404,7 @@ sv_dependence(sub_male_mshap_sv,
               color = "aquamarine3",
               alpha = 0.3)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'sub_male_mshap.jpg'),
          height = 6,
          width = 10,
@@ -1422,7 +1423,7 @@ sv_dependence2D2(sub_male_mshap_sv,
        y = "Latitude",
        title = "Spatial SHAP Values for Sublegal Male Crab")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'sub_male_spatial_shap.jpg'),
          height = 6,
          width = 6,
@@ -1459,7 +1460,7 @@ mat_female_ashap_sv <- shapviz(mat_female_ashap, X = mat_female_data)
 # Variable importance
 sv_importance(mat_female_mshap_sv)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'mat_female_importance_shap.jpg'),
          height = 8,
          width = 10,
@@ -1470,7 +1471,7 @@ dev.off()
 # Swarm importance
 sv_importance(mat_female_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'mat_female_bee_shap.jpg'),
          height = 8,
          width = 12,
@@ -1487,7 +1488,7 @@ sv_dependence2(mat_female_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'mat_female_temperature_shap.jpg'),
          height = 6,
          width = 8,
@@ -1503,7 +1504,7 @@ sv_dependence2(mat_female_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'mat_female_phi_shap.jpg'),
          height = 6,
          width = 8,
@@ -1518,7 +1519,7 @@ sv_dependence(mat_female_mshap_sv,
               color = "aquamarine3",
               alpha = 0.3)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'mat_female_mshap.jpg'),
          height = 6,
          width = 10,
@@ -1537,7 +1538,7 @@ sv_dependence2D2(mat_female_mshap_sv,
        y = "Latitude",
        title = "Spatial SHAP Values for Mature Female Crab")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'mat_female_spatial_shap.jpg'),
          height = 6,
          width = 6,
@@ -1574,7 +1575,7 @@ imm_female_ashap_sv <- shapviz(imm_female_ashap, X = imm_female_data)
 # Variable importance
 sv_importance(imm_female_mshap_sv)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'imm_female_importance_shap.jpg'),
          height = 8,
          width = 10,
@@ -1585,7 +1586,7 @@ dev.off()
 # Swarm importance
 sv_importance(imm_female_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'imm_female_bee_shap.jpg'),
          height = 8,
          width = 12,
@@ -1602,7 +1603,7 @@ sv_dependence2(imm_female_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'imm_female_temperature_shap.jpg'),
          height = 6,
          width = 8,
@@ -1618,7 +1619,7 @@ sv_dependence2(imm_female_mshap_sv,
              linetype = "dashed",
              color = "black")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'imm_female_phi_shap.jpg'),
          height = 6,
          width = 8,
@@ -1633,7 +1634,7 @@ sv_dependence(imm_female_mshap_sv,
               color = "aquamarine3",
               alpha = 0.3)
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'imm_female_mshap.jpg'),
          height = 6,
          width = 10,
@@ -1652,7 +1653,7 @@ sv_dependence2D2(imm_female_mshap_sv,
        y = "Latitude",
        title = "Spatial SHAP Values for Immature Female Crab")
 dev.copy(jpeg,
-         here('results/BRT',
+         here('results/SHAP',
               'imm_female_spatial_shap.jpg'),
          height = 6,
          width = 6,
