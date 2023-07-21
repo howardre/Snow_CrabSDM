@@ -71,7 +71,7 @@ sv_dependence2D2<- function(object, x, y,
     theme_classic() +
     ggplot2::theme(legend.box.spacing = grid::unit(0, "pt"),
                    axis.ticks = element_blank(),
-                   plot.title = element_text(size = 20, family = "serif"),
+                   plot.title = element_text(size = 19, family = "serif"),
                    axis.text = element_text(family = "serif", size = 14),
                    axis.title = element_text(family = "serif", size = 18),
                    axis.text.x = element_text(angle = 45, vjust = 0.7),
