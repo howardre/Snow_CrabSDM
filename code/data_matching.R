@@ -440,7 +440,7 @@ proj4string(survey_data) <- CRS("+proj=longlat +datum=WGS84")
 data_xy <- spTransform(survey_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
 data_xy <- as.data.frame(data_xy)
 
-coordinates(phi_data) <- c("x", "y")
+coordinates(phi_data) <- c("coords.x1", "coords.x2") # unclear why this has changed to this from x and y
 proj4string(phi_data) <- CRS("+proj=longlat +datum=WGS84")
 
 phi_data_xy <- spTransform(phi_data, CRS(paste0("+proj=utm +zone=", z, " ellps=WGS84")))
@@ -453,8 +453,8 @@ phi_data_xy <- as.data.frame(phi_data_xy)
 # sst_data_xy <- as.data.frame(sst_data_xy)
 
 # Everything must be a data frame, tables do not work
-data_xy[, c(27, 28)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('y', 'x')],
-                                                data_xy[, c('latitude', 'longitude')],
+data_xy[, c(27, 28)] <- as.data.frame(RANN::nn2(phi_data_xy[, c('coords.x2', 'coords.x1')],
+                                                data_xy[, c('coords.x2', 'coords.x1')],
                                                 k = 1))
 data_xy$phi <- phi_data_xy[c(data_xy$nn.idx), 1] # Match nearest phi value
 data_xy <- data_xy[-c(27, 28)]
