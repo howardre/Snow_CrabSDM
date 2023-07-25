@@ -10,9 +10,9 @@ rel_inf_fig <- function(inf_list, title){
   rownames(all_rel_inf)[rownames(all_rel_inf) == "julian"] <- "day of year"
   ord_rel_inf <- all_rel_inf %>%
     arrange(factor(vars,
-                   levels = c("longitude", "depth", "phi", "temperature",  
-                                  "ice_mean", "latitude", "julian",
-                                  "log_pcod_cpue", "fishery loading", "BCS")))
+                   levels = c("longitude", "depth", "phi", "temperature", 
+                              "latitude", "julian", "ice_mean",
+                              "log_pcod_cpue", "fishery loading", "BCS")))
   mat_rel_inf <- as.matrix(ord_rel_inf[, -1])
   sca_rel_inf <- apply(mat_rel_inf,
                        MARGIN = 2,
