@@ -935,19 +935,19 @@ gbm.perspec(brt_leg_male_abun$model,
 # Plot map of the predicted distribution
 # Prediction grid map
 # Variable names
-match_labels <- column_labels[match(colnames(leg_male_train)[vars], column_labels$column_names), ]
-
-brt_leg_male_summary <- summary(brt_leg_male_abun$model)
-
-brt_labels <- match_labels[order(match(names(leg_male_train)[vars], brt_leg_male_summary$var)), ]
-labels <- brt_labels$final_names
-
 column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_legal_male", "longitude",
                   "latitude", "julian", "legal_male_loading", "log_pcod_cpue", "year_f")
 final_names <- c("depth", "temperature", "phi", "ice concentration",
                  "proportion BCS", "longitude", "latitude", "julian",
                  "legal male loading", "log(cod cpue + 1)", "year")
 column_labels <- data.frame(column_names, final_names)
+
+match_labels <- column_labels[match(colnames(leg_male_train)[vars], column_labels$column_names), ]
+
+brt_leg_male_summary <- summary(brt_leg_male_abun$model)
+
+brt_labels <- match_labels[order(match(names(leg_male_train)[vars], brt_leg_male_summary$var)), ]
+labels <- brt_labels$final_names
 
 spatial_grid_leg_male <- grid_development(leg_male_train)
 spatial_grid_leg_male$legal_male_loading_station <- median(leg_male_train$legal_male_loading_station, na.rm = TRUE)
