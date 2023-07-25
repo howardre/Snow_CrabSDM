@@ -8,6 +8,7 @@ grid_search <- function(data, response, family){
            bagFraction = c(0.25, 0.5, 0.75),
            minTrees = 1000, # recommended minimum by Elith
            maxTrees = 2500,
-           cores = 6, # increase speed
-           out = c('model', 'tuning')) # should return model and table with hyperparameters
+           tryBy = c('learningRate', 'treeComplexity', 'bagFraction', 'numTrees'),
+           cores = 6, # increase speed,
+           out = c('tuning', 'model')) # should return model and table with hyperparameters
 }
