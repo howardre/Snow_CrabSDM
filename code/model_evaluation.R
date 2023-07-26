@@ -1024,7 +1024,7 @@ brt_labels <- match_labels[order(match(names(sub_male_train)[vars], brt_sub_male
 labels <- brt_labels$final_names
 
 column_names <- c("depth", "temperature", "phi", "ice_mean", "bcs_sublegal_male", "longitude",
-                  "latitude", "julian", "sublegal_male_loading", "log_pcod_cpue", "year_f")
+                  "latitude", "julian", "sublegal_male_loading_station", "log_pcod_cpue", "year_f")
 final_names <- c("depth", "temperature", "phi", "ice concentration",
                  "proportion BCS", "longitude", "latitude", "julian",
                  "sublegal male loading", "log(cod cpue + 1)", "year")
@@ -1042,7 +1042,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Plot the variables
-part_depen(brt_sub_male_pres)
+part_depen(brt_sub_male_base)
 dev.copy(jpeg,
          here('results/BRT',
               'male_sub_plots.jpg'),
@@ -1088,7 +1088,7 @@ gbm.perspec(brt_sub_male_abun$model,
 # Plot map of the predicted distribution
 # Prediction grid map
 spatial_grid_sub_male <- grid_development(sub_male_train)
-spatial_grid_sub_male$sublegal_male_loading <- median(sub_male_train$sublegal_male_loading, na.rm = TRUE)
+spatial_grid_sub_male$sublegal_male_loading_station <- median(sub_male_train$sublegal_male_loading_station, na.rm = TRUE)
 spatial_grid_sub_male$bcs_sublegal_male <- median(sub_male_train$bcs_sublegal_male, na.rm = TRUE)
 
 sub_male_preds <- brt_grid_preds(spatial_grid_sub_male, 
