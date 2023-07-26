@@ -248,14 +248,14 @@ mat_female_test_warm$pred_brt <- mat_female_test_warm$pred_base * mat_female_tes
 # Calculate RMSE
 # 1.62 for base model
 rmse_mat_female_brt_warm <- sqrt(mean((mat_female_test_warm$lncount_mat_female - mat_female_test_warm$pred_brt)^2))
-rmse_mat_female_brt_warm # 1.57
+rmse_mat_female_brt_warm # 1.51
 
 # Calculate deviance explained
 dev_mat_female_abun_warm <- brt_deviance(brt_mat_female_abun_warm)
 dev_mat_female_pres_warm <- brt_deviance(brt_mat_female_base_warm)
 
-dev_mat_female_abun_warm # 41.1% deviance explained
-dev_mat_female_pres_warm # 56.2% deviance explained
+dev_mat_female_abun_warm # 42.0% deviance explained
+dev_mat_female_pres_warm # 54.7% deviance explained
 
 # Save models for future use
 saveRDS(brt_mat_female_abun_warm, file = here('data', 'brt_mat_female_abun_warm.rds'))
@@ -306,22 +306,24 @@ brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
 brt_imm_female_base_warm <- grid_search(imm_female_train_warm, 13, 'bernoulli')
 brt_imm_female_base_warm
 
-brt_imm_female_abun_warm <- grid_search(imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,],
-                                        11, 'gaussian') # can't get it to save model for some reason
+brt_imm_female_abun_warm <- grid_search(imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,], 
+                                        11, 'gaussian')
+brt_imm_female_abun_warm
+
 # using the converged model hyperparameters to re-run
 # No issues with minimum trees or convergence so not clear why this is happening
-brt_imm_female_model <- gbm.step(data = imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,],
-                                 gbm.x = vars,
-                                 gbm.y = 11,
-                                 family = "gaussian",
-                                 learning.rate = 0.01,
-                                 tree.complexity = 11,
-                                 bag.fraction = 0.75,
-                                 max.trees = 3000,
-                                 step.size = 40)
-brt_imm_female_abun_warm <- list(brt_imm_female_model, brt_imm_female_abun_warm$tuning)
-names(brt_imm_female_abun_warm)[[1]] <- "model"
-names(brt_imm_female_abun_warm)[[2]] <- "tuning"
+# brt_imm_female_model <- gbm.step(data = imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,],
+#                                  gbm.x = vars,
+#                                  gbm.y = 11,
+#                                  family = "gaussian",
+#                                  learning.rate = 0.01,
+#                                  tree.complexity = 11,
+#                                  bag.fraction = 0.75,
+#                                  max.trees = 3000,
+#                                  step.size = 40)
+# brt_imm_female_abun_warm <- list(brt_imm_female_model, brt_imm_female_abun_warm$tuning)
+# names(brt_imm_female_abun_warm)[[1]] <- "model"
+# names(brt_imm_female_abun_warm)[[2]] <- "tuning"
 
 # Predict on test data
 # Original model
@@ -354,14 +356,14 @@ imm_female_test_warm$pred_brt <- imm_female_test_warm$pred_base * imm_female_tes
 # Calculate RMSE
 # 1.40 for base model
 rmse_imm_female_brt_warm <- sqrt(mean((imm_female_test_warm$lncount_imm_female - imm_female_test_warm$pred_brt)^2))
-rmse_imm_female_brt_warm #
+rmse_imm_female_brt_warm # 1.42
 
 # Calculate deviance explained
 dev_imm_female_abun_warm <- brt_deviance(brt_imm_female_abun_warm)
 dev_imm_female_pres_warm <- brt_deviance(brt_imm_female_base_warm)
 
-dev_imm_female_abun_warm # % deviance explained
-dev_imm_female_pres_warm # % deviance explained
+dev_imm_female_abun_warm # 51.4% deviance explained
+dev_imm_female_pres_warm # 47.7% deviance explained
 
 # Save models for future use
 saveRDS(brt_imm_female_abun_warm, file = here('data', 'brt_imm_female_abun_warm.rds'))
@@ -447,14 +449,14 @@ leg_male_test_warm$pred_brt <- leg_male_test_warm$pred_base * leg_male_test_warm
 # Calculate RMSE
 # 1.15 for base model
 rmse_leg_male_brt_warm <- sqrt(mean((leg_male_test_warm$lncount_leg_male - leg_male_test_warm$pred_brt)^2))
-rmse_leg_male_brt_warm # 
+rmse_leg_male_brt_warm # 1.10
 
 # Calculate deviance explained
 dev_leg_male_abun_warm <- brt_deviance(brt_leg_male_abun_warm)
 dev_leg_male_pres_warm <- brt_deviance(brt_leg_male_base_warm)
 
-dev_leg_male_abun_warm # % deviance explained
-dev_leg_male_pres_warm # % deviance explained
+dev_leg_male_abun_warm # 48.2% deviance explained
+dev_leg_male_pres_warm # 53.9% deviance explained
 
 # Save models for future use
 saveRDS(brt_leg_male_abun_warm, file = here('data', 'brt_leg_male_abun_warm.rds'))
@@ -540,14 +542,14 @@ sub_male_test_warm$pred_brt <- sub_male_test_warm$pred_base * sub_male_test_warm
 # Calculate RMSE
 # 1.57 for base model
 rmse_sub_male_brt_warm <- sqrt(mean((sub_male_test_warm$lncount_sub_male - sub_male_test_warm$pred_brt)^2))
-rmse_sub_male_brt_warm #
+rmse_sub_male_brt_warm # 1.50
 
 # Calculate deviance explained
 dev_sub_male_abun_warm <- brt_deviance(brt_sub_male_abun_warm)
 dev_sub_male_pres_warm <- brt_deviance(brt_sub_male_base_warm)
 
-dev_sub_male_abun_warm # 41.1% deviance explained
-dev_sub_male_pres_warm # 56.2% deviance explained
+dev_sub_male_abun_warm # 64.9% deviance explained
+dev_sub_male_pres_warm # 59.6% deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun_warm, file = here('data', 'brt_sub_male_abun_warm.rds'))
