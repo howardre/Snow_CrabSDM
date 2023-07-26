@@ -1,4 +1,4 @@
-rel_inf_fig <- function(inf_list, title){
+rel_inf_fig <- function(inf_list){
   all_rel_inf <- Reduce(merge, 
                         lapply(inf_list,
                                function(x) 
@@ -30,5 +30,5 @@ rel_inf_fig <- function(inf_list, title){
             srtCol = 45,
             margins = c(12, 8),
             adjCol = c(NA, -0.2),
-            main = title)
+            offsetCol = 0)
 }

@@ -1151,7 +1151,8 @@ all_pres_list <- list(mat_female_pres_inf,
                       sub_male_pres_inf)
 
 # Create figures
-rel_inf_fig(all_abun_list, "Abundance")
+rel_inf_fig(all_abun_list)
+title("Abundance", line = -1.7)
 dev.copy(jpeg,
          here('results/BRT',
               'abun_rel_inf.jpg'),
@@ -1162,7 +1163,8 @@ dev.copy(jpeg,
          family = "serif")
 dev.off()
 
-rel_inf_fig(all_pres_list, "Presence/Absence")
+rel_inf_fig(all_pres_list)
+title("Presence/Absence", line = -1.7)
 dev.copy(jpeg,
          here('results/BRT',
               'pres_rel_inf.jpg'),
