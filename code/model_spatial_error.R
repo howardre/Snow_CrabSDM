@@ -17,6 +17,7 @@ source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
 source(here('code/functions', 'grid_search.R'))
 source(here('code/functions', 'map_rmse.R'))
+source(here('code/functions', 'brt_grid_preds.R'))
 
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
@@ -47,7 +48,9 @@ crab_trans <- mutate(crab_summary,
                      log_pcod_cpue = log(pcod_cpue + 1)) %>%
   filter(!is.na(temperature),
          !is.na(julian),
-         !is.na(depth)) 
+         !is.na(depth),
+         !is.na(ice_mean),
+         year_f != 2022)
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -247,15 +250,17 @@ mat_female_test_warm$pred_brt <- mat_female_test_warm$pred_base * mat_female_tes
 
 # Calculate RMSE
 # 1.62 for base model
+rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
+rmse_mat_female_brt # 1.68
 rmse_mat_female_brt_warm <- sqrt(mean((mat_female_test_warm$lncount_mat_female - mat_female_test_warm$pred_brt)^2))
-rmse_mat_female_brt_warm # 1.51
+rmse_mat_female_brt_warm # 1.55
 
 # Calculate deviance explained
 dev_mat_female_abun_warm <- brt_deviance(brt_mat_female_abun_warm)
 dev_mat_female_pres_warm <- brt_deviance(brt_mat_female_base_warm)
 
-dev_mat_female_abun_warm # 42.0% deviance explained
-dev_mat_female_pres_warm # 54.7% deviance explained
+dev_mat_female_abun_warm # 39.8% deviance explained
+dev_mat_female_pres_warm # 56.0% deviance explained
 
 # Save models for future use
 saveRDS(brt_mat_female_abun_warm, file = here('data', 'brt_mat_female_abun_warm.rds'))
@@ -354,16 +359,17 @@ imm_female_test_warm$pred_brt <- imm_female_test_warm$pred_base * imm_female_tes
 
 
 # Calculate RMSE
-# 1.40 for base model
+rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
+rmse_imm_female_brt # 1.41
 rmse_imm_female_brt_warm <- sqrt(mean((imm_female_test_warm$lncount_imm_female - imm_female_test_warm$pred_brt)^2))
-rmse_imm_female_brt_warm # 1.42
+rmse_imm_female_brt_warm # 1.43
 
 # Calculate deviance explained
 dev_imm_female_abun_warm <- brt_deviance(brt_imm_female_abun_warm)
 dev_imm_female_pres_warm <- brt_deviance(brt_imm_female_base_warm)
 
-dev_imm_female_abun_warm # 51.4% deviance explained
-dev_imm_female_pres_warm # 47.7% deviance explained
+dev_imm_female_abun_warm # 46.3% deviance explained
+dev_imm_female_pres_warm # 46.6% deviance explained
 
 # Save models for future use
 saveRDS(brt_imm_female_abun_warm, file = here('data', 'brt_imm_female_abun_warm.rds'))
@@ -447,16 +453,17 @@ leg_male_test_warm$pred_brt <- leg_male_test_warm$pred_base * leg_male_test_warm
 
 
 # Calculate RMSE
-# 1.15 for base model
+rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
+rmse_leg_male_brt # 1.25
 rmse_leg_male_brt_warm <- sqrt(mean((leg_male_test_warm$lncount_leg_male - leg_male_test_warm$pred_brt)^2))
-rmse_leg_male_brt_warm # 1.10
+rmse_leg_male_brt_warm # 1.15
 
 # Calculate deviance explained
 dev_leg_male_abun_warm <- brt_deviance(brt_leg_male_abun_warm)
 dev_leg_male_pres_warm <- brt_deviance(brt_leg_male_base_warm)
 
-dev_leg_male_abun_warm # 48.2% deviance explained
-dev_leg_male_pres_warm # 53.9% deviance explained
+dev_leg_male_abun_warm # 48.5% deviance explained
+dev_leg_male_pres_warm # 53.8% deviance explained
 
 # Save models for future use
 saveRDS(brt_leg_male_abun_warm, file = here('data', 'brt_leg_male_abun_warm.rds'))
@@ -540,7 +547,8 @@ sub_male_test_warm$pred_brt <- sub_male_test_warm$pred_base * sub_male_test_warm
 
 
 # Calculate RMSE
-# 1.57 for base model
+rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
+rmse_sub_male_brt # 1.60
 rmse_sub_male_brt_warm <- sqrt(mean((sub_male_test_warm$lncount_sub_male - sub_male_test_warm$pred_brt)^2))
 rmse_sub_male_brt_warm # 1.50
 
