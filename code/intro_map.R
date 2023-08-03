@@ -20,6 +20,7 @@ alaska_label <- data.frame(place = "Alaska",
 alaska_sf <- sf::st_as_sf(alaska_label, 
                           coords = c("lon", "lat"),
                           crs = sf::st_crs(4326))
+
 # Make map
 bering_map <- basemap(data = BS_bathy,
                       bathymetry = TRUE,
@@ -58,6 +59,8 @@ bering_map <- basemap(data = BS_bathy,
   theme(axis.text = element_text(family = "serif", size = 14),
         axis.title = element_text(family = "serif", size = 18),
         strip.text = element_text(family = "serif", size = 18))
+
+bering_map
 
 # Save map
 bering_map 

@@ -585,8 +585,8 @@ rmse_mat_female_brt # 1.63
 dev_mat_female_abun <- brt_deviance(brt_mat_female_abun)
 dev_mat_female_pres <- brt_deviance(brt_mat_female_base)
 
-dev_mat_female_abun # 33.5% deviance explained
-dev_mat_female_pres # 56.6% deviance explained
+dev_mat_female_abun # 42.1% deviance explained
+dev_mat_female_pres # 56.5% deviance explained
 
 # Spearman correlation coefficient
 cor.test(mat_female_test$lncount_mat_female, 

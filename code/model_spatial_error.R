@@ -247,7 +247,6 @@ mat_female_test_warm$pred_abun <- predict.gbm(brt_mat_female_abun_warm$model,
 
 mat_female_test_warm$pred_brt <- mat_female_test_warm$pred_base * mat_female_test_warm$pred_abun
 
-
 # Calculate RMSE
 # 1.62 for base model
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
