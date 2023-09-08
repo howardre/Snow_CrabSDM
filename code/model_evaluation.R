@@ -1333,32 +1333,6 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-# Sandbox
-plot2d1 <- sv_dependence2D2(leg_male_mshap_sv, 
-                            x = "longitude",
-                            y = "latitude",
-                            size = 2.5,
-                            jitter_width = 0.5,
-                            jitter_height = 0.5,
-                            add_vars = c("phi", "depth"))$data
-plot2d2 <- sv_dependence2D2(leg_male_mshap_sv, 
-                            x = "longitude",
-                            y = "latitude",
-                            size = 2.5,
-                            jitter_width = 0.5,
-                            jitter_height = 0.5)$data
-plot2d <- sv_dependence2D2(leg_male_mshap_sv, 
-                           x = "longitude",
-                           y = "latitude",
-                           size = 2.5,
-                           jitter_width = 0.5,
-                           jitter_height = 0.5)
-
-plot2d1$sub <- plot2d1$SHAP - plot2d2$SHAP
-plot2d$data$SHAP <- plot2d1$sub
-
-plot(plot2d)
-
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
 # Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
