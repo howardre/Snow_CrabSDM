@@ -72,10 +72,10 @@ sv_dependence2D2<- function(object, x, y,
     ggplot2::theme(legend.box.spacing = grid::unit(0, "pt"),
                    axis.ticks = element_blank(),
                    plot.title = element_text(size = 19, family = "serif"),
-                   axis.text = element_text(family = "serif", size = 14),
-                   axis.title = element_text(family = "serif", size = 18),
+                   axis.text = element_text(family = "serif", size = 16),
+                   axis.title = element_text(family = "serif", size = 19),
                    axis.text.x = element_text(angle = 45, vjust = 0.7),
-                   strip.text = element_text(family = "serif", size = 18),
-                   legend.title = element_text(family = "serif", size = 16),
-                   legend.text = element_text(family = "serif", size = 14))
+                   strip.text = element_text(family = "serif", size = 19),
+                   legend.title = element_text(family = "serif", size = 17),
+                   legend.text = element_text(family = "serif", size = 16))
 }

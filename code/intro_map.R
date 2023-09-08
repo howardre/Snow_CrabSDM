@@ -39,26 +39,26 @@ bering_map <- basemap(data = BS_bathy,
   ggspatial::annotation_north_arrow(location = "tr",
                                     which_north = "true",
                                     style = ggspatial::north_arrow_nautical(text_family = "serif"),
-                                    height = unit(2.5, "cm"),
-                                    width = unit(2.5, "cm")) +
+                                    height = unit(3, "cm"),
+                                    width = unit(3, "cm")) +
   ggspatial::annotation_scale(location = "bl",
                               text_family = "serif",
                               style = "ticks",
-                              height = unit(0.5, "cm"),
-                              text_cex = 1.3,
-                              line_width = 1.5) +
+                              height = unit(0.7, "cm"),
+                              text_cex = 1.6,
+                              line_width = 1.8) +
   geom_sf_text(data = text_sf,
                aes(label = place),
-               size = 5,
+               size = 7,
                family = "serif") +
   geom_sf_text(data = alaska_sf,
                aes(label = place),
-               size = 7,
+               size = 9,
                family = "serif",
                fontface = "bold") +
-  theme(axis.text = element_text(family = "serif", size = 14),
-        axis.title = element_text(family = "serif", size = 18),
-        strip.text = element_text(family = "serif", size = 18))
+  theme(axis.text = element_text(family = "serif", size = 20),
+        axis.title = element_text(family = "serif", size = 21),
+        strip.text = element_text(family = "serif", size = 21))
 
 bering_map
 

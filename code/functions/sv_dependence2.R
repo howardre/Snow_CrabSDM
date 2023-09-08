@@ -94,12 +94,12 @@ sv_dependence2 <- function(object, v, color_var = "auto", color = "#3b528b",
     ggplot2::theme(legend.box.spacing = grid::unit(0, "pt"),
                    axis.ticks = element_blank(),
                    plot.title = element_text(size = 22, family = "serif", face = "bold"),
-                   axis.text = element_text(family = "serif", size = 14),
-                   axis.title = element_text(family = "serif", size = 18),
-                   axis.text.x = element_text(angle = 45, vjust = 0.7),
-                   strip.text = element_text(family = "serif", size = 18),
-                   legend.title = element_text(family = "serif", size = 16),
-                   legend.text = element_text(family = "serif", size = 14))
+                   axis.text = element_text(family = "serif", size = 18),
+                   axis.title = element_text(family = "serif", size = 22),
+                   axis.text.x = element_text(angle = 0, vjust = 0.7),
+                   strip.text = element_text(family = "serif", size = 21),
+                   legend.title = element_text(family = "serif", size = 18),
+                   legend.text = element_text(family = "serif", size = 17))
 }
 
 # Helper functions
