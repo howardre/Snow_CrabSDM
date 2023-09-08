@@ -1313,6 +1313,26 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Added environmental effects
+sv_dependence2D2(leg_male_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("phi", "temperature", "ice_mean", "depth")) +
+  labs(x = "Longitude", 
+       y = "Latitude",
+       title = "Spatial SHAP values for legal male crab \nwith added environmental effects")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'leg_male_spatial_shap_env.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
 # Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
@@ -1415,6 +1435,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Spatial dependence
+# Just location effect
 sv_dependence2D2(sub_male_mshap_sv, 
                  x = "longitude", 
                  y = "latitude",
@@ -1433,6 +1454,25 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Added environmental effects
+sv_dependence2D2(sub_male_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("phi", "temperature", "ice_mean", "depth")) +
+  labs(x = "Longitude", 
+       y = "Latitude",
+       title = "Spatial SHAP values for sublegal male crab \nwith added environmental effects")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'sub_male_spatial_shap_env.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Mature Females ----
 cl <- makeCluster(num_cores)
@@ -1530,6 +1570,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Spatial dependence
+# Just location effects
 sv_dependence2D2(mat_female_mshap_sv, 
                  x = "longitude", 
                  y = "latitude",
@@ -1548,6 +1589,25 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Added environmental effects
+sv_dependence2D2(mat_female_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("phi", "temperature", "ice_mean", "depth")) +
+  labs(x = "Longitude", 
+       y = "Latitude",
+       title = "Spatial SHAP values for mature female crab \nwith added environmental effects")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'mat_female_spatial_shap_env.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Immature Females ----
 cl <- makeCluster(num_cores)
@@ -1645,6 +1705,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Spatial dependence
+# Just location effects
 sv_dependence2D2(imm_female_mshap_sv, 
                  x = "longitude", 
                  y = "latitude",
@@ -1657,6 +1718,26 @@ sv_dependence2D2(imm_female_mshap_sv,
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_spatial_shap.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Added environmental effects
+sv_dependence2D2(imm_female_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("phi", "temperature", "ice_mean", "depth")) +
+labs(x = "Longitude", 
+     y = "Latitude",
+     title = "Spatial SHAP values for immature female crab \nwith added environmental effects")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'imm_female_spatial_shap_env.jpg'),
          height = 6,
          width = 6,
          res = 200,
