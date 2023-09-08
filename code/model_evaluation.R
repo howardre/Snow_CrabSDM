@@ -681,7 +681,7 @@ mat_female_preds <- brt_grid_preds(spatial_grid_mat_female,
                                    brt_mat_female_abun,
                                    brt_mat_female_base)
 
-map_pred_brt(mat_female_preds, mat_female_train, "Distribution of Mature Female Snow Crab (BRT)")
+map_pred_brt(mat_female_preds, mat_female_train, "Mature Female Snow Crab")
 dev.copy(jpeg,
          here('results/BRT',
               'female_mat_map.jpg'),
@@ -819,7 +819,7 @@ imm_female_preds <- brt_grid_preds(spatial_grid_imm_female,
                                    brt_imm_female_abun,
                                    brt_imm_female_base)
 
-map_pred_brt(imm_female_preds, imm_female_train, "Distribution of Immature Female Snow Crab (BRT)")
+map_pred_brt(imm_female_preds, imm_female_train, "Immature Female Snow Crab")
 dev.copy(jpeg,
          here('results/BRT',
               'female_imm_map.jpg'),
@@ -957,7 +957,7 @@ leg_male_preds <- brt_grid_preds(spatial_grid_leg_male,
                                  brt_leg_male_abun,
                                  brt_leg_male_base)
 
-map_pred_brt(leg_male_preds, leg_male_train, "Distribution of Legal Male Snow Crab (BRT)")
+map_pred_brt(leg_male_preds, leg_male_train, "Legal Male Snow Crab")
 dev.copy(jpeg,
          here('results/BRT',
               'male_leg_map.jpg'),
@@ -1095,7 +1095,7 @@ sub_male_preds <- brt_grid_preds(spatial_grid_sub_male,
                                  brt_sub_male_abun,
                                  brt_sub_male_base)
 
-map_pred_brt(sub_male_preds, sub_male_train, "Distribution of Sublegal Male Snow Crab (BRT)")
+map_pred_brt(sub_male_preds, sub_male_train, "Sublegal Male Snow Crab")
 dev.copy(jpeg,
          here('results/BRT',
               'male_sub_map.jpg'),
@@ -1253,7 +1253,8 @@ sv_dependence2(leg_male_mshap_sv,
                color_var = "ice_mean") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Legal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'leg_male_temperature_shap.jpg'),
@@ -1269,7 +1270,8 @@ sv_dependence2(leg_male_mshap_sv,
                color_var = "depth") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Legal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'leg_male_phi_shap.jpg'),
@@ -1301,9 +1303,9 @@ sv_dependence2D2(leg_male_mshap_sv,
                 size = 2.5,
                 jitter_width = 0.5,
                 jitter_height = 0.5) +  
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP Values for Legal Male Crab")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Legal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'leg_male_spatial_shap.jpg'),
@@ -1321,9 +1323,9 @@ sv_dependence2D2(leg_male_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("phi", "temperature", "ice_mean", "depth")) +
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP values for legal male crab \nwith added environmental effects")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Legal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'leg_male_spatial_shap_env.jpg'),
@@ -1393,7 +1395,8 @@ sv_dependence2(sub_male_mshap_sv,
                color_var = "ice_mean") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Sublegal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'sub_male_temperature_shap.jpg'),
@@ -1409,7 +1412,8 @@ sv_dependence2(sub_male_mshap_sv,
                color_var = "depth") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Sublegal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'sub_male_phi_shap.jpg'),
@@ -1442,9 +1446,9 @@ sv_dependence2D2(sub_male_mshap_sv,
                  size = 2.5,
                  jitter_width = 0.5,
                  jitter_height = 0.5) +  
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP Values for Sublegal Male Crab")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Sublegal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'sub_male_spatial_shap.jpg'),
@@ -1462,9 +1466,9 @@ sv_dependence2D2(sub_male_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("phi", "temperature", "ice_mean", "depth")) +
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP values for sublegal male crab \nwith added environmental effects")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Sublegal Male Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'sub_male_spatial_shap_env.jpg'),
@@ -1528,7 +1532,8 @@ sv_dependence2(mat_female_mshap_sv,
                color_var = "ice_mean") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Mature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'mat_female_temperature_shap.jpg'),
@@ -1544,7 +1549,8 @@ sv_dependence2(mat_female_mshap_sv,
                color_var = "depth") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Mature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'mat_female_phi_shap.jpg'),
@@ -1577,9 +1583,9 @@ sv_dependence2D2(mat_female_mshap_sv,
                  size = 2.5,
                  jitter_width = 0.5,
                  jitter_height = 0.5) +  
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP Values for Mature Female Crab")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Mature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'mat_female_spatial_shap.jpg'),
@@ -1597,9 +1603,9 @@ sv_dependence2D2(mat_female_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("phi", "temperature", "ice_mean", "depth")) +
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP values for mature female crab \nwith added environmental effects")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Mature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'mat_female_spatial_shap_env.jpg'),
@@ -1663,7 +1669,8 @@ sv_dependence2(imm_female_mshap_sv,
                color_var = "ice_mean") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+  labs(title = "Immature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_temperature_shap.jpg'),
@@ -1679,7 +1686,8 @@ sv_dependence2(imm_female_mshap_sv,
                color_var = "depth") +
   geom_hline(yintercept = 0, 
              linetype = "dashed",
-             color = "black")
+             color = "black") +
+labs(title = "Immature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_phi_shap.jpg'),
@@ -1712,9 +1720,9 @@ sv_dependence2D2(imm_female_mshap_sv,
                  size = 2.5,
                  jitter_width = 0.5,
                  jitter_height = 0.5) +  
-  labs(x = "Longitude", 
-       y = "Latitude",
-       title = "Spatial SHAP Values for Immature Female Crab")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Immature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_spatial_shap.jpg'),
@@ -1732,9 +1740,9 @@ sv_dependence2D2(imm_female_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("phi", "temperature", "ice_mean", "depth")) +
-labs(x = "Longitude", 
-     y = "Latitude",
-     title = "Spatial SHAP values for immature female crab \nwith added environmental effects")
+labs(x = "Longitude \u00B0W", 
+     y = "Latitude \u00B0N",
+     title = "Immature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_spatial_shap_env.jpg'),
