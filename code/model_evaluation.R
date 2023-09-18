@@ -1335,6 +1335,16 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Test to see if effects show with bio variables
+sv_dependence2D2(leg_male_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("bcs_legal_male", "log_pcod_cpue", 
+                              "legal_male_loading_station"))
+
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
 # Scores close to the f(x) value have more of an impact (indicated by SHAP magnitude too)
@@ -1478,6 +1488,16 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Test to see if effects show with bio variables
+sv_dependence2D2(sub_male_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("bcs_sublegal_male", "log_pcod_cpue", 
+                              "sublegal_male_loading_station"))
+
 ## Mature Females ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
@@ -1615,6 +1635,16 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Test to see if effects show with bio variables
+sv_dependence2D2(mat_female_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("bcs_mature_female", "log_pcod_cpue", 
+                              "female_loading_station"))
+
 ## Immature Females ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
@@ -1751,3 +1781,13 @@ dev.copy(jpeg,
          res = 200,
          units = 'in')
 dev.off()
+
+# Test to see if effects show with bio variables
+sv_dependence2D2(imm_female_mshap_sv, 
+                 x = "longitude",
+                 y = "latitude",
+                 size = 2.5,
+                 jitter_width = 0.5,
+                 jitter_height = 0.5,
+                 add_vars = c("bcs_immature_female", "log_pcod_cpue", 
+                              "female_loading_station"))
