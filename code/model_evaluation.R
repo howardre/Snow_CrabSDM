@@ -1281,6 +1281,23 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Temperature (phi)
+sv_dependence2(leg_male_mshap_sv, 
+               v = "temperature",
+               color_var = "phi") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black") +
+  labs(title = "Legal Male Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'leg_male_temperature_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
 # Full set of dependence plots
 sv_dependence(leg_male_mshap_sv, 
               v = leg_male_names,
@@ -1427,6 +1444,23 @@ sv_dependence2(sub_male_mshap_sv,
 dev.copy(jpeg,
          here('results/SHAP',
               'sub_male_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Temperature (phi)
+sv_dependence2(sub_male_mshap_sv, 
+               v = "temperature",
+               color_var = "phi") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black") +
+  labs(title = "Sublegal Male Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'sub_male_temperature_phi_shap.jpg'),
          height = 6,
          width = 8,
          res = 200,
@@ -1580,6 +1614,23 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Temperature (phi)
+sv_dependence2(mat_female_mshap_sv, 
+               v = "temperature",
+               color_var = "phi") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black") +
+  labs(title = "Mature Female Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'mat_female_temperature_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
 # Full set of dependence plots
 sv_dependence(mat_female_mshap_sv, 
               v = mat_female_names,
@@ -1721,6 +1772,23 @@ labs(title = "Immature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_phi_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Temperature (phi)
+sv_dependence2(imm_female_mshap_sv, 
+               v = "temperature",
+               color_var = "phi") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black") +
+  labs(title = "Immature Female Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'imm_female_temperature_phi_shap.jpg'),
          height = 6,
          width = 8,
          res = 200,
