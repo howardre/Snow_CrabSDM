@@ -595,3 +595,7 @@ ggplot(data = crab_final,
         legend.title = element_text(family = "serif", size = 16),
         legend.text = element_text(family = "serif", size = 14)) +
   facet_wrap(~ year)
+
+# Plot phi raster
+plot(phi_pts)
+plot(temp)
