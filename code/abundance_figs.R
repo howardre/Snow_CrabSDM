@@ -28,10 +28,10 @@ crab_trans <- mutate(crab_summary,
 # Create plots of average CPUE over time per stage/sex
 cpue_sums <- crab_trans %>%
   group_by(year) %>%
-  summarise(sum_mat_female = sum(mature_female, na.rm = TRUE),
-            sum_imm_female = sum(immature_female, na.rm = TRUE),
-            sum_leg_male = sum(legal_male, na.rm = TRUE),
-            sum_sub_male = sum(sublegal_male, na.rm = TRUE))
+  summarise("Mature Female" = sum(mature_female, na.rm = TRUE),
+            "Immature Female" = sum(immature_female, na.rm = TRUE),
+            "Legal Male" = sum(legal_male, na.rm = TRUE),
+            "Sublegal Male" = sum(sublegal_male, na.rm = TRUE))
 
 cpue_tall <- melt(cpue_sums, 
                   id.vars = "year")
@@ -39,6 +39,22 @@ cpue_tall <- melt(cpue_sums,
 ggplot(cpue_tall, 
        aes(x = year,
            y = value)) +
-  geom_line() +
-  facet_wrap(~variable)
+  geom_area(color = "darkred", 
+            size = 1,
+            fill = "darkred",
+            alpha = 0.4) +
+  geom_hline(yintercept = 0) +
+  facet_grid(variable ~ .) +
+  theme_minimal() +
+  labs(x = "Year",
+       y = "Abundance") +
+  theme(axis.ticks = element_blank(),
+        plot.title = element_text(size = 17,
+                                  family = "serif",
+                                  face = "bold"),
+        panel.grid = element_blank(),
+        panel.spacing.x = unit(0, "null"),
+        axis.title = element_text(family = "serif", size = 17),
+        axis.text.x = element_text(angle = 0, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 17))
 
