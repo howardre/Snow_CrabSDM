@@ -1,10 +1,10 @@
 # Recode to allow use of divergent palette
 sv_dependence2D2<- function(object, x, y,
-                                    viridis_args = getOption("shapviz.brewer_args"),
-                                    jitter_width = NULL, 
-                                    jitter_height = NULL,
-                                    interactions = FALSE, 
-                                    add_vars = NULL, ...) {
+                            viridis_args = getOption("shapviz.brewer_args"),
+                            jitter_width = NULL, 
+                            jitter_height = NULL,
+                            interactions = FALSE, 
+                            add_vars = NULL, ...) {
   p <- max(length(x), length(y))
   if (p > 1L) {
     if (is.null(jitter_width)) {
@@ -65,7 +65,7 @@ sv_dependence2D2<- function(object, x, y,
   if (is.null(viridis_args)) {
     viridis_args <- list()
   }
-  ggplot2::ggplot(dat, ggplot2::aes(x = .data[[x]], y = .data[[y]], color = SHAP)) +
+  my_plot <- ggplot2::ggplot(dat, ggplot2::aes(x = .data[[x]], y = .data[[y]], color = SHAP)) +
     ggplot2::geom_jitter(width = jitter_width, height = jitter_height, ...) +
     do.call(vir, viridis_args) +
     theme_classic() +
@@ -78,4 +78,8 @@ sv_dependence2D2<- function(object, x, y,
                    strip.text = element_text(family = "serif", size = 19),
                    legend.title = element_text(family = "serif", size = 17),
                    legend.text = element_text(family = "serif", size = 16))
+  change_legend_breaks(my_plot, "colour", 
+                       breaks = c(min(my_plot$plot_env$s), 0, max(my_plot$plot_env$s)),
+                       labels = c("low", "0", "high")) # change the legend labels
+  return(my_plot)
 }
