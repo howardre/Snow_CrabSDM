@@ -1176,6 +1176,26 @@ dev.copy(jpeg,
 dev.off()
 
 # SHAP values ----
+# Read in BRTs
+brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
+brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
+brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
+brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
+brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
+brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
+brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
+brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
+
+# Customize legend labels - must be done for each plot individually
+change_legend_breaks <- function(the_plot, aesthetic, breaks, labels){
+  plot_sc <- as.list(the_plot$scales)$scales
+  plot_color <- sapply(plot_sc, function(x) x[["aesthetics"]][1])
+  plot_idx <- which(aesthetic == plot_color)
+  the_plot$scales$scales[[plot_idx]][["breaks"]] <- breaks
+  the_plot$scales$scales[[plot_idx]][["labels"]] <- labels
+  return(the_plot)
+}
+
 # SHapley Additive exPlanations
 leg_male_names <- c("depth", "temperature", "phi", "ice_mean", 
                     "julian", "legal_male_loading_station",
@@ -1236,6 +1256,7 @@ dev.copy(jpeg,
 dev.off()
 
 # Swarm importance
+sv_importance()
 sv_importance(leg_male_mshap_sv, kind = "bee") # Use for explaining SHAP values, overall not as useful
 dev.copy(jpeg,
          here('results/SHAP',
@@ -1313,6 +1334,13 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Change to make limits the same for each species
+options(shapviz.brewer_args = list(low = "darkslateblue",
+                                   mid = "gainsboro",
+                                   high = "darkred",
+                                   midpoint = 0,
+                                   limits = c(-2.2, 3.75))) # use to change color in sv_dependence2D2 function
+
 # Spatial dependence
 sv_dependence2D2(leg_male_mshap_sv, 
                 x = "longitude", 
@@ -1360,7 +1388,19 @@ sv_dependence2D2(leg_male_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("bcs_legal_male", "log_pcod_cpue", 
-                              "legal_male_loading_station"))
+                              "legal_male_loading_station")) +
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Legal Male Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'leg_male_spatial_shap_bio.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
 
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
@@ -1484,6 +1524,14 @@ dev.off()
 
 # Spatial dependence
 # Just location effect
+# Change to make limits the same for each species
+options(shapviz.brewer_args = list(low = "darkslateblue",
+                                   mid = "gainsboro",
+                                   high = "darkred",
+                                   midpoint = 0,
+                                   limits = c(-2.8, 5.9))) # use to change color in sv_dependence2D2 function
+
+# Spatial dependence
 sv_dependence2D2(sub_male_mshap_sv, 
                  x = "longitude", 
                  y = "latitude",
@@ -1530,7 +1578,18 @@ sv_dependence2D2(sub_male_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("bcs_sublegal_male", "log_pcod_cpue", 
-                              "sublegal_male_loading_station"))
+                              "sublegal_male_loading_station")) +
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Sublegal Male Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'sub_male_spatial_shap_bio.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Mature Females ----
 cl <- makeCluster(num_cores)
@@ -1648,6 +1707,14 @@ dev.off()
 
 # Spatial dependence
 # Just location effects
+# Change to make limits the same for each species
+options(shapviz.brewer_args = list(low = "darkslateblue",
+                                   mid = "gainsboro",
+                                   high = "darkred",
+                                   midpoint = 0,
+                                   limits = c(-2, 5.6))) # use to change color in sv_dependence2D2 function
+
+# Spatial dependence
 sv_dependence2D2(mat_female_mshap_sv, 
                  x = "longitude", 
                  y = "latitude",
@@ -1694,7 +1761,18 @@ sv_dependence2D2(mat_female_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("bcs_mature_female", "log_pcod_cpue", 
-                              "female_loading_station"))
+                              "female_loading_station")) +
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Mature Female Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'mat_female_spatial_shap_bio.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
 
 ## Immature Females ----
 cl <- makeCluster(num_cores)
@@ -1812,6 +1890,14 @@ dev.off()
 
 # Spatial dependence
 # Just location effects
+# Change to make limits the same for each species
+options(shapviz.brewer_args = list(low = "darkslateblue",
+                                   mid = "gainsboro",
+                                   high = "darkred",
+                                   midpoint = 0,
+                                   limits = c(-1.5, 5.8))) # use to change color in sv_dependence2D2 function
+
+# Spatial dependence
 sv_dependence2D2(imm_female_mshap_sv, 
                  x = "longitude", 
                  y = "latitude",
@@ -1838,9 +1924,9 @@ sv_dependence2D2(imm_female_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("phi", "temperature", "ice_mean", "depth")) +
-labs(x = "Longitude \u00B0W", 
-     y = "Latitude \u00B0N",
-     title = "Immature Female Crab")
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Immature Female Crab")
 dev.copy(jpeg,
          here('results/SHAP',
               'imm_female_spatial_shap_env.jpg'),
@@ -1858,4 +1944,15 @@ sv_dependence2D2(imm_female_mshap_sv,
                  jitter_width = 0.5,
                  jitter_height = 0.5,
                  add_vars = c("bcs_immature_female", "log_pcod_cpue", 
-                              "female_loading_station"))
+                              "female_loading_station")) +
+  labs(x = "Longitude \u00B0W", 
+       y = "Latitude \u00B0N",
+       title = "Immature Female Crab")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'imm_female_spatial_shap_bio.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
