@@ -283,7 +283,7 @@ mat_female_rmse <- mat_female_test %>%
 mat_female_rmse$change <- ((mat_female_rmse$rmse - mat_female_rmse_warm$rmse) / 
   mat_female_rmse$rmse) * 100
 
-map_rmse(mat_female_rmse_warm, "Spatial Error for Mature Female Crab - Warm Year")
+map_rmse(mat_female_rmse_warm)
 dev.copy(jpeg,
          here('results/RMSE',
               'mat_female_rmse_warm.jpg'),
@@ -293,7 +293,7 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-map_rmse(mat_female_rmse, "Spatial Error for Mature Female Crab")
+map_rmse(mat_female_rmse)
 dev.copy(jpeg,
          here('results/RMSE',
               'mat_female_rmse_base.jpg'),
@@ -404,7 +404,7 @@ imm_female_rmse <- imm_female_test %>%
 imm_female_rmse$change <- ((imm_female_rmse$rmse - imm_female_rmse_warm$rmse) / 
                              imm_female_rmse$rmse) * 100
 
-map_rmse(imm_female_rmse_warm, "Spatial Error for Immature Female Crab - Warm Year")
+map_rmse(imm_female_rmse_warm)
 dev.copy(jpeg,
          here('results/RMSE',
               'imm_female_rmse_warm.jpg'),
@@ -414,7 +414,7 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-map_rmse(imm_female_rmse, "Spatial Error for Immature Female Crab")
+map_rmse(imm_female_rmse)
 dev.copy(jpeg,
          here('results/RMSE',
               'imm_female_rmse_base.jpg'),
@@ -510,7 +510,7 @@ leg_male_rmse <- leg_male_test %>%
 leg_male_rmse$change <- ((leg_male_rmse$rmse - leg_male_rmse_warm$rmse) / 
                              leg_male_rmse$rmse) * 100
 
-map_rmse(leg_male_rmse_warm, "Spatial Error for Legal Male Crab - Warm Year")
+map_rmse(leg_male_rmse_warm)
 dev.copy(jpeg,
          here('results/RMSE',
               'leg_male_rmse_warm.jpg'),
@@ -520,7 +520,7 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-map_rmse(leg_male_rmse, "Spatial Error for Legal Male Crab")
+map_rmse(leg_male_rmse)
 dev.copy(jpeg,
          here('results/RMSE',
               'leg_male_rmse_base.jpg'),
@@ -616,7 +616,7 @@ sub_male_rmse <- sub_male_test %>%
 sub_male_rmse$change <- ((sub_male_rmse$rmse - sub_male_rmse_warm$rmse) / 
                            sub_male_rmse$rmse) * 100
 
-map_rmse(sub_male_rmse_warm, "Spatial Error for Sublegal Male Crab - Warm Year")
+map_rmse(sub_male_rmse_warm)
 dev.copy(jpeg,
          here('results/RMSE',
               'sub_male_rmse_warm.jpg'),
@@ -626,7 +626,7 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
-map_rmse(sub_male_rmse, "Spatial Error for Sublegal Male Crab")
+map_rmse(sub_male_rmse)
 dev.copy(jpeg,
          here('results/RMSE',
               'sub_male_rmse_base.jpg'),

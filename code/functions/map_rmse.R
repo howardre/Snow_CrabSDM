@@ -1,4 +1,4 @@
-map_rmse <- function(rmse_avg, plot_title){
+map_rmse <- function(rmse_avg){
   # Get average RMSE per station
   df <- merge(rmse_avg,
               EBS_trans,
@@ -39,7 +39,7 @@ map_rmse <- function(rmse_avg, plot_title){
     labs(x = "Longitude \u00B0W",
          y = "Latitude \u00B0N",
          fill = "RMSE",
-         title = plot_title) 
+         title = " ") 
 }
 
 map_change <- function(rmse_avg){
@@ -86,5 +86,5 @@ map_change <- function(rmse_avg){
     labs(x = "Longitude \u00B0W",
          y = "Latitude \u00B0N",
          fill = "% Change",
-         title = "Percent Change in Error") 
+         title = " ") 
 }
