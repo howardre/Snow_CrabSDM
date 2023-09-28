@@ -280,6 +280,8 @@ mat_female_rmse <- mat_female_test %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_mat_female, pred_brt))
 
+mat_female_rmse$change <- ((mat_female_rmse$rmse - mat_female_rmse_warm$rmse) / 
+  mat_female_rmse$rmse) * 100
 
 map_rmse(mat_female_rmse_warm, "Spatial Error for Mature Female Crab - Warm Year")
 dev.copy(jpeg,
@@ -295,6 +297,16 @@ map_rmse(mat_female_rmse, "Spatial Error for Mature Female Crab")
 dev.copy(jpeg,
          here('results/RMSE',
               'mat_female_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_change(mat_female_rmse)
+dev.copy(jpeg,
+         here('results/RMSE',
+              'mat_female_rmse_change.jpg'),
          height = 10,
          width = 12,
          res = 200,
@@ -389,6 +401,8 @@ imm_female_rmse <- imm_female_test %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_imm_female, pred_brt))
 
+imm_female_rmse$change <- ((imm_female_rmse$rmse - imm_female_rmse_warm$rmse) / 
+                             imm_female_rmse$rmse) * 100
 
 map_rmse(imm_female_rmse_warm, "Spatial Error for Immature Female Crab - Warm Year")
 dev.copy(jpeg,
@@ -404,6 +418,16 @@ map_rmse(imm_female_rmse, "Spatial Error for Immature Female Crab")
 dev.copy(jpeg,
          here('results/RMSE',
               'imm_female_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_change(imm_female_rmse)
+dev.copy(jpeg,
+         here('results/RMSE',
+              'imm_female_rmse_change.jpg'),
          height = 10,
          width = 12,
          res = 200,
@@ -483,6 +507,8 @@ leg_male_rmse <- leg_male_test %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_leg_male, pred_brt))
 
+leg_male_rmse$change <- ((leg_male_rmse$rmse - leg_male_rmse_warm$rmse) / 
+                             leg_male_rmse$rmse) * 100
 
 map_rmse(leg_male_rmse_warm, "Spatial Error for Legal Male Crab - Warm Year")
 dev.copy(jpeg,
@@ -498,6 +524,16 @@ map_rmse(leg_male_rmse, "Spatial Error for Legal Male Crab")
 dev.copy(jpeg,
          here('results/RMSE',
               'leg_male_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_change(leg_male_rmse)
+dev.copy(jpeg,
+         here('results/RMSE',
+              'leg_male_rmse_change.jpg'),
          height = 10,
          width = 12,
          res = 200,
@@ -577,6 +613,8 @@ sub_male_rmse <- sub_male_test %>%
   group_by(station) %>%
   summarize(rmse = Metrics::rmse(lncount_sub_male, pred_brt))
 
+sub_male_rmse$change <- ((sub_male_rmse$rmse - sub_male_rmse_warm$rmse) / 
+                           sub_male_rmse$rmse) * 100
 
 map_rmse(sub_male_rmse_warm, "Spatial Error for Sublegal Male Crab - Warm Year")
 dev.copy(jpeg,
@@ -592,6 +630,16 @@ map_rmse(sub_male_rmse, "Spatial Error for Sublegal Male Crab")
 dev.copy(jpeg,
          here('results/RMSE',
               'sub_male_rmse_base.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
+
+map_change(sub_male_rmse)
+dev.copy(jpeg,
+         here('results/RMSE',
+              'sub_male_rmse_change.jpg'),
          height = 10,
          width = 12,
          res = 200,
