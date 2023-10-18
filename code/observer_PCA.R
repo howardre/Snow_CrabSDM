@@ -8,6 +8,7 @@ library(vegan)
 library(dplyr)
 library(corrplot)
 library(ggplot2)
+library(sf)
 
 # Load data ----
 observer_all <- readRDS(here('data/Snow_CrabData', 'observer_all.rds'))
@@ -282,9 +283,22 @@ sublegal_male_loadings_stations$longitude <- observer_df$longitude[match(sublega
 female_loadings_stations$latitude <- observer_df$latitude[match(female_loadings_stations$station, observer_df$STATIONID)]
 female_loadings_stations$longitude <- observer_df$longitude[match(female_loadings_stations$station, observer_df$STATIONID)]
 
-legal_male_sf <- st_as_sf(legal_male_loadings_stations,
-                          coords = c("longitude", "latitude"), 
-                          crs = 4269)
+# Bering Sea Grid
+library(akgfmaps)
+library(viridis)
+EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
+EBS_grid <- EBS$survey.grid
+EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
+EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
+bering_sea <- map_data("world")
+
+legal_male_df <- merge(legal_male_loadings_stations,
+                       EBS_trans,
+                       by.x = "station",
+                       by.y =  "STATIONID")
+legal_male_sf <- st_as_sf(legal_male_df, 
+                          crs = st_crs(4269))
+
 sublegal_male_sf <- st_as_sf(sublegal_male_loadings_stations,
                              coords = c("longitude", "latitude"), 
                              crs = 4269)
@@ -292,10 +306,41 @@ female_sf <- st_as_sf(female_loadings_stations,
                       coords = c("longitude", "latitude"), 
                       crs = 4269)
 
+
+
 ggplot() +
   geom_sf(data = legal_male_sf,
           aes(color = legal_male_loadings_stations),
-          size = 4) 
+          size = 4)  # use for presentation figures
+
+ggplot() +
+  geom_polygon(aes(long, lat, group = group),
+               data = bering_sea,
+               fill = "lightyellow4",
+               colour = "black") +
+  geom_sf(data = legal_male_sf,
+          aes(fill = legal_male_loadings_stations),
+          inherit.aes = FALSE) +
+  coord_sf(xlim = c(-179.5, -160),  # cannot extend out to -180, cuts off latitude labels
+           ylim = c(54, 62), 
+           expand = FALSE) +
+  scale_size_area() +
+  scale_fill_viridis(option = "inferno") +
+  theme_classic() +
+  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(size = 24, family = "serif", face = "bold"),
+        axis.text = element_text(family = "serif", size = 16),
+        axis.title = element_text(family = "serif", size = 20),
+        axis.text.x = element_text(angle = 45, vjust = 0.7),
+        strip.text = element_text(family = "serif", size = 20),
+        legend.title = element_text(family = "serif", size = 18),
+        legend.text = element_text(family = "serif", size = 16)) +
+  labs(x = "Longitude \u00B0W",
+       y = "Latitude \u00B0N",
+       fill = "PC-1",
+       title = "Legal Male PCA") 
 
 ggplot() +
   geom_sf(data = sublegal_male_sf,
