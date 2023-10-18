@@ -1268,6 +1268,34 @@ dev.copy(jpeg,
 dev.off()
 
 # Dependence plots for individual variables
+# Figure for presentation
+sv_dependence(leg_male_mshap_sv,
+              v = "depth",
+              color_var = NULL,
+              color = "#00868B35") +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed",
+             color = "black") +
+  labs(title = "Legal Male Crab") +
+  theme_classic() +
+  ggplot2::theme(legend.box.spacing = grid::unit(0, "pt"),
+                 axis.ticks = element_blank(),
+                 plot.title = element_text(size = 22, family = "serif", face = "bold"),
+                 axis.text = element_text(family = "serif", size = 18),
+                 axis.title = element_text(family = "serif", size = 22),
+                 axis.text.x = element_text(angle = 0, vjust = 0.7),
+                 strip.text = element_text(family = "serif", size = 21),
+                 legend.title = element_text(family = "serif", size = 18),
+                 legend.text = element_text(family = "serif", size = 17))
+dev.copy(jpeg,
+         here('results/SHAP',
+              'leg_male_depth_shap.jpg'),
+         height = 6,
+         width = 8,
+         res = 200,
+         units = 'in')
+dev.off()
+
 # Temperature
 sv_dependence2(leg_male_mshap_sv, 
                v = "temperature",
