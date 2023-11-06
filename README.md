@@ -1,6 +1,6 @@
-# Modeling the Distribution of Bering Sea Snow Crab
+# Modeling Distributions of Bering Sea Snow Crab
 
-This is part of a NOAA funded project that creates updated species distribution maps for snow crab in the northern Bering Sea. A portion of this work comprises a chapter of my Ph.D. dissertation.
+This is part of a NOAA funded project that creates updated species distribution maps for snow crab in the northern Bering Sea. This repository serves as a tool to continue to create updated SDMs for snow crab by sex and maturity as well as forecast next-season summer distributions. A portion of this work comprises a chapter of my Ph.D. dissertation.
 
 ### Data
 Both fishery-independent, fishery-dependent, and oceanographic data were used for this project, along with ROMS output from the Bering10K. Data cleaning and matching processes can be seen [here](code/data_matching.R), though data are not accessible through this respository and must be independently obtained. Some data are confidential and others must be requested. Specifically, we use:
