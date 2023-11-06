@@ -18,10 +18,8 @@ Two types of GAMs were evaluated for use as SDMs for snow crab.
 1. Delta-type GAMs model presence-absence first using a Bernoulli distribution. Then abundance-only data is log(x+1) transformed and modelled using a Gaussian distribution. Predicted abundance is conditional on the presence-absence from the first model, meaning the predictions from each are multiplied to obtain the final predictions.
 2. GAMs using the full set of log transformed data using a Tweedie distribution with a log link. This is a type of Poisson-gamma compound model.
 
-#### Boosted Regression Trees (BRTs)
+#### Boosted Regression Trees (BRTs) <img align = 'right' src = 'results/BRT/multipanel.png' width = '500'>
 Delta-type BRTs were developed in a similar manner to the delta-type GAMs. Predicted abundance for these models was also conditional on the presence-absence from the Bernoulli model. The final predicted plots of distribution look like this:
-
-<img align = 'center' src = 'results/BRT/multipanel.png' width = '500'>
 
 #### Spatial Error
 RMSE values were calculated spatially for each sex/maturity model using two different sets of train/test data. First, the original train/test data sets were used to calculate both spatial and overall RMSE. Then the models were retrained using train data that incorporated 2018 and test data that no longer included 2018. Spatial and overall RMSE values were then recalculated and compared to the initial values. This can be replicated [here](code/model_spatial_error.R).
