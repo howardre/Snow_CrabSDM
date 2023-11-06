@@ -10,11 +10,8 @@ Both fishery-independent, fishery-dependent, and oceanographic data were used fo
 - The **ERA5 Reanalysis** sea ice concentration monthly values. 
 - The **NOAA Eastern Bering Sea sediment database**, which provides a comprehensive set of grain sizes in the study region at a 1 km resolution. Sediment grain size is distributed like this for the study region: 
 
-
 ### Methods
-Different types of species distribution models (SDM) were compared in order to select the best model. Root mean square error (RMSE), Spearman's correlation coefficient, and percent deviance explained were used to compare the models. Training data used data from 1995-2014 and test data included 2015-2019 and 2021. Ultimately, boosted regression trees were selected. This process can be replicated [here](code/model_evaluation.R). An example of this comparison can be seen through this RMSE plot:
-
-<img align = 'middle' src = 'results/RMSE_plot.png' width = '300'>
+<img align = 'right' src = 'results/RMSE_plot.png' width = '300'> Different types of species distribution models (SDM) were compared in order to select the best model. Root mean square error (RMSE), Spearman's correlation coefficient, and percent deviance explained were used to compare the models. Training data used data from 1995-2014 and test data included 2015-2019 and 2021. Ultimately, boosted regression trees were selected. This process can be replicated [here](code/model_evaluation.R). An example of this comparison can be seen through this RMSE plot:
 
 #### Generalized Additive Models (GAMs)
 Two types of GAMs were evaluated for use as SDMs for snow crab.
