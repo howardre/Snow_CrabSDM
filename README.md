@@ -20,7 +20,8 @@ Two types of GAMs were evaluated for use as SDMs for snow crab.
 
 #### Boosted Regression Trees (BRTs)
 Delta-type BRTs were developed in a similar manner to the delta-type GAMs. Predicted abundance for these models was also conditional on the presence-absence from the Bernoulli model. The final predicted plots of distribution look like this:
-![dist_plots](manuscripts/Figures/Figure2.png){width=70%}
+
+<img align = 'right' src = 'manuscripts/Figures/Figure2.png' width = '500'>
 
 #### Spatial Error
 RMSE values were calculated spatially for each sex/maturity model using two different sets of train/test data. First, the original train/test data sets were used to calculate both spatial and overall RMSE. Then the models were retrained using train data that incorporated 2018 and test data that no longer included 2018. Spatial and overall RMSE values were then recalculated and compared to the initial values. This can be replicated [here](code/model_spatial_error.R).
