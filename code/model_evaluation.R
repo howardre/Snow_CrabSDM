@@ -173,6 +173,7 @@ mat_female_gam_abun <- gam(lncount_mat_female ~ s(longitude, latitude) +
                              s(female_loading_station, k = 5) +
                              s(log_pcod_cpue, k = 5) +
                              s(bcs_mature_female, k = 5),
+                           family = "gaussian",
                            data = mat_female_train[mat_female_train$lncount_mat_female > 0, ])
 summary(mat_female_gam_abun) # 32%
 
@@ -220,13 +221,13 @@ rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_f
 rmse_mat_female_tweedie # 2.59
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 2.73
+rmse_mat_female_delta # 1.79
 
 # Spearman correlation coefficient
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.60
+         exact = FALSE) # 0.67
 
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_gam, 
@@ -271,6 +272,7 @@ imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
                              s(female_loading_station, k = 5) +
                              s(log_pcod_cpue, k = 5) +
                              s(bcs_immature_female, k = 5),
+                           family = "gaussian",
                            data = imm_female_train[imm_female_train$lncount_imm_female > 0, ])
 summary(imm_female_gam_abun) # 34.2%
 
@@ -318,13 +320,13 @@ rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_f
 rmse_imm_female_tweedie # 2.05
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 1.08
+rmse_imm_female_delta # 1.72
 
 # Spearman correlation coefficient
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.55
+         exact = FALSE) # 0.69
 
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_gam, 
@@ -369,6 +371,7 @@ leg_male_gam_abun <- gam(lncount_leg_male ~ s(longitude, latitude) +
                            s(legal_male_loading_station, k = 5) +
                            s(log_pcod_cpue, k = 5) +
                            s(bcs_legal_male, k = 5),
+                         family = "gaussian",
                          data = leg_male_train[leg_male_train$lncount_leg_male > 0, ])
 summary(leg_male_gam_abun) # 43.0%
 
@@ -416,7 +419,7 @@ rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_te
 rmse_leg_male_tweedie # 1.74
 
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_leg_male_delta # 1.23
+rmse_leg_male_delta # 1.26
 
 # Spearman correlation coefficient
 cor.test(leg_male_test$lncount_leg_male, 
@@ -467,6 +470,7 @@ sub_male_gam_abun <- gam(lncount_sub_male ~ s(longitude, latitude) +
                            s(sublegal_male_loading_station, k = 5) +
                            s(log_pcod_cpue, k = 5) +
                            s(bcs_sublegal_male, k = 5),
+                         family = "gaussian",
                          data = sub_male_train[sub_male_train$lncount_sub_male > 0, ])
 summary(sub_male_gam_abun) # 53.3%
 
@@ -506,7 +510,7 @@ sub_male_test$pred_gam_base <- predict(sub_male_gam_base,
                                        type = "response")
 sub_male_test$pred_gam_abun <- predict(sub_male_gam_abun,
                                        sub_male_test,
-                                       type = "response")
+                                       type = "link")
 
 sub_male_test$pred_gam_delta <- sub_male_test$pred_gam_base * sub_male_test$pred_gam_abun
 
