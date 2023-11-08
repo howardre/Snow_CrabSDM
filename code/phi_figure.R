@@ -25,13 +25,13 @@ phi_rast <- rast(phi_terra, ncol = 300, nrow = 300)
 phi_x <- terra::rasterize(phi_matrix[, 2:3], phi_rast, phi_matrix[, 1], fun = mean)
 
 # Plot
-windows(width = 12, height = 10)
+windows(width = 10, height = 10)
 par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0),
     family = "serif")
 image(phi_x,
-      xlim = c(-172, -160),
+      xlim = c(-179.5, -156),
       ylim = c(54, 66),
       axes = FALSE,
       xlab = "",
@@ -40,7 +40,7 @@ rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcrea
 par(new = TRUE)
 image(phi_x,
       col = hcl.colors(18, "YlOrRd", rev = TRUE),
-      xlim = c(-172, -160),
+      xlim = c(-179.5, -156),
       ylim = c(54, 66),     
       ylab = "Latitude \u00B0N",
       xlab = "Longitude \u00B0W",
@@ -55,7 +55,7 @@ maps::map("worldHires",
 image.plot(legend.only = T,
            col = hcl.colors(18, "YlOrRd", rev = TRUE),
            legend.shrink = 0.2,
-           smallplot = c(.20, .22, .17, .38),
+           smallplot = c(.24, .26, .17, .35),
            legend.cex = 1.8,
            axis.args = list(cex.axis = 2.1,
                             family = "serif"),
@@ -69,10 +69,10 @@ image.plot(legend.only = T,
                               line = 1.3,
                               family =  "serif"))
 dev.copy(jpeg,
-         here('manuscripts',
-              'phi_plot.jpg'),
+         here('results',
+              'grain_size.jpg'),
          height = 10,
-         width = 12,
+         width = 10,
          res = 300,
          units = 'in')
 dev.off()

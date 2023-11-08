@@ -29,31 +29,40 @@ sf_cold <- sf::st_as_sf(df_cold, # turn into sf object to plot
 cold_plot <- ggplot() +
   geom_polygon(aes(long, lat, group = group),
                data = bering_sea,
-               fill = "lightyellow4",
+               fill = "wheat4", 
                colour = "black") +
   geom_sf(data = sf_cold,
           aes(fill = temperature),
           inherit.aes = FALSE) +
   coord_sf(xlim = c(-179.5, -156),  # cannot extend out to -180, cuts off latitude labels
            ylim = c(54, 66),
-           expand = FALSE) +
-  scale_size_area() +
+           expand = FALSE,
+           datum = st_crs(4269)) +
   scale_fill_viridis(option = "mako",
                      limits = c(-1.6, 15.3)) +
+  scale_x_continuous(label = I) +
+  scale_y_continuous(label = I) + # allows axis to remain negative
   theme_classic() +
-  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
-        axis.line = element_blank(),
-        axis.ticks = element_blank(),
-        plot.title = element_text(size = 24, family = "serif", face = "bold"),
-        axis.text = element_text(family = "serif", size = 16),
-        axis.title = element_text(family = "serif", size = 20),
-        axis.text.x = element_text(angle = 45, vjust = 0.7),
-        strip.text = element_text(family = "serif", size = 20),
-        legend.title = element_text(family = "serif", size = 18),
-        legend.text = element_text(family = "serif", size = 16)) +
+  theme(panel.background = element_rect(fill = "mintcream", colour = "mintcream"),
+        panel.border = element_rect(fill = NA, color = "black"),
+        plot.title = element_text(size = 26, family = "serif", face = "bold", hjust = 0.5),
+        axis.text.x = element_text(family = "serif", size = 26,
+                                 margin = margin(t = 20)),
+        axis.text.y = element_text(family = "serif", size = 26,
+                                 margin = margin(r = 20)),
+        axis.title.x = element_text(family = "serif", size = 30,
+                                    margin = margin(t = 17)),
+        legend.text = element_text(family = "serif", size = 24),
+        legend.position = c(.13, .13),
+        legend.title.align = 0.5,
+        legend.background = element_blank()) +
+  guides(fill = guide_colorbar(title.position = "left",
+                               title.theme = element_text(angle = 90,
+                                                          family = "serif",
+                                                          size = 24))) + 
   labs(x = "Longitude \u00B0W",
-       y = "Latitude \u00B0N",
-       fill = "Temperature",
+       y = "",
+       fill = " ",
        title = "Cold Year") 
 
 # Get average temperature
@@ -67,31 +76,32 @@ sf_warm <- sf::st_as_sf(df_warm, # turn into sf object to plot
 warm_plot <- ggplot() +
   geom_polygon(aes(long, lat, group = group),
                data = bering_sea,
-               fill = "lightyellow4",
+               fill = "wheat4",
                colour = "black") +
   geom_sf(data = sf_warm,
           aes(fill = temperature),
           inherit.aes = FALSE) +
   coord_sf(xlim = c(-179.5, -156),  # cannot extend out to -180, cuts off latitude labels
            ylim = c(54, 66), 
-           expand = FALSE) +
-  scale_size_area() +
+           expand = FALSE,
+           datum = st_crs(4269)) +
   scale_fill_viridis(option = "mako",
                      limits = c(-1.6, 15.3)) +
+  scale_x_continuous(label = I) +
+  scale_y_continuous(label = I) +
   theme_classic() +
-  theme(panel.background = element_rect(fill = "gray91", colour = "gray91"),
-        axis.line = element_blank(),
-        axis.ticks = element_blank(),
-        plot.title = element_text(size = 24, family = "serif", face = "bold"),
-        axis.text = element_text(family = "serif", size = 16),
-        axis.title = element_text(family = "serif", size = 20),
-        axis.text.x = element_text(angle = 45, vjust = 0.7),
-        strip.text = element_text(family = "serif", size = 20),
-        legend.title = element_text(family = "serif", size = 18),
-        legend.text = element_text(family = "serif", size = 16)) +
+  theme(panel.background = element_rect(fill = "mintcream", colour = "mintcream"),
+        panel.border = element_rect(fill = NA, color = "black"),
+        plot.title = element_text(size = 26, family = "serif", face = "bold", hjust = 0.5),
+        axis.text.x = element_text(family = "serif", size = 26,
+                                   margin = margin(t = 20)),
+        axis.text.y = element_text(family = "serif", size = 26,
+                                   margin = margin(r = 20)),
+        axis.title.x = element_text(family = "serif", size = 30,
+                                    margin = margin(t = 17)),
+        legend.position = "none") +
   labs(x = "Longitude \u00B0W",
        y = " ",
-       fill = "Temperature",
        title = "Warm Year") 
 
 windows(width = 18, height = 10)
@@ -99,7 +109,7 @@ par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
     oma = c(1, 1, 1, 1),
     mgp = c(5, 2, 0),
     family = "serif")
-cold_plot + warm_plot + plot_layout(guides = 'collect')
+cold_plot + warm_plot 
 dev.copy(jpeg,
          here('results',
               'cold_warm_year.jpg'),
