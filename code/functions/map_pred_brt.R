@@ -19,7 +19,7 @@ map_pred_brt <- function(spatial_grid, train_data, title){
   
   # Make map
   windows(width = 12, height = 10)
-  par(mar = c(6.4, 7.2, 1.6, 0.6) + 0.1,
+  par(mar = c(6.4, 7.2, 3, 0.6) + 0.1,
       oma = c(1, 1, 1, 1),
       mgp = c(5, 2, 0),
       family = "serif")
@@ -48,9 +48,9 @@ map_pred_brt <- function(spatial_grid, train_data, title){
         xlim = c(-181, -156),
         ylim = range(train_data$latitude, na.rm = TRUE) + c(-.4, .5),
         main = title,
-        cex.main = 2.3,
-        cex.lab = 2.5,
-        cex.axis = 2.3,
+        cex.main = 2.8,
+        cex.lab = 2.7,
+        cex.axis = 2.5,
         las = 1)
   maps::map("worldHires",
             fill = T,
