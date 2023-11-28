@@ -5,7 +5,6 @@
 # Load libraries and functions ----
 library(gbm)
 library(dismo)
-# library(scales)
 library(here)
 library(dplyr)
 library(colorspace)
@@ -13,14 +12,8 @@ library(maps)
 library(mapdata)
 library(fields)
 library(ggplot2)
-# library(data.table)
-# library(RColorBrewer)
-# library(gplots) # for heatmap
-# library(enmSdmX) # use for grid search, wrapper for dismo
-# library(fastshap) # calculate SHAP values quickly
-# library(mshap) # combine SHAP values for two-part models
-# library(shapviz) # visualize SHAP values
-# library(doParallel)
+library(gplots) # for heatmap
+library(enmSdmX) # use for grid search, wrapper for dismo
 source(here('code/functions', 'grid_search.R'))
 source(here('code/functions', 'rel_inf.R'))
 source(here('code/functions', 'part_depen.R'))
@@ -28,6 +21,7 @@ source(here('code/functions', 'grid_development.R'))
 source(here('code/functions', 'distance_function.R'))
 source(here('code/functions', 'brt_grid_preds.R'))
 source(here('code/functions', 'map_pred_brt.R'))
+source(here('code/functions', 'rel_inf_fig.R'))
 
 # Load and prepare data ----
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
@@ -140,16 +134,33 @@ jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 
 # Boosted regression trees ----
 # See model_evaluation.R script for more details on hyperparameters, tuning
-vars <- c(1:8, 10, 16) # model covariates for each model, in the grid_search function
+# If you want to change covariates, they are in the grid_search function (otherwise it doesn't run)
 
 ## Mature females ----
 # Get best models using training data
-brt_mat_female_base <- grid_search(mat_female_train, 13, 'bernoulli')
-brt_mat_female_base
+brt_mat_female_base <- grid_search(data = mat_female_train, # uses the trainBRT function in enmSdmX
+                                   response = 13, 
+                                   family = 'bernoulli')
+brt_mat_female_base # check to make sure grid search produced best model, record hyperparameters if needed
 
-brt_mat_female_abun <- grid_search(mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                                   11, 'gaussian')
+brt_mat_female_abun <- grid_search(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
+                                   response = 11, 
+                                   family = 'gaussian')
 brt_mat_female_abun
+
+trainBRT(data = mat_female_train,
+         preds = c(1:8, 10, 16),
+         resp = 13,
+         family = 'bernoulli',
+         treeComplexity = c(1, 5, 10),
+         learningRate = c(0.01, 0.05, 0.1),
+         bagFraction = c(0.25, 0.5, 0.75),
+         step.size = 25,
+         minTrees = 1000, # recommended minimum by Elith
+         maxTrees = 2500,
+         tryBy = c('learningRate', 'treeComplexity', 'bagFraction'),
+         cores = 6, # increase speed,
+         out = c('tuning', 'model'))
 
 # Predict on test data
 mat_female_test$pred_base <- predict.gbm(brt_mat_female_base$model,
@@ -184,8 +195,8 @@ saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun.rds'))
 saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base.rds'))
 
 # Read in BRTs
-brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
-brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
+# brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
+# brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 
 # Variable importance
 rel_inf(brt_mat_female_base, 'Variable Influence on Mature Female Snow Crab')
@@ -201,16 +212,26 @@ mat_female_preds <- brt_grid_preds(spatial_grid_mat_female,
                                    brt_mat_female_abun,
                                    brt_mat_female_base)
 
-map_pred_brt(mat_female_preds, mat_female_train, "Mature Female Snow Crab") # works better when saved as .jpeg
-
+map_pred_brt(mat_female_preds, mat_female_train, "Mature Female Snow Crab")
+# dev.copy(jpeg,
+#          here('results/BRT',
+#               'female_mat_map.jpg'),
+#          height = 10,
+#          width = 12,
+#          res = 200,
+#          units = 'in')
+# dev.off()
 
 ## Legal males ----
 # Get best models using training data
-brt_leg_male_base <- grid_search(leg_male_train, 13, 'bernoulli')
+brt_leg_male_base <- grid_search(data = leg_male_train, 
+                                 response = 13, 
+                                 family = 'bernoulli')
 brt_leg_male_base
 
-brt_leg_male_abun <- grid_search(leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                                 11, 'gaussian')
+brt_leg_male_abun <- grid_search(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
+                                response = 11,
+                                family = 'gaussian')
 brt_leg_male_abun
 
 # Predict on test data
@@ -245,8 +266,8 @@ saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun.rds'))
 saveRDS(brt_leg_male_base, file = here('data', 'brt_leg_male_base.rds'))
 
 # Read in BRTs
-brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
-brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
+# brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
+# brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
 
 # Variable importance
 rel_inf(brt_leg_male_base, 'Variable Influence on Legal Male Snow Crab')
@@ -262,16 +283,26 @@ leg_male_preds <- brt_grid_preds(spatial_grid_leg_male,
                                  brt_leg_male_abun,
                                  brt_leg_male_base)
 
-map_pred_brt(leg_male_preds, leg_male_train, "Legal Male Snow Crab") # works better when saved as .jpeg
-
+map_pred_brt(leg_male_preds, leg_male_train, "Legal Male Snow Crab")
+# dev.copy(jpeg,
+#          here('results/BRT',
+#               'male_leg_map.jpg'),
+#          height = 10,
+#          width = 12,
+#          res = 200,
+#          units = 'in')
+# dev.off()
 
 ## Immature females ----
 # Get best models using training data
-brt_imm_female_base <- grid_search(imm_female_train, 13, 'bernoulli')
+brt_imm_female_base <- grid_search(data = imm_female_train, 
+                                   respomse = 13, 
+                                   family = 'bernoulli')
 brt_imm_female_base
 
-brt_imm_female_abun <- grid_search(imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                                   11, 'gaussian')
+brt_imm_female_abun <- grid_search(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
+                                   respomse = 11, 
+                                   family = 'gaussian')
 brt_imm_female_abun
 
 # Predict on test data
@@ -306,8 +337,8 @@ saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun.rds'))
 saveRDS(brt_imm_female_base, file = here('data', 'brt_imm_female_base.rds'))
 
 # Read in BRTs
-brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
-brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
+# brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
+# brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
 
 # Variable importance
 rel_inf(brt_imm_female_base, 'Variable Influence on Immature Female Snow Crab')
@@ -323,16 +354,26 @@ imm_female_preds <- brt_grid_preds(spatial_grid_imm_female,
                                    brt_imm_female_abun,
                                    brt_imm_female_base)
 
-map_pred_brt(imm_female_preds, imm_female_train, "Immature Female Snow Crab") # works better when saved as .jpeg
-
+map_pred_brt(imm_female_preds, imm_female_train, "Immature Female Snow Crab")
+# dev.copy(jpeg,
+#          here('results/BRT',
+#               'female_imm_map.jpg'),
+#          height = 10,
+#          width = 12,
+#          res = 200,
+#          units = 'in')
+# dev.off()
 
 ## Sublegal males ----
 # Get best models using training data
-brt_sub_male_base <- grid_search(sub_male_train, 13, 'bernoulli')
+brt_sub_male_base <- grid_search(data = sub_male_train, 
+                                 response = 13,
+                                 family = 'bernoulli')
 brt_sub_male_base
 
-brt_sub_male_abun <- grid_search(sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                                 11, 'gaussian')
+brt_sub_male_abun <- grid_search(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
+                                 response = 11, 
+                                 family = 'gaussian')
 brt_sub_male_abun
 
 # Predict on test data
@@ -367,8 +408,8 @@ saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun.rds'))
 saveRDS(brt_sub_male_base, file = here('data', 'brt_sub_male_base.rds'))
 
 # Read in BRTs
-brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
-brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
+# brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
+# brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
 
 # Variable importance
 rel_inf(brt_sub_male_base, 'Variable Influence on Sublegal Male Snow Crab')
@@ -384,8 +425,15 @@ sub_male_preds <- brt_grid_preds(spatial_grid_sub_male,
                                  brt_sub_male_abun,
                                  brt_sub_male_base)
 
-map_pred_brt(sub_male_preds, sub_male_train, "Sublegal Male Snow Crab") # works better when saved as .jpeg
-
+map_pred_brt(sub_male_preds, sub_male_train, "Sublegal Male Snow Crab")
+# dev.copy(jpeg,
+#          here('results/BRT',
+#               'male_sub_map.jpg'),
+#          height = 10,
+#          width = 12,
+#          res = 200,
+#          units = 'in')
+# dev.off()
 
 ## Heatmap of relative influence ----
 mat_female_abun_inf <- summary(brt_mat_female_abun$model)[-1]
@@ -434,7 +482,24 @@ all_pres_list <- list(mat_female_pres_inf,
 # Create figures
 rel_inf_fig(all_abun_list)
 title("Abundance", line = -1.7)
-
+# dev.copy(jpeg,
+#          here('results/BRT',
+#               'abun_rel_inf.jpg'),
+#          height = 8,
+#          width = 6,
+#          res = 200,
+#          units = 'in',
+#          family = "serif")
+# dev.off()
 
 rel_inf_fig(all_pres_list)
 title("Presence/Absence", line = -1.7)
+# dev.copy(jpeg,
+#          here('results/BRT',
+#               'pres_rel_inf.jpg'),
+#          height = 8,
+#          width = 6,
+#          res = 200,
+#          units = 'in',
+#          family = "serif")
+# dev.off()
