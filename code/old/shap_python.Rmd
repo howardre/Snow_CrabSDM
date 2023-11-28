@@ -1,0 +1,89 @@
+---
+title: "shap_calculations"
+author: "Rebecca Howard"
+date: "2023-06-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# knitr::knit_engines$set(python = reticulate::eng_python)
+library(reticulate)
+library(dplyr)
+library(here)
+library(dismo)
+library(gbm)
+library(utils)
+```
+
+```{python}
+import numpy
+import pandas
+import shap
+import sklearn.ensemble
+import pypmml
+import pyper
+```
+
+```{r}
+use_condaenv("C:/Users/howar/anaconda3")
+
+# if (!py_module_available("numpy")) py_install("numpy", pip = TRUE)
+# if (!py_module_available("pandas")) py_install("pandas", pip = TRUE)
+# if (!py_module_available("shap")) py_install("shap", pip = TRUE)
+# if (!py_module_available("sklearn")) py_install("sklearn", pip = TRUE)
+# if (!py_module_available("pyper")) py_install("pyper", pip = TRUE)
+```
+
+```{r}
+crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+  dplyr::select(-geometry)
+
+# Transform female and male data
+crab_trans <- mutate(crab_summary,
+                     lncount_mat_female = log(mature_female + 1),
+                     lncount_imm_female = log(immature_female + 1),
+                     lncount_leg_male = log(legal_male + 1),
+                     lncount_sub_male = log(sublegal_male + 1),
+                     pres_imm_female = ifelse(immature_female > 0, 1, 0),
+                     pres_mat_female = ifelse(mature_female > 0, 1, 0),
+                     pres_leg_male = ifelse(legal_male > 0, 1, 0),
+                     pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
+                     year_f = as.factor(year),
+                     log_pcod_cpue = log(pcod_cpue + 1)) %>%
+  filter(!is.na(temperature),
+         !is.na(julian),
+         !is.na(depth)) 
+
+# Create train and test datasets
+# Considering using blocked approach but current discussion pointed toward using certain years
+crab_train <- as.data.frame(crab_trans %>% 
+                              filter(year < 2015))
+crab_test <- as.data.frame(crab_trans %>% 
+                             filter(year > 2014))
+
+leg_male_train <- crab_train %>%
+  dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
+                longitude, latitude, julian, legal_male_loading,
+                log_pcod_cpue, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year, legal_male_loading_station) %>%
+  tidyr::drop_na(lncount_leg_male)
+```
+
+
+```{python}
+from pyper import *
+import json
+r = R(use_pandas = True)
+model_rds_path = "C:/Users/howar/Documents/Oregon State/Snow_CrabSDM/data/brt_leg_male_abun.rds"
+r.assign("rmodel", model_rds_path)
+
+expr = 'model <- readRDS(rmodel); result <- gbm::predict.gbm(model$model, leg_male_train,                                       n.trees = model$model$gbm.call$best.trees, type = "response"')
+r(expr)
+res = r.get('result')
+```
+
+
+
+
+
