@@ -1,6 +1,6 @@
 grid_search <- function(data, response, family){
   trainBRT(data = data,
-           preds = vars,
+           preds = c(1:8, 10, 16),
            resp = response,
            family = family,
            treeComplexity = c(1, 5, 10),
