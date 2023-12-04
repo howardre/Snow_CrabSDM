@@ -14,7 +14,7 @@ library(fields)
 library(ggplot2)
 library(gplots) # for heatmap
 library(enmSdmX) # use for grid search, wrapper for dismo
-source(here('code/functions', 'grid_search.R'))
+source(here('code/functions', 'grid_search_f.R'))
 source(here('code/functions', 'rel_inf.R'))
 source(here('code/functions', 'rel_inf_fig.R'))
 source(here('code/functions', 'part_depen.R'))
@@ -120,3 +120,87 @@ summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
 # Custom colors
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
+
+# Mature females ----
+# Get best models using training data
+brt_mat_female_base <- grid_search_f(data = mat_female_train, # uses the trainBRT function in enmSdmX
+                                     response = 10, 
+                                     family = 'bernoulli')
+brt_mat_female_base # check to make sure grid search produced best model, record hyperparameters if needed
+
+brt_mat_female_abun <- grid_search_f(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
+                                   response = 8, 
+                                   family = 'gaussian')
+brt_mat_female_abun
+
+# Predict on test data
+mat_female_test$pred_base <- predict.gbm(brt_mat_female_base$model,
+                                         mat_female_test,
+                                         n.trees = brt_mat_female_base$model$gbm.call$best.trees,
+                                         type = "response")
+
+mat_female_test$pred_abun <- predict.gbm(brt_mat_female_abun$model,
+                                         mat_female_test,
+                                         n.trees = brt_mat_female_abun$model$gbm.call$best.trees,
+                                         type = "response")
+
+mat_female_test$pred_brt <- mat_female_test$pred_base * mat_female_test$pred_abun
+
+rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
+rmse_mat_female_brt
+
+# Calculate deviance explained
+brt_deviance(brt_mat_female_abun)
+brt_deviance(brt_mat_female_base)
+
+# Spearman correlation coefficient
+cor.test(mat_female_test$lncount_mat_female, 
+         mat_female_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE)
+
+# Save models for future use
+saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun_forecast.rds'))
+saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base_forecast.rds'))
+
+# Mature females ----
+# Get best models using training data
+brt_imm_female_base <- grid_search_f(data = imm_female_train, # uses the trainBRT function in enmSdmX
+                                     response = 10, 
+                                     family = 'bernoulli')
+brt_imm_female_base # check to make sure grid search produced best model, record hyperparameters if needed
+
+brt_imm_female_abun <- grid_search_f(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
+                                     response = 8, 
+                                     family = 'gaussian')
+brt_imm_female_abun
+
+# Predict on test data
+imm_female_test$pred_base <- predict.gbm(brt_imm_female_base$model,
+                                         imm_female_test,
+                                         n.trees = brt_imm_female_base$model$gbm.call$best.trees,
+                                         type = "response")
+
+imm_female_test$pred_abun <- predict.gbm(brt_imm_female_abun$model,
+                                         imm_female_test,
+                                         n.trees = brt_imm_female_abun$model$gbm.call$best.trees,
+                                         type = "response")
+
+imm_female_test$pred_brt <- imm_female_test$pred_base * imm_female_test$pred_abun
+
+rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
+rmse_imm_female_brt
+
+# Calculate deviance explained
+brt_deviance(brt_imm_female_abun)
+brt_deviance(brt_imm_female_base)
+
+# Spearman correlation coefficient
+cor.test(imm_female_test$lncount_imm_female, 
+         imm_female_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE)
+
+# Save models for future use
+saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun_forecast.rds'))
+saveRDS(brt_imm_female_base, file = here('data', 'brt_imm_female_base_forecast.rds'))
