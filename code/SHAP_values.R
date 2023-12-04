@@ -1,17 +1,19 @@
-# Title: Snow Crab Model Exploration
-# Purpose: Investigate potential models
+# Title: Snow Crab SHAP Values
+# Purpose: Calculate and plot SHAP values from BRTs
 # Data created: 07/20/2022
 
-# Libraries and functions
+# Libraries and functions ----
 library(fastshap) # calculate SHAP values quickly
 library(mshap) # combine SHAP values for two-part models
 library(shapviz) # visualize SHAP values
 library(doParallel)
+library(here)
+library(dplyr)
 source(here('code/functions', 'sv_dependence2D2.R'))
 source(here('code/functions', 'sv_dependence2.R'))
+source(here('code/functions', 'calculate_shap.R'))
 
-# SHAP values
-# Read in BRTs
+# Read in BRTs ----
 brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
 brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
@@ -20,6 +22,28 @@ brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
 brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
 brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
 brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
+
+# Load and prepare data ----
+crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+  dplyr::select(-geometry)
+
+# Transform female and male data
+crab_trans <- mutate(crab_summary,
+                     lncount_mat_female = log(mature_female + 1),
+                     lncount_imm_female = log(immature_female + 1),
+                     lncount_leg_male = log(legal_male + 1),
+                     lncount_sub_male = log(sublegal_male + 1),
+                     pres_imm_female = ifelse(immature_female > 0, 1, 0),
+                     pres_mat_female = ifelse(mature_female > 0, 1, 0),
+                     pres_leg_male = ifelse(legal_male > 0, 1, 0),
+                     pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
+                     year_f = as.factor(year),
+                     log_pcod_cpue = log(pcod_cpue + 1)) %>%
+  filter(!is.na(temperature),
+         !is.na(julian),
+         !is.na(depth),
+         !is.na(ice_mean),
+         year_f != 2022) # removed because no observer data
 
 # Customize legend labels - must be done for each plot individually
 change_legend_breaks <- function(the_plot, aesthetic, breaks, labels){
@@ -31,7 +55,6 @@ change_legend_breaks <- function(the_plot, aesthetic, breaks, labels){
   return(the_plot)
 }
 
-# SHapley Additive exPlanations
 leg_male_names <- c("depth", "temperature", "phi", "ice_mean", 
                     "julian", "legal_male_loading_station",
                     "bcs_legal_male", "log_pcod_cpue")
@@ -54,7 +77,7 @@ pred_fun <- function(X_model, newdata){
 num_cores <- detectCores() - 2
 vars <- c(1:8, 10, 16)
 
-## Legal Males ----
+# Legal Males ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
 leg_male_data <- crab_trans %>% 
@@ -70,7 +93,7 @@ saveRDS(leg_male_shaps, file = here('data', 'leg_male_shaps.rds'))
 
 # Visualize
 # Gives the global effect of variables (absolute value, not directional)
-leg_male_shaps <- readRDS(file = here('data', 'leg_male_shaps.rds'))
+# leg_male_shaps <- readRDS(file = here('data', 'leg_male_shaps.rds'))
 
 leg_male_mshap <- as.matrix(leg_male_shaps[[3]]$shap_vals)
 leg_male_mshap_sv <- shapviz(leg_male_mshap, X = leg_male_data)
