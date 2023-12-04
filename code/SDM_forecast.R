@@ -163,12 +163,12 @@ cor.test(mat_female_test$lncount_mat_female,
 saveRDS(brt_mat_female_abun, file = here('data', 'brt_mat_female_abun_forecast.rds'))
 saveRDS(brt_mat_female_base, file = here('data', 'brt_mat_female_base_forecast.rds'))
 
-# Mature females ----
+# Immature females ----
 # Get best models using training data
-brt_imm_female_base <- grid_search_f(data = imm_female_train, # uses the trainBRT function in enmSdmX
+brt_imm_female_base <- grid_search_f(data = imm_female_train,
                                      response = 10, 
                                      family = 'bernoulli')
-brt_imm_female_base # check to make sure grid search produced best model, record hyperparameters if needed
+brt_imm_female_base
 
 brt_imm_female_abun <- grid_search_f(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
                                      response = 8, 
@@ -204,3 +204,87 @@ cor.test(imm_female_test$lncount_imm_female,
 # Save models for future use
 saveRDS(brt_imm_female_abun, file = here('data', 'brt_imm_female_abun_forecast.rds'))
 saveRDS(brt_imm_female_base, file = here('data', 'brt_imm_female_base_forecast.rds'))
+
+# Legal Males ----
+# Get best models using training data
+brt_leg_male_base <- grid_search_f(data = leg_male_train, 
+                                   response = 10, 
+                                   family = 'bernoulli')
+brt_leg_male_base 
+
+brt_leg_male_abun <- grid_search_f(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
+                                   response = 8, 
+                                   family = 'gaussian')
+brt_leg_male_abun
+
+# Predict on test data
+leg_male_test$pred_base <- predict.gbm(brt_leg_male_base$model,
+                                         leg_male_test,
+                                         n.trees = brt_leg_male_base$model$gbm.call$best.trees,
+                                         type = "response")
+
+leg_male_test$pred_abun <- predict.gbm(brt_leg_male_abun$model,
+                                         leg_male_test,
+                                         n.trees = brt_leg_male_abun$model$gbm.call$best.trees,
+                                         type = "response")
+
+leg_male_test$pred_brt <- leg_male_test$pred_base * leg_male_test$pred_abun
+
+rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
+rmse_leg_male_brt
+
+# Calculate deviance explained
+brt_deviance(brt_leg_male_abun)
+brt_deviance(brt_leg_male_base)
+
+# Spearman correlation coefficient
+cor.test(leg_male_test$lncount_leg_male, 
+         leg_male_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE)
+
+# Save models for future use
+saveRDS(brt_leg_male_abun, file = here('data', 'brt_leg_male_abun_forecast.rds'))
+saveRDS(brt_leg_male_base, file = here('data', 'brt_leg_male_base_forecast.rds'))
+
+# Legal Males ----
+# Get best models using training data
+brt_sub_male_base <- grid_search_f(data = sub_male_train, 
+                                   response = 10, 
+                                   family = 'bernoulli')
+brt_sub_male_base 
+
+brt_sub_male_abun <- grid_search_f(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
+                                   response = 8, 
+                                   family = 'gaussian')
+brt_sub_male_abun
+
+# Predict on test data
+sub_male_test$pred_base <- predict.gbm(brt_sub_male_base$model,
+                                       sub_male_test,
+                                       n.trees = brt_sub_male_base$model$gbm.call$best.trees,
+                                       type = "response")
+
+sub_male_test$pred_abun <- predict.gbm(brt_sub_male_abun$model,
+                                       sub_male_test,
+                                       n.trees = brt_sub_male_abun$model$gbm.call$best.trees,
+                                       type = "response")
+
+sub_male_test$pred_brt <- sub_male_test$pred_base * sub_male_test$pred_abun
+
+rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
+rmse_sub_male_brt
+
+# Calculate deviance explained
+brt_deviance(brt_sub_male_abun)
+brt_deviance(brt_sub_male_base)
+
+# Spearman correlation coefficient
+cor.test(sub_male_test$lncount_sub_male, 
+         sub_male_test$pred_brt, 
+         method = 'spearman',
+         exact = FALSE)
+
+# Save models for future use
+saveRDS(brt_sub_male_abun, file = here('data', 'brt_sub_male_abun_forecast.rds'))
+saveRDS(brt_sub_male_base, file = here('data', 'brt_sub_male_base_forecast.rds'))
