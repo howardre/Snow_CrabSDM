@@ -26,8 +26,14 @@ source(here('code/functions', 'brt_grid_preds.R'))
 crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
   dplyr::select(-geometry)
 
+# Lag temperature
+crab_lag <- data.frame(station = crab_summary$station,
+                       year = crab_summary$year - 1,
+                       temperature_lag = crab_summary$temperature)
+crab_lag <- merge(crab_summary, crab_lag, all = TRUE)
+
 # Transform female and male data
-crab_trans <- mutate(crab_summary,
+crab_trans <- mutate(crab_lag,
                      lncount_mat_female = log(mature_female + 1),
                      lncount_imm_female = log(immature_female + 1),
                      lncount_leg_male = log(legal_male + 1),
@@ -37,11 +43,15 @@ crab_trans <- mutate(crab_summary,
                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
                      pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
                      year_f = as.factor(year)) %>%
-  filter(!is.na(temperature),
-         !is.na(julian),
+  filter(!is.na(julian),
          !is.na(depth),
          !is.na(ice_mean),
+         !is.na(temperature_lag),
          year_f != 2022) # removed because no observer data
+
+
+
+
 
 # Create train and test datasets
 crab_train <- as.data.frame(crab_trans %>% 
@@ -52,49 +62,49 @@ crab_test <- as.data.frame(crab_trans %>%
 # Split into each sex/stage
 # Training data
 mat_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_mat_female, mature_female, 
                 pres_mat_female, year_f, year)
 
 imm_female_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f, year) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_leg_male, legal_male, 
                 pres_leg_male, year_f, year) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f, year) %>%
   tidyr::drop_na(lncount_sub_male)
 
 # Test data
 mat_female_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_mat_female, mature_female, 
                 pres_mat_female, year_f, year) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f, year) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_leg_male, legal_male, 
                 pres_leg_male, year_f, year) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_test <- crab_test %>%
-  dplyr::select(depth, temperature, phi, ice_mean, longitude, 
+  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
                 latitude, julian, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f, year) %>%
   tidyr::drop_na(lncount_sub_male)
