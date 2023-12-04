@@ -78,8 +78,7 @@ sub_male_train <- crab_train %>%
                 longitude, latitude, julian, sublegal_male_loading,
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
-  tidyr::drop_na(lncount_sub_male) %>%
-  dplyr::rename(sublegal_male = sublegal_male)
+  tidyr::drop_na(lncount_sub_male)
 
 # Test data
 mat_female_test <- crab_test %>%
