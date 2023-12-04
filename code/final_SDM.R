@@ -132,11 +132,10 @@ summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
 jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 
-# Boosted regression trees ----
 # See model_evaluation.R script for more details on hyperparameters, tuning
 # If you want to change covariates, they are in the grid_search function (otherwise it doesn't run)
 
-## Mature females ----
+# Mature females ----
 # Get best models using training data
 brt_mat_female_base <- grid_search(data = mat_female_train, # uses the trainBRT function in enmSdmX
                                    response = 13, 
@@ -147,20 +146,6 @@ brt_mat_female_abun <- grid_search(data = mat_female_train[mat_female_train$lnco
                                    response = 11, 
                                    family = 'gaussian')
 brt_mat_female_abun
-
-trainBRT(data = mat_female_train,
-         preds = c(1:8, 10, 16),
-         resp = 13,
-         family = 'bernoulli',
-         treeComplexity = c(1, 5, 10),
-         learningRate = c(0.01, 0.05, 0.1),
-         bagFraction = c(0.25, 0.5, 0.75),
-         step.size = 25,
-         minTrees = 1000, # recommended minimum by Elith
-         maxTrees = 2500,
-         tryBy = c('learningRate', 'treeComplexity', 'bagFraction'),
-         cores = 6, # increase speed,
-         out = c('tuning', 'model'))
 
 # Predict on test data
 mat_female_test$pred_base <- predict.gbm(brt_mat_female_base$model,
@@ -213,16 +198,16 @@ mat_female_preds <- brt_grid_preds(spatial_grid_mat_female,
                                    brt_mat_female_base)
 
 map_pred_brt(mat_female_preds, mat_female_train, "Mature Female Snow Crab")
-# dev.copy(jpeg,
-#          here('results/BRT',
-#               'female_mat_map.jpg'),
-#          height = 10,
-#          width = 12,
-#          res = 200,
-#          units = 'in')
-# dev.off()
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_mat_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
-## Legal males ----
+# Legal males ----
 # Get best models using training data
 brt_leg_male_base <- grid_search(data = leg_male_train, 
                                  response = 13, 
@@ -284,16 +269,16 @@ leg_male_preds <- brt_grid_preds(spatial_grid_leg_male,
                                  brt_leg_male_base)
 
 map_pred_brt(leg_male_preds, leg_male_train, "Legal Male Snow Crab")
-# dev.copy(jpeg,
-#          here('results/BRT',
-#               'male_leg_map.jpg'),
-#          height = 10,
-#          width = 12,
-#          res = 200,
-#          units = 'in')
-# dev.off()
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_leg_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
-## Immature females ----
+# Immature females ----
 # Get best models using training data
 brt_imm_female_base <- grid_search(data = imm_female_train, 
                                    respomse = 13, 
@@ -355,16 +340,16 @@ imm_female_preds <- brt_grid_preds(spatial_grid_imm_female,
                                    brt_imm_female_base)
 
 map_pred_brt(imm_female_preds, imm_female_train, "Immature Female Snow Crab")
-# dev.copy(jpeg,
-#          here('results/BRT',
-#               'female_imm_map.jpg'),
-#          height = 10,
-#          width = 12,
-#          res = 200,
-#          units = 'in')
-# dev.off()
+dev.copy(jpeg,
+         here('results/BRT',
+              'female_imm_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
-## Sublegal males ----
+# Sublegal males ----
 # Get best models using training data
 brt_sub_male_base <- grid_search(data = sub_male_train, 
                                  response = 13,
@@ -426,16 +411,16 @@ sub_male_preds <- brt_grid_preds(spatial_grid_sub_male,
                                  brt_sub_male_base)
 
 map_pred_brt(sub_male_preds, sub_male_train, "Sublegal Male Snow Crab")
-# dev.copy(jpeg,
-#          here('results/BRT',
-#               'male_sub_map.jpg'),
-#          height = 10,
-#          width = 12,
-#          res = 200,
-#          units = 'in')
-# dev.off()
+dev.copy(jpeg,
+         here('results/BRT',
+              'male_sub_map.jpg'),
+         height = 10,
+         width = 12,
+         res = 200,
+         units = 'in')
+dev.off()
 
-## Heatmap of relative influence ----
+# Heatmap of relative influence ----
 mat_female_abun_inf <- summary(brt_mat_female_abun$model)[-1]
 colnames(mat_female_abun_inf)[1] <- "mature female"
 rownames(mat_female_abun_inf)[rownames(mat_female_abun_inf) == "female_loading_station"] <- "fishery loading"
@@ -482,24 +467,24 @@ all_pres_list <- list(mat_female_pres_inf,
 # Create figures
 rel_inf_fig(all_abun_list)
 title("Abundance", line = -1.7)
-# dev.copy(jpeg,
-#          here('results/BRT',
-#               'abun_rel_inf.jpg'),
-#          height = 8,
-#          width = 6,
-#          res = 200,
-#          units = 'in',
-#          family = "serif")
-# dev.off()
+dev.copy(jpeg,
+         here('results/BRT',
+              'abun_rel_inf.jpg'),
+         height = 8,
+         width = 6,
+         res = 200,
+         units = 'in',
+         family = "serif")
+dev.off()
 
 rel_inf_fig(all_pres_list)
 title("Presence/Absence", line = -1.7)
-# dev.copy(jpeg,
-#          here('results/BRT',
-#               'pres_rel_inf.jpg'),
-#          height = 8,
-#          width = 6,
-#          res = 200,
-#          units = 'in',
-#          family = "serif")
-# dev.off()
+dev.copy(jpeg,
+         here('results/BRT',
+              'pres_rel_inf.jpg'),
+         height = 8,
+         width = 6,
+         res = 200,
+         units = 'in',
+         family = "serif")
+dev.off()
