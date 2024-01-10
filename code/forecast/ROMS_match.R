@@ -228,6 +228,14 @@ crab_ice <- merge(data_xy, ice_final,
                   by.y = c("year", "STATIONID"),
                   all.x = T)
 
+rm(crab_all, crab_env, crab_fill, crab_fix, crab_julian,
+   crab_potsum, crab_reduced, crab_summary, crab_survey,
+   EBS, EBS_grid, ice_data, ice_data_filtered, ice_df,
+   ice_final, ice_means, ice_sf, observer_dates, observer_df,
+   observer_summarized, phi_data, phi_data_xy, phi_pts,
+   phi_raster, phi_trans, survey_combined, survey_jdate,
+   survey_rename, survey_wide, EBS_poly)
+
 # Convert back to lat, lon
 crab_final <- crab_ice[-c(5, 7, 9, 22, 23)]
 crab_final$latitude <- survey_combined$latitude[match(survey_combined$index, crab_final$index)]
@@ -246,13 +254,74 @@ temp_df$day <- lubridate::day(temp_df$date)
 temp_df$julian <- as.numeric(mdy.date(temp_df$month, temp_df$day, 1960))
 
 temp_means <- temp_df %>%
-  group_by(year, STATIONID) %>%
+  group_by(year, STATIONID, julian) %>%
   summarise(mean_temp = mean(temp, na.rm = TRUE)) # calculate mean temperature based on station
 
 crab_temp <- merge(crab_final, temp_means,
-                   by.x = c("year", "station"),
-                   by.y = c("year", "STATIONID"),
+                   by.x = c("year", "station", "julian"),
+                   by.y = c("year", "STATIONID", "julian"),
                    all.x = TRUE)
+
+rm(temp_data, temp_sf, temp_df, temp_means)
+
+# Import bias corrected forecast
+forecast_match <- function(roms){
+
+}
+
+cesm_roms <- readRDS(here('data/ROMS', 'cesm_forecast_temp1.rds'))
+cesm_126 <- cesm_roms %>% filter(projection == "ssp126", 
+                                 year <= format(Sys.Date(), "%Y")) %>% # only need up to current year (the new survey year)
+  mutate(lat = lat,
+         lon = case_when(lon >= 180 ~ lon - 360,
+                         lon < 180 ~ lon)) %>%
+  rename(temp_126 = bc) %>%
+  dplyr::select(-mo_baseline_value, -projection, -mo_avg_proj, -mean_proj_baseline, -delta)
+cesm_585 <- cesm_roms %>% filter(projection == "ssp585", 
+                                 year <= format(Sys.Date(), "%Y")) %>% 
+  mutate(lat = lat,
+         lon = case_when(lon >= 180 ~ lon - 360,
+                         lon < 180 ~ lon)) %>%
+  rename(temp_585 = bc) %>%
+  dplyr::select(-mo_baseline_value, -projection, -mo_avg_proj, -mean_proj_baseline, -delta)
+
+cesm_merge <- merge(as.data.frame(cesm_126), 
+                    as.data.frame(cesm_585),
+                    by = c("year", "month", "lat", "lon"))
+cesm_mean <- cesm_merge %>%
+  mutate(cesm_mean = mean(c(temp_126, temp_585))) %>%
+  dplyr::select(-temp_126, -temp_585)
+
+cesm_sf <- st_as_sf(cesm_mean,
+                    coords = c("lon", "lat"), 
+                    crs = 4269)
+
+cesm_df <- cesm_sf %>% st_join(EBS_trans, join = st_intersects, left = FALSE) # match points to stations
+
+cesm_station <- cesm_df %>%
+  group_by(year, STATIONID, month) %>%
+  summarise(avg_temp = mean(cesm_mean, na.rm = TRUE)) # calculate mean temperature based on station
+
+crab_final$month <- lubridate::month(crab_final$date)
+
+crab_cesm <- merge(crab_final, cesm_station,
+                   by.x = c("year", "station", "month"),
+                   by.y = c("year", "STATIONID", "month"),
+                   all.x = TRUE)
+
+
+gfdl_roms <- readRDS(here('data/ROMS', 'gfdl_forecast_temp1.rds'))
+gfdl_sf <- st_as_sf(gfdl_roms,
+                    coords = c("lon", "lat"), 
+                    crs = 4269)
+
+miroc_roms <- readRDS(here('data/ROMS', 'miroc_forecast_temp1.rds'))
+miroc_sf <- st_as_sf(miroc_roms,
+                     coords = c("lon", "lat"), 
+                     crs = 4269)
+
+
+
 
 # Interpolate depths
 # Use other data to fill in missing depth values
@@ -262,9 +331,12 @@ depth_loess <- loess(depth ~ longitude * latitude,
                      data = crab_temp)
 crab_temp$depth_pred <- predict(depth_loess, newdata = crab_temp)
 
-survey_depth <- crab_temp %>% mutate(depth = coalesce(depth, depth_pred))
+survey_depth <- crab_temp %>% 
+  mutate(depth = coalesce(depth, depth_pred))
 
-crab_roms <- survey_depth %>% drop_na(mean_temp, depth, phi, julian)
+crab_roms <- survey_depth %>% 
+  drop_na(mean_temp, depth, phi, julian) %>% 
+  dplyr::select(-geometry.x, -geometry.y)
 
 # Save final data set
 saveRDS(crab_roms, file = here('data/Snow_CrabData', 'crab_roms.rds'))
