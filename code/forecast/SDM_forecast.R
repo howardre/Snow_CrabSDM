@@ -23,31 +23,30 @@ source(here('code/functions', 'distance_function.R'))
 source(here('code/functions', 'brt_grid_preds.R'))
 
 # Load and prepare data ----
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
-  dplyr::select(-geometry)
+# Forecast values begin in 2018
+# Hindcast values end in 2020
+crab_roms <- readRDS(here('data/Snow_CrabData', 'crab_roms.rds')) %>%
+  dplyr::select(-geometry.x) %>%
+  mutate(lncount_mat_female = log(mature_female + 1),
+         lncount_imm_female = log(immature_female + 1),
+         lncount_leg_male = log(legal_male + 1),
+         lncount_sub_male = log(sublegal_male + 1),
+         pres_imm_female = ifelse(immature_female > 0, 1, 0),
+         pres_mat_female = ifelse(mature_female > 0, 1, 0),
+         pres_leg_male = ifelse(legal_male > 0, 1, 0),
+         pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
+         year_f = as.factor(year)) %>%
+  filter(!is.na(julian),
+         !is.na(depth),
+         !is.na(ice_mean),
+         year_f != 2022) # removed because no observer data
+crab_summary <- filter(crab_roms, !is.na(temperature))
 
 # Lag temperature
 crab_lag <- data.frame(station = crab_summary$station,
                        year = crab_summary$year + 1,
                        temperature_lag = crab_summary$temperature)
 crab_lag <- merge(crab_summary, crab_lag, all = TRUE)
-
-# Transform female and male data
-crab_roms <- mutate(crab_summary, # use for forecasts with ROMS
-                      lncount_mat_female = log(mature_female + 1),
-                      lncount_imm_female = log(immature_female + 1),
-                      lncount_leg_male = log(legal_male + 1),
-                      lncount_sub_male = log(sublegal_male + 1),
-                      pres_imm_female = ifelse(immature_female > 0, 1, 0),
-                      pres_mat_female = ifelse(mature_female > 0, 1, 0),
-                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
-                      pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
-                      year_f = as.factor(year)) %>%
-  filter(!is.na(julian),
-         !is.na(depth),
-         !is.na(ice_mean),
-         !is.na(mean_temp),
-         year_f != 2022) # removed because no observer data
 
 crab_trans <- mutate(crab_lag, # use for forecasts with temperature lag
                      lncount_mat_female = log(mature_female + 1),
