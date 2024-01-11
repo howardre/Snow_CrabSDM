@@ -38,8 +38,7 @@ crab_roms <- readRDS(here('data/Snow_CrabData', 'crab_roms.rds')) %>%
          year_f = as.factor(year)) %>%
   filter(!is.na(julian),
          !is.na(depth),
-         !is.na(ice_mean),
-         year_f != 2022) # removed because no observer data
+         !is.na(ice_mean))
 crab_summary <- filter(crab_roms, !is.na(temperature))
 
 # Lag temperature
@@ -61,88 +60,92 @@ crab_trans <- mutate(crab_lag, # use for forecasts with temperature lag
   filter(!is.na(julian),
          !is.na(depth),
          !is.na(ice_mean),
-         !is.na(temperature_lag),
-         year_f != 2022) # removed because no observer data
+         !is.na(temperature_lag))
 
-
-# Create train and test datasets
+# Create train and test data sets
+# Currently a not-so-ideal 90/10 split, should improve with 2022/2023 data
 crab_train <- as.data.frame(crab_roms %>% 
-                              filter(year < 2013))
+                              filter(year <= 2017,
+                                     !is.na(mean_temp)))
 crab_test <- as.data.frame(crab_roms %>% 
-                             filter(year > 2013 & year != max(year)))
-
-crab_train <- as.data.frame(crab_roms %>% 
-                              filter(year < 2020))
-crab_test <- as.data.frame(crab_roms %>% 
-                             filter(year == 2021))
+                             filter(between(year, 2018, 2019),
+                                    !is.na(roms_mean)))
 
 # Split into each sex/stage
-# Training data
+# Training data (uses hindcast)
 mat_female_train <- crab_train %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
-                latitude, julian, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year)
-
-imm_female_train <- crab_train %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
-                latitude, julian, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year) %>%
-  tidyr::drop_na(lncount_imm_female)
-
-leg_male_train <- crab_train %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
-                latitude, julian, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year) %>%
-  tidyr::drop_na(lncount_leg_male)
-
-sub_male_train <- crab_train %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
-                latitude, julian, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year) %>%
-  tidyr::drop_na(lncount_sub_male)
-
-# Test data
-mat_female_test <- crab_test %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
+  dplyr::select(depth, mean_temp, phi, ice_mean, longitude, 
                 latitude, julian, lncount_mat_female, mature_female, 
                 pres_mat_female, year_f, year) %>%
-  tidyr::drop_na(lncount_mat_female) 
+  rename(roms_temp = mean_temp)
 
-imm_female_test <- crab_test %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
+imm_female_train <- crab_train %>%
+  dplyr::select(depth, mean_temp, phi, ice_mean, longitude, 
                 latitude, julian, lncount_imm_female, immature_female, 
                 pres_imm_female, year_f, year) %>%
-  tidyr::drop_na(lncount_imm_female)
+  tidyr::drop_na(lncount_imm_female) %>%
+  rename(roms_temp = mean_temp)
 
-leg_male_test <- crab_test %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
+leg_male_train <- crab_train %>%
+  dplyr::select(depth, mean_temp, phi, ice_mean, longitude, 
                 latitude, julian, lncount_leg_male, legal_male, 
                 pres_leg_male, year_f, year) %>%
-  tidyr::drop_na(lncount_leg_male)
+  tidyr::drop_na(lncount_leg_male) %>%
+  rename(roms_temp = mean_temp)
 
-sub_male_test <- crab_test %>%
-  dplyr::select(depth, temperature_lag, phi, ice_mean, longitude, 
+sub_male_train <- crab_train %>%
+  dplyr::select(depth, mean_temp, phi, ice_mean, longitude, 
                 latitude, julian, lncount_sub_male, sublegal_male, 
                 pres_sub_male, year_f, year) %>%
-  tidyr::drop_na(lncount_sub_male)
+  tidyr::drop_na(lncount_sub_male) %>%
+  rename(roms_temp = mean_temp)
+
+# Test data (uses forecast means)
+mat_female_test <- crab_test %>%
+  dplyr::select(depth, roms_mean, phi, ice_mean, longitude, 
+                latitude, julian, lncount_mat_female, mature_female, 
+                pres_mat_female, year_f, year) %>%
+  tidyr::drop_na(lncount_mat_female) %>%
+  rename(roms_temp = roms_mean)
+
+imm_female_test <- crab_test %>%
+  dplyr::select(depth, roms_mean, phi, ice_mean, longitude, 
+                latitude, julian, lncount_imm_female, immature_female, 
+                pres_imm_female, year_f, year) %>%
+  tidyr::drop_na(lncount_imm_female) %>%
+  rename(roms_temp = roms_mean)
+
+leg_male_test <- crab_test %>%
+  dplyr::select(depth, roms_mean, phi, ice_mean, longitude, 
+                latitude, julian, lncount_leg_male, legal_male, 
+                pres_leg_male, year_f, year) %>%
+  tidyr::drop_na(lncount_leg_male) %>%
+  rename(roms_temp = roms_mean)
+
+sub_male_test <- crab_test %>%
+  dplyr::select(depth, roms_mean, phi, ice_mean, longitude, 
+                latitude, julian, lncount_sub_male, sublegal_male, 
+                pres_sub_male, year_f, year) %>%
+  tidyr::drop_na(lncount_sub_male) %>%
+  rename(roms_temp = roms_mean)
 
 # Use LOESS for prediction grid
 # Bottom depth based on survey
 depth_loess <- loess(depth ~ longitude * latitude,
-                     data = crab_trans,
-                     span = 0.7,
+                     data = crab_roms,
+                     span = 0.05,
                      degree = 2,
                      control = loess.control(surface = "interpolate"))
-summary(lm(depth_loess$fitted ~ crab_trans$depth)) # check R2
+summary(lm(depth_loess$fitted ~ crab_roms$depth)) # check R2
 
 # Grain size based on EBSSED
 phi_loess <- loess(phi ~ longitude * latitude,
                    span = 0.05,
                    degree = 2,
-                   data = crab_trans,
+                   data = crab_roms,
                    family = "symmetric",
                    control = loess.control(surface = "interpolate"))
-summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
+summary(lm(phi_loess$fitted ~ crab_roms$phi)) # check R2
 
 # Custom colors
 contour_col <- rgb(0, 0, 255, max = 255, alpha = 0, names = "white")
