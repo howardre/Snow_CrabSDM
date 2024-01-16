@@ -39,15 +39,18 @@ crab_roms <- readRDS(here('data/Snow_CrabData', 'crab_roms.rds')) %>%
   filter(!is.na(julian),
          !is.na(depth),
          !is.na(ice_mean))
-crab_summary <- filter(crab_roms, !is.na(temperature))
 
 # Lag temperature
-crab_lag <- data.frame(station = crab_summary$station,
-                       year = crab_summary$year + 1,
-                       temperature_lag = crab_summary$temperature)
-crab_lag <- merge(crab_summary, crab_lag, all = TRUE)
+crab_lag <- data.frame(station = crab_roms$station,
+                       year = crab_roms$year,
+                       year_lag = crab_roms$year + 1,
+                       temperature_lag = crab_roms$temperature)
+crab_summary <- merge(crab_roms, crab_lag, 
+                      by.x = c("year", "station"),
+                      by.y = c("year_lag", "station"),
+                      all.y = TRUE)
 
-crab_trans <- mutate(crab_lag, # use for forecasts with temperature lag
+crab_trans <- mutate(crab_summary, # use for forecasts with temperature lag
                      lncount_mat_female = log(mature_female + 1),
                      lncount_imm_female = log(immature_female + 1),
                      lncount_leg_male = log(legal_male + 1),
@@ -159,8 +162,8 @@ brt_mat_female_base <- grid_search_f(data = mat_female_train, # uses the trainBR
 brt_mat_female_base # check to make sure grid search produced best model, record hyperparameters if needed
 
 brt_mat_female_abun <- grid_search_f(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                                   response = 8, 
-                                   family = 'gaussian')
+                                     response = 8, 
+                                     family = 'gaussian')
 brt_mat_female_abun
 
 # Predict on test data

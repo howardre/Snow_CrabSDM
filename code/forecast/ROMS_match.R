@@ -73,14 +73,6 @@ forecast_match <- function(roms, survey){
 }
 
 # Load data ----
-# Catch of snow crab in directed fishery
-crab_potsum_most <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-1995-2020_potsum.csv'))
-crab_potsum_21 <- read_csv(here('data/Snow_CrabData/snowcrab-1995-2021', 'snowcrab-2021_potsum.csv'))
-
-crab_potsum <- rbind(crab_potsum_most, crab_potsum_21)
-
-rm(crab_potsum_most, crab_potsum_21)
-
 # EBS survey data
 crab_survey <- read_csv(here('data/Snow_CrabData', 'station_cpue_BCS_snowEBSNBS.csv'), col_select = -c(1))
 crab_env <- read_csv(here('data/Snow_CrabData', 'SAPsurvey_tempdepth.csv'), col_select = -c(1))
@@ -137,13 +129,6 @@ survey_rename <- survey_jdate %>%
          mature_female = ifelse(is.na(mature_female), 0, mature_female))
 survey_rename <- survey_rename[-20]
 
-# Reformat data (summarize males, split up dates)
-crab_summary <- clean_data(crab_potsum)
-crab_summary$total <- crab_summary$female + crab_summary$tot_legal + crab_summary$sublegal
-crab_summary$male <- crab_summary$tot_legal + crab_summary$sublegal
-
-# Group observer data for each season (Nov - Mar)
-# Match closest observer data from preceding season to a station for a year
 # Get the survey grid
 EBS <- get_base_layers(select.region = 'ebs', set.crs = 'auto')
 class(EBS)
@@ -154,48 +139,11 @@ EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
 
 EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
 
-crab_sf <- st_as_sf(crab_summary, 
-                    coords = c("longitude", "latitude"), 
-                    crs = 4269)
 survey_sf <- st_as_sf(survey_wide,
                       coords = c("longitude", "latitude"), 
                       crs = 4269)
 
 sf_use_s2(FALSE)
-observer_df <- st_join(crab_sf, EBS_trans, left = FALSE)
-
-ggplot() +
-  geom_sf(data = EBS$survey.grid) +
-  geom_sf(data = observer_df,
-          aes(color = STATIONID)) +
-  coord_sf(xlim = EBS$plot.boundary$x,
-           ylim = EBS$plot.boundary$y) +
-  scale_x_continuous(name = "Longitude", 
-                     breaks = EBS$lon.breaks) + 
-  scale_y_continuous(name = "Latitude", 
-                     breaks = EBS$lat.breaks)  # shows that they are grouped into the polygons
-
-# Check for zeros
-observer_df$legal_presence <- ifelse(observer_df$tot_legal > 0, 1, 0)
-observer_df$sublegal_presence <- ifelse(observer_df$sublegal > 0, 1, 0)
-observer_df$female_presence <- ifelse(observer_df$female > 0, 1, 0)
-
-# Average the female and male CPUE by season and nearest station
-# Need to include previous year when grouping by season (months 11 and 12)
-observer_dates <- mutate(observer_df,
-                         date_lag = ymd(date) %m+% - months(-2),
-                         year_lag = year(date_lag)) # lag to group by season
-observer_summarized <- observer_dates %>%
-  group_by(year_lag, STATIONID) %>%
-  summarise(obs_male_legal = mean(tot_legal),
-            obs_male_sub = mean(sublegal),
-            obs_female = mean(female))
-
-# Match to the survey data
-survey_combined <- merge(survey_rename, observer_summarized,
-                         by.x = c("year", "station"),
-                         by.y = c("year_lag", "STATIONID"),
-                         all.x = T)[-26] # only 1455 rows with observer data
 
 # Add environmental data ----
 # Load data
