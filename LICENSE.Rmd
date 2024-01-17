@@ -1,5 +1,5 @@
 ---
-title: "LICENSE"
+title: "MIT License"
 author: "Rebecca Howard"
 date: "2024-01-17"
 output: html_document
