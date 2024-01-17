@@ -24,7 +24,7 @@ brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
 brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
 
 # Load and prepare data ----
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+crab_summary <- readRDS(here('data', 'crab_pca.rds')) %>%
   dplyr::select(-geometry)
 
 # Transform female and male data

@@ -31,7 +31,7 @@ EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to la
 bering_sea <- map_data("world")
 
 # Make sure to run PCA first if updating the data matching script
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+crab_summary <- readRDS(here('data', 'crab_pca.rds')) %>%
   dplyr::select(-geometry)
 
 # Transform female and male data

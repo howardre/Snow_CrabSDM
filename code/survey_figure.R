@@ -4,7 +4,7 @@ library(sf)
 library(akgfmaps)
 
 # Prepare data
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+crab_summary <- readRDS(here('data', 'crab_pca.rds')) %>%
   dplyr::select(-geometry)
 
 crab_trans <- mutate(crab_summary,

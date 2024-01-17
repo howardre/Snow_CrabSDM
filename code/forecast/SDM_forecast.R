@@ -25,7 +25,7 @@ source(here('code/functions', 'brt_grid_preds.R'))
 # Load and prepare data ----
 # Forecast values begin in 2018
 # Hindcast values end in 2020
-crab_roms <- readRDS(here('data/Snow_CrabData', 'crab_roms.rds')) %>%
+crab_roms <- readRDS(here('data', 'crab_roms.rds')) %>%
   dplyr::select(-geometry.x) %>%
   mutate(lncount_mat_female = log(mature_female + 1),
          lncount_imm_female = log(immature_female + 1),

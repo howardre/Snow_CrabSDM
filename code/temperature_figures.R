@@ -13,7 +13,7 @@ EBS_poly <- st_cast(EBS_grid, "MULTIPOLYGON")
 EBS_trans <- st_transform(EBS_poly, "+proj=longlat +datum=NAD83") # change to lat/lon
 bering_sea <- map_data("world")
 
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))[, c(26, 25, 6, 1, 2)]
+crab_summary <- readRDS(here('data', 'crab_pca.rds'))[, c(26, 25, 6, 1, 2)]
 
 crab_matrix_cold <- crab_summary[crab_summary$year == 2010,]
 crab_matrix_warm <- crab_summary[crab_summary$year == 2019,]

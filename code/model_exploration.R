@@ -23,7 +23,7 @@ jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 
 # Load data ----
 # Make sure to run PCA first if updating the data matching script
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>% 
+crab_summary <- readRDS(here('data', 'crab_pca.rds')) %>% 
   select(-geometry)
 
 # Transform female and male data

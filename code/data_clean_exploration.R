@@ -4,7 +4,7 @@ library(dplyr)
 library(ggplot2)
 
 # Load data ----
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds'))
+crab_summary <- readRDS(here('data', 'crab_pca.rds'))
 bering_sea <- map_data("world")
 
 # Transform female and male data
