@@ -42,7 +42,7 @@ options(shapviz.brewer_args = list(low = "darkslateblue",
 
 # Load data ----
 # Make sure to run PCA first if updating the data matching script
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+crab_summary <- readRDS(here('data', 'crab_pca.rds')) %>%
   dplyr::select(-geometry)
 
 # Transform female and male data

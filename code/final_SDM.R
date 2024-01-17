@@ -24,7 +24,7 @@ source(here('code/functions', 'map_pred_brt.R'))
 source(here('code/functions', 'rel_inf_fig.R'))
 
 # Load and prepare data ----
-crab_summary <- readRDS(here('data/Snow_CrabData', 'crab_pca.rds')) %>%
+crab_summary <- readRDS(here('data', 'crab_pca.rds')) %>%
   dplyr::select(-geometry)
 
 # Transform female and male data
