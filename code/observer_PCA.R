@@ -272,8 +272,10 @@ crab_summary$legal_male_loading_station[is.na(crab_summary$legal_male_loading_st
 crab_summary$sublegal_male_loading_station[is.na(crab_summary$sublegal_male_loading_station)] <- 0
 crab_summary$female_loading_station[is.na(crab_summary$female_loading_station)] <- 0
 
+crab_summary <- crab_summary %>% select(-obs_male_legal, -obs_male_sub, -obs_female)
+
 # Save data
-saveRDS(crab_summary, file = here('data/Snow_CrabData', 'crab_pca.rds'))
+saveRDS(crab_summary, file = here('data', 'crab_pca.rds'))
 
 # Plot ----
 legal_male_loadings_stations$latitude <- observer_df$latitude[match(legal_male_loadings_stations$station, observer_df$STATIONID)]
