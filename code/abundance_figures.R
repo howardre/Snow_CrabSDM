@@ -2,6 +2,7 @@ library(ggplot2)
 library(here)
 library(dplyr)
 library(reshape2)
+library(readr)
 
 crab_abun <- read_csv(here('data', 'snowcrab_abundance.csv'))
 
@@ -27,7 +28,7 @@ ggplot(abun_final,
                                          "Immature Female")) ~ .,
              scales = "free_y") +
   theme_minimal() +
-  labs(y = "Abundance (billions)") +
+  labs(y = "Abundance (millions)") +
   theme(axis.ticks = element_blank(),
         plot.title = element_text(size = 17,
                                   family = "serif",
