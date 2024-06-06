@@ -39,7 +39,7 @@ image(phi_x,
 rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], col = "mintcream")
 par(new = TRUE)
 image(phi_x,
-      col = hcl.colors(18, "YlOrRd", rev = TRUE),
+      col = inferno(256, begin = 0.25, end = 0.85),
       xlim = c(-179.5, -156),
       ylim = c(54, 66),     
       ylab = "Latitude \u00B0N",
@@ -53,7 +53,7 @@ maps::map("worldHires",
           col = "wheat4",
           add = T)
 image.plot(legend.only = T,
-           col = hcl.colors(18, "YlOrRd", rev = TRUE),
+           col = inferno(256, begin = 0.25, end = 0.85),
            legend.shrink = 0.2,
            smallplot = c(.24, .26, .17, .35),
            legend.cex = 1.8,
