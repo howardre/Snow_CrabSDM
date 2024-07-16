@@ -12,7 +12,7 @@ rel_inf_fig <- function(inf_list){
     arrange(factor(vars,
                    levels = c("longitude", "depth", "phi", "temperature", 
                               "latitude", "julian", "ice_mean",
-                              "log_pcod_cpue", "fishery loading", "BCS")))
+                              "log_pcod_cpue", "BCS")))
   mat_rel_inf <- as.matrix(ord_rel_inf[, -1])
   sca_rel_inf <- apply(mat_rel_inf,
                        MARGIN = 2,
@@ -25,14 +25,14 @@ rel_inf_fig <- function(inf_list){
             Colv = FALSE,
             col = heatmap_palette(100),
             cexCol = 1.2,
-            # key = TRUE,
-            # density.info = "none",
+            key = FALSE,
+            density.info = "none",
             # key.title = "Relative Influence",
             # key.ytickfun = FALSE,
             # key.xlab = "",
             trace = "none",
             srtCol = 45,
-            margins = c(12, 8),
+            margins = c(16, 8),
             adjCol = c(NA, -0.2),
             offsetCol = 0)
 }
