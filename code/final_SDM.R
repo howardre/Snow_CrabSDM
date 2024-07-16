@@ -38,12 +38,15 @@ crab_trans <- mutate(crab_summary,
                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
                      pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
                      year_f = as.factor(year),
-                     log_pcod_cpue = log(pcod_cpue + 1)) %>%
+                     log_pcod_cpue = log(pcod_cpue + 1),
+                     bcs_legal_male = ifelse(bcs_legal_male > 0, 1, 0),
+                     bcs_sublegal_male = ifelse(bcs_sublegal_male > 0, 1, 0),
+                     bcs_mature_female = ifelse(bcs_mature_female > 0, 1, 0),
+                     bcs_immature_female = ifelse(bcs_immature_female > 0, 1, 0)) %>%
   filter(!is.na(temperature),
          !is.na(julian),
          !is.na(depth),
-         !is.na(ice_mean),
-         year_f != 2022) # removed because no observer data
+         !is.na(ice_mean))
 
 # Create train and test datasets
 crab_train <- as.data.frame(crab_trans %>% 
@@ -55,58 +58,58 @@ crab_test <- as.data.frame(crab_trans %>%
 # Training data
 mat_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station)
+                pres_mat_female, year_f, year)
 
 imm_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, female_loading_station) %>%
+                pres_imm_female, year_f, year) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
-                longitude, latitude, julian, legal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station) %>%
+                pres_leg_male, year_f, year) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, sublegal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
+                pres_sub_male, year_f, year) %>%
   tidyr::drop_na(lncount_sub_male)
 
 # Test data
 mat_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station) %>%
+                pres_mat_female, year_f, year) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, female_loading_station) %>%
+                pres_imm_female, year_f, year) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
-                longitude, latitude, julian, legal_male_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station) %>%
+                pres_leg_male, year_f, year) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, sublegal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, sublegal_male_loading_station) %>%
+                pres_sub_male, year_f, year) %>%
   tidyr::drop_na(lncount_sub_male)
 
 # Use LOESS for prediction grid
@@ -137,12 +140,12 @@ jet.colors <- colorRampPalette(c(sequential_hcl(15, palette = "Mint")))
 # Mature females ----
 # Get best models using training data
 brt_mat_female_base <- grid_search(data = mat_female_train, # uses the trainBRT function in enmSdmX
-                                   response = 13, 
+                                   response = 12, 
                                    family = 'bernoulli')
 brt_mat_female_base # check to make sure grid search produced best model, record hyperparameters if needed
 
 brt_mat_female_abun <- grid_search(data = mat_female_train[mat_female_train$lncount_mat_female > 0, ],
-                                   response = 11, 
+                                   response = 10, 
                                    family = 'gaussian')
 brt_mat_female_abun
 
@@ -209,12 +212,12 @@ dev.off()
 # Legal males ----
 # Get best models using training data
 brt_leg_male_base <- grid_search(data = leg_male_train, 
-                                 response = 13, 
+                                 response = 12, 
                                  family = 'bernoulli')
 brt_leg_male_base
 
 brt_leg_male_abun <- grid_search(data = leg_male_train[leg_male_train$lncount_leg_male > 0, ],
-                                response = 11,
+                                response = 10,
                                 family = 'gaussian')
 brt_leg_male_abun
 
@@ -280,12 +283,12 @@ dev.off()
 # Immature females ----
 # Get best models using training data
 brt_imm_female_base <- grid_search(data = imm_female_train, 
-                                   response = 13, 
+                                   response = 12, 
                                    family = 'bernoulli')
 brt_imm_female_base
 
 brt_imm_female_abun <- grid_search(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                                   response = 11, 
+                                   response = 10, 
                                    family = 'gaussian')
 brt_imm_female_abun
 
@@ -351,12 +354,12 @@ dev.off()
 # Sublegal males ----
 # Get best models using training data
 brt_sub_male_base <- grid_search(data = sub_male_train, 
-                                 response = 13,
+                                 response = 12,
                                  family = 'bernoulli')
 brt_sub_male_base
 
 brt_sub_male_abun <- grid_search(data = sub_male_train[sub_male_train$lncount_sub_male > 0, ],
-                                 response = 11, 
+                                 response = 10, 
                                  family = 'gaussian')
 brt_sub_male_abun
 
