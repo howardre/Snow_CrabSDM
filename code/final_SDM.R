@@ -422,35 +422,27 @@ dev.off()
 # Heatmap of relative influence ----
 mat_female_abun_inf <- summary(brt_mat_female_abun$model)[-1]
 colnames(mat_female_abun_inf)[1] <- "mature female"
-rownames(mat_female_abun_inf)[rownames(mat_female_abun_inf) == "female_loading_station"] <- "fishery loading"
 rownames(mat_female_abun_inf)[rownames(mat_female_abun_inf) == "bcs_mature_female"] <- "BCS"
 mat_female_pres_inf <- summary(brt_mat_female_base$model)[-1]
 colnames(mat_female_pres_inf)[1] <- "mature female"
-rownames(mat_female_pres_inf)[rownames(mat_female_pres_inf) == "female_loading_station"] <- "fishery loading"
 rownames(mat_female_pres_inf)[rownames(mat_female_pres_inf) == "bcs_mature_female"] <- "BCS"
 imm_female_abun_inf <- summary(brt_imm_female_abun$model)[-1]
 colnames(imm_female_abun_inf)[1] <- "immature female"
-rownames(imm_female_abun_inf)[rownames(imm_female_abun_inf) == "female_loading_station"] <- "fishery loading"
 rownames(imm_female_abun_inf)[rownames(imm_female_abun_inf) == "bcs_immature_female"] <- "BCS"
 imm_female_pres_inf <- summary(brt_imm_female_base$model)[-1]
 colnames(imm_female_pres_inf)[1] <- "immature female"
-rownames(imm_female_pres_inf)[rownames(imm_female_pres_inf) == "female_loading_station"] <- "fishery loading"
 rownames(imm_female_pres_inf)[rownames(imm_female_pres_inf) == "bcs_immature_female"] <- "BCS"
 leg_male_abun_inf <- summary(brt_leg_male_abun$model)[-1]
 colnames(leg_male_abun_inf)[1] <- "legal male"
-rownames(leg_male_abun_inf)[rownames(leg_male_abun_inf) == "legal_male_loading_station"] <- "fishery loading"
 rownames(leg_male_abun_inf)[rownames(leg_male_abun_inf) == "bcs_legal_male"] <- "BCS"
 leg_male_pres_inf <- summary(brt_leg_male_base$model)[-1]
 colnames(leg_male_pres_inf)[1] <- "legal male"
-rownames(leg_male_pres_inf)[rownames(leg_male_pres_inf) == "legal_male_loading_station"] <- "fishery loading"
 rownames(leg_male_pres_inf)[rownames(leg_male_pres_inf) == "bcs_legal_male"] <- "BCS"
 sub_male_abun_inf <- summary(brt_sub_male_abun$model)[-1]
 colnames(sub_male_abun_inf)[1] <- "sublegal male"
-rownames(sub_male_abun_inf)[rownames(sub_male_abun_inf) == "sublegal_male_loading_station"] <- "fishery loading"
 rownames(sub_male_abun_inf)[rownames(sub_male_abun_inf) == "bcs_sublegal_male"] <- "BCS"
 sub_male_pres_inf <- summary(brt_sub_male_base$model)[-1]
 colnames(sub_male_pres_inf)[1] <- "sublegal male"
-rownames(sub_male_pres_inf)[rownames(sub_male_pres_inf) == "sublegal_male_loading_station"] <- "fishery loading"
 rownames(sub_male_pres_inf)[rownames(sub_male_pres_inf) == "bcs_sublegal_male"] <- "BCS"
 
 all_abun_list <- list(mat_female_abun_inf,
@@ -465,7 +457,7 @@ all_pres_list <- list(mat_female_pres_inf,
 
 # Create figures
 rel_inf_fig(all_abun_list)
-title("Abundance", line = -1.7)
+title("Abundance", line = -3.7)
 dev.copy(jpeg,
          here('results/BRT',
               'abun_rel_inf.jpg'),
@@ -477,7 +469,7 @@ dev.copy(jpeg,
 dev.off()
 
 rel_inf_fig(all_pres_list)
-title("Presence/Absence", line = -1.7)
+title("Presence/Absence", line = -3.7)
 dev.copy(jpeg,
          here('results/BRT',
               'pres_rel_inf.jpg'),
