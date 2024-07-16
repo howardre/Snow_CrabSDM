@@ -280,12 +280,12 @@ dev.off()
 # Immature females ----
 # Get best models using training data
 brt_imm_female_base <- grid_search(data = imm_female_train, 
-                                   respomse = 13, 
+                                   response = 13, 
                                    family = 'bernoulli')
 brt_imm_female_base
 
 brt_imm_female_abun <- grid_search(data = imm_female_train[imm_female_train$lncount_imm_female > 0, ],
-                                   respomse = 11, 
+                                   response = 11, 
                                    family = 'gaussian')
 brt_imm_female_abun
 
