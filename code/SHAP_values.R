@@ -42,8 +42,7 @@ crab_trans <- mutate(crab_summary,
   filter(!is.na(temperature),
          !is.na(julian),
          !is.na(depth),
-         !is.na(ice_mean),
-         year_f != 2022) # removed because no observer data
+         !is.na(ice_mean)) 
 
 # Customize legend labels - must be done for each plot individually
 change_legend_breaks <- function(the_plot, aesthetic, breaks, labels){
