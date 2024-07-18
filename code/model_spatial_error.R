@@ -12,6 +12,7 @@ library(colorspace)
 library(fields)
 library(ggplot2)
 library(akgfmaps)
+library(viridis)
 library(enmSdmX) # use for grid search, wrapper for dismo
 source(here('code/functions', 'vis_gam_COLORS.R'))
 source(here('code/functions', 'distance_function.R'))
