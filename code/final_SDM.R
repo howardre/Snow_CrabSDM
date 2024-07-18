@@ -38,11 +38,7 @@ crab_trans <- mutate(crab_summary,
                      pres_leg_male = ifelse(legal_male > 0, 1, 0),
                      pres_sub_male = ifelse(sublegal_male > 0, 1, 0),
                      year_f = as.factor(year),
-                     log_pcod_cpue = log(pcod_cpue + 1),
-                     bcs_legal_male = ifelse(bcs_legal_male > 0, 1, 0),
-                     bcs_sublegal_male = ifelse(bcs_sublegal_male > 0, 1, 0),
-                     bcs_mature_female = ifelse(bcs_mature_female > 0, 1, 0),
-                     bcs_immature_female = ifelse(bcs_immature_female > 0, 1, 0)) %>%
+                     log_pcod_cpue = log(pcod_cpue + 1)) %>%
   filter(!is.na(temperature),
          !is.na(julian),
          !is.na(depth),
