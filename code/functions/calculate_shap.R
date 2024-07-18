@@ -1,4 +1,4 @@
-calculate_shap <- function(brt_abun, brt_pres, data){
+calculate_shap <- function(brt_abun, brt_pres, data, vars){
   explain <- data[vars] # contains just variables to calculate SHAP for
   
   # Baseline/expected values
