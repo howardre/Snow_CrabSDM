@@ -49,8 +49,7 @@ crab_trans <- mutate(crab_summary,
   filter(!is.na(temperature),
          !is.na(julian),
          !is.na(depth),
-         !is.na(ice_mean),
-         year_f != 2022)
+         !is.na(ice_mean))
 
 # Create train and test datasets
 # Considering using blocked approach but current discussion pointed toward using certain years
@@ -61,74 +60,74 @@ crab_test <- as.data.frame(crab_trans %>%
                              filter(year > 2014))
 
 crab_train_warm <- as.data.frame(crab_trans %>% 
-                              filter(year < 2015 | year == 2018))
+                              filter(year < 2015 | year == 2019))
 crab_test_warm <- as.data.frame(crab_trans %>% 
-                             filter(year > 2014 & year != 2018))
+                             filter(year > 2014 & year != 2019))
 
 # Split into each sex/stage
 # Training data
 mat_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station,
+                pres_mat_female, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 mat_female_train_warm <- crab_train_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station,
+                pres_mat_female, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_mat_female)
 
 imm_female_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, female_loading_station,
+                pres_imm_female, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 imm_female_train_warm <- crab_train_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, female_loading_station,
+                pres_imm_female, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
-                longitude, latitude, julian, legal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station,
+                pres_leg_male, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 leg_male_train_warm <- crab_train_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
-                longitude, latitude, julian, legal_male_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station,
+                pres_leg_male, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_train <- crab_train %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, sublegal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, sublegal_male_loading_station,
+                pres_sub_male, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
 sub_male_train_warm <- crab_train_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, sublegal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, sublegal_male_loading_station,
+                pres_sub_male, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
@@ -136,66 +135,66 @@ sub_male_train_warm <- crab_train_warm %>%
 # Test data
 mat_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station,
+                pres_mat_female, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_mat_female)
 
 mat_female_test_warm <- crab_test_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_mature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_mat_female, mature_female, 
-                pres_mat_female, year_f, year, female_loading_station,
+                pres_mat_female, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_mat_female) 
 
 imm_female_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, female_loading_station,
+                pres_imm_female, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 imm_female_test_warm <- crab_test_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_immature_female,
-                longitude, latitude, julian, female_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_imm_female, immature_female, 
-                pres_imm_female, year_f, year, female_loading_station,
+                pres_imm_female, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_imm_female)
 
 leg_male_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
-                longitude, latitude, julian, legal_male_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station,
+                pres_leg_male, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 leg_male_test_warm <- crab_test_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_legal_male,
-                longitude, latitude, julian, legal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_leg_male, legal_male, 
-                pres_leg_male, year_f, year, legal_male_loading_station,
+                pres_leg_male, year_f, year, 
                 station) %>%
   tidyr::drop_na(lncount_leg_male)
 
 sub_male_test <- crab_test %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, sublegal_male_loading,
+                longitude, latitude, julian,
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, sublegal_male_loading_station,
+                pres_sub_male, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
 
 sub_male_test_warm <- crab_test_warm %>%
   dplyr::select(depth, temperature, phi, ice_mean, bcs_sublegal_male,
-                longitude, latitude, julian, sublegal_male_loading,
+                longitude, latitude, julian, 
                 log_pcod_cpue, lncount_sub_male, sublegal_male, 
-                pres_sub_male, year_f, year, sublegal_male_loading_station,
+                pres_sub_male, year_f, year,
                 station) %>%
   tidyr::drop_na(lncount_sub_male) %>%
   dplyr::rename(sublegal_male = sublegal_male)
@@ -213,11 +212,11 @@ vars <- c(1:8, 10, 16)
 brt_mat_female_abun <- readRDS(file = here('data', 'brt_mat_female_abun.rds'))
 brt_mat_female_base <- readRDS(file = here('data', 'brt_mat_female_base.rds'))
 
-brt_mat_female_base_warm <- grid_search(mat_female_train_warm, 13, 'bernoulli')
+brt_mat_female_base_warm <- grid_search(mat_female_train_warm, 12, 'bernoulli')
 brt_mat_female_base_warm
 
 brt_mat_female_abun_warm <- grid_search(mat_female_train_warm[mat_female_train_warm$lncount_mat_female > 0,],
-                                        11, 'gaussian')
+                                        10, 'gaussian')
 brt_mat_female_abun_warm
 
 # Predict on test data
@@ -319,11 +318,11 @@ dev.off()
 brt_imm_female_abun <- readRDS(file = here('data', 'brt_imm_female_abun.rds'))
 brt_imm_female_base <- readRDS(file = here('data', 'brt_imm_female_base.rds'))
 
-brt_imm_female_base_warm <- grid_search(imm_female_train_warm, 13, 'bernoulli')
+brt_imm_female_base_warm <- grid_search(imm_female_train_warm, 12, 'bernoulli')
 brt_imm_female_base_warm
 
 brt_imm_female_abun_warm <- grid_search(imm_female_train_warm[imm_female_train_warm$lncount_imm_female > 0,], 
-                                        11, 'gaussian')
+                                        10, 'gaussian')
 brt_imm_female_abun_warm
 
 # using the converged model hyperparameters to re-run
@@ -440,11 +439,11 @@ dev.off()
 brt_leg_male_abun <- readRDS(file = here('data', 'brt_leg_male_abun.rds'))
 brt_leg_male_base <- readRDS(file = here('data', 'brt_leg_male_base.rds'))
 
-brt_leg_male_base_warm <- grid_search(leg_male_train_warm, 13, 'bernoulli')
+brt_leg_male_base_warm <- grid_search(leg_male_train_warm, 12, 'bernoulli')
 brt_leg_male_base_warm
 
 brt_leg_male_abun_warm <- grid_search(leg_male_train_warm[leg_male_train_warm$lncount_leg_male > 0,],
-                                        11, 'gaussian')
+                                        10, 'gaussian')
 brt_leg_male_abun_warm
 
 # Predict on test data
@@ -546,11 +545,11 @@ dev.off()
 brt_sub_male_abun <- readRDS(file = here('data', 'brt_sub_male_abun.rds'))
 brt_sub_male_base <- readRDS(file = here('data', 'brt_sub_male_base.rds'))
 
-brt_sub_male_base_warm <- grid_search(sub_male_train_warm, 13, 'bernoulli')
+brt_sub_male_base_warm <- grid_search(sub_male_train_warm, 12, 'bernoulli')
 brt_sub_male_base_warm
 
 brt_sub_male_abun_warm <- grid_search(sub_male_train_warm[sub_male_train_warm$lncount_sub_male > 0,],
-                                        11, 'gaussian')
+                                        10, 'gaussian')
 brt_sub_male_abun_warm
 
 # Predict on test data
