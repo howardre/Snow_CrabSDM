@@ -250,16 +250,16 @@ mat_female_test_warm$pred_brt <- mat_female_test_warm$pred_base * mat_female_tes
 # Calculate RMSE
 # 1.62 for base model
 rmse_mat_female_brt <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_brt)^2))
-rmse_mat_female_brt # 1.68
+rmse_mat_female_brt # 1.70
 rmse_mat_female_brt_warm <- sqrt(mean((mat_female_test_warm$lncount_mat_female - mat_female_test_warm$pred_brt)^2))
-rmse_mat_female_brt_warm # 1.55
+rmse_mat_female_brt_warm # 1.65
 
 # Calculate deviance explained
 dev_mat_female_abun_warm <- brt_deviance(brt_mat_female_abun_warm)
 dev_mat_female_pres_warm <- brt_deviance(brt_mat_female_base_warm)
 
-dev_mat_female_abun_warm # 39.8% deviance explained
-dev_mat_female_pres_warm # 56.0% deviance explained
+dev_mat_female_abun_warm # 40.4% deviance explained
+dev_mat_female_pres_warm # 55.5% deviance explained
 
 # Save models for future use
 saveRDS(brt_mat_female_abun_warm, file = here('data', 'brt_mat_female_abun_warm.rds'))
@@ -371,16 +371,16 @@ imm_female_test_warm$pred_brt <- imm_female_test_warm$pred_base * imm_female_tes
 
 # Calculate RMSE
 rmse_imm_female_brt <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_brt)^2))
-rmse_imm_female_brt # 1.41
+rmse_imm_female_brt # 1.40
 rmse_imm_female_brt_warm <- sqrt(mean((imm_female_test_warm$lncount_imm_female - imm_female_test_warm$pred_brt)^2))
-rmse_imm_female_brt_warm # 1.43
+rmse_imm_female_brt_warm # 1.41
 
 # Calculate deviance explained
 dev_imm_female_abun_warm <- brt_deviance(brt_imm_female_abun_warm)
 dev_imm_female_pres_warm <- brt_deviance(brt_imm_female_base_warm)
 
-dev_imm_female_abun_warm # 46.3% deviance explained
-dev_imm_female_pres_warm # 46.6% deviance explained
+dev_imm_female_abun_warm # 51.6% deviance explained
+dev_imm_female_pres_warm # 46.4% deviance explained
 
 # Save models for future use
 saveRDS(brt_imm_female_abun_warm, file = here('data', 'brt_imm_female_abun_warm.rds'))
@@ -477,16 +477,16 @@ leg_male_test_warm$pred_brt <- leg_male_test_warm$pred_base * leg_male_test_warm
 
 # Calculate RMSE
 rmse_leg_male_brt <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_brt)^2))
-rmse_leg_male_brt # 1.25
+rmse_leg_male_brt # 1.23
 rmse_leg_male_brt_warm <- sqrt(mean((leg_male_test_warm$lncount_leg_male - leg_male_test_warm$pred_brt)^2))
-rmse_leg_male_brt_warm # 1.15
+rmse_leg_male_brt_warm # 1.11
 
 # Calculate deviance explained
 dev_leg_male_abun_warm <- brt_deviance(brt_leg_male_abun_warm)
 dev_leg_male_pres_warm <- brt_deviance(brt_leg_male_base_warm)
 
-dev_leg_male_abun_warm # 48.5% deviance explained
-dev_leg_male_pres_warm # 53.8% deviance explained
+dev_leg_male_abun_warm # 48.2% deviance explained
+dev_leg_male_pres_warm # 59.3% deviance explained
 
 # Save models for future use
 saveRDS(brt_leg_male_abun_warm, file = here('data', 'brt_leg_male_abun_warm.rds'))
@@ -583,16 +583,16 @@ sub_male_test_warm$pred_brt <- sub_male_test_warm$pred_base * sub_male_test_warm
 
 # Calculate RMSE
 rmse_sub_male_brt <- sqrt(mean((sub_male_test$lncount_sub_male - sub_male_test$pred_brt)^2))
-rmse_sub_male_brt # 1.60
+rmse_sub_male_brt # 1.57
 rmse_sub_male_brt_warm <- sqrt(mean((sub_male_test_warm$lncount_sub_male - sub_male_test_warm$pred_brt)^2))
-rmse_sub_male_brt_warm # 1.50
+rmse_sub_male_brt_warm # 1.46
 
 # Calculate deviance explained
 dev_sub_male_abun_warm <- brt_deviance(brt_sub_male_abun_warm)
 dev_sub_male_pres_warm <- brt_deviance(brt_sub_male_base_warm)
 
-dev_sub_male_abun_warm # 64.9% deviance explained
-dev_sub_male_pres_warm # 59.6% deviance explained
+dev_sub_male_abun_warm # 64.7% deviance explained
+dev_sub_male_pres_warm # 61.4% deviance explained
 
 # Save models for future use
 saveRDS(brt_sub_male_abun_warm, file = here('data', 'brt_sub_male_abun_warm.rds'))
