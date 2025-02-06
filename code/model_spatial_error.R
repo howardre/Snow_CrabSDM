@@ -264,7 +264,7 @@ dev_mat_female_pres_warm <- brt_deviance(brt_mat_female_base_warm)
 dev_mat_female_abun_warm # 40.4% deviance explained
 dev_mat_female_pres_warm # 55.5% deviance explained
 
-# Calculate Kendall rank correlation coefficient
+# Calculate Kendall Tau
 cor.test(x = mat_female_test_warm$pred_brt, 
          y = mat_female_test_warm$lncount_mat_female,
          method = 'kendall') # 0.54
@@ -397,7 +397,7 @@ dev_imm_female_pres_warm <- brt_deviance(brt_imm_female_base_warm)
 dev_imm_female_abun_warm # 51.6% deviance explained
 dev_imm_female_pres_warm # 46.4% deviance explained
 
-# Calculate Kendall rank correlation coefficient
+# Calculate Kendall Tau
 cor.test(x = imm_female_test_warm$pred_brt, 
          y = imm_female_test_warm$lncount_imm_female,
          method = 'kendall') # 0.57
@@ -515,7 +515,7 @@ dev_leg_male_pres_warm <- brt_deviance(brt_leg_male_base_warm)
 dev_leg_male_abun_warm # 49.0% deviance explained
 dev_leg_male_pres_warm # 58.9% deviance explained
 
-# Calculate Kendall rank correlation coefficient
+# Calculate Kendall Tau
 cor.test(x = leg_male_test_warm$pred_brt, 
          y = leg_male_test_warm$lncount_leg_male,
          method = 'kendall') # 0.61
@@ -633,7 +633,7 @@ dev_sub_male_pres_warm <- brt_deviance(brt_sub_male_base_warm)
 dev_sub_male_abun_warm # 64.6% deviance explained
 dev_sub_male_pres_warm # 61.5% deviance explained
 
-# Calculate Kendall rank correlation coefficient
+# Calculate Kendall Tau
 cor.test(x = sub_male_test_warm$pred_brt, 
          y = sub_male_test_warm$lncount_sub_male,
          method = 'kendall') # 0.67
