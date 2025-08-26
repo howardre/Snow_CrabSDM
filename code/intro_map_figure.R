@@ -25,7 +25,7 @@ alaska_sf <- sf::st_as_sf(alaska_label,
 bering_map <- basemap(data = BS_bathy,
                       bathymetry = TRUE,
                       rotate = TRUE,
-                      legends = FALSE,
+                      legends = TRUE,
                       land.col = "wheat4",
                       grid.col = NA,
                       lon.interval = 5,
@@ -33,7 +33,8 @@ bering_map <- basemap(data = BS_bathy,
   geom_polygon(data = transform_coord(BS_bathy),
                aes(x = lon, y = lat),
                fill = NA) +
-  scale_fill_manual(values = bathy_palette) +
+  scale_fill_manual(values = bathy_palette,
+                    name = "water depth (m)") +
   labs(x = "Longitude",
        y = "Latitude")  +
   ggspatial::annotation_north_arrow(location = "tr",
@@ -58,7 +59,9 @@ bering_map <- basemap(data = BS_bathy,
                fontface = "bold") +
   theme(axis.text = element_text(family = "serif", size = 20),
         axis.title = element_text(family = "serif", size = 21),
-        strip.text = element_text(family = "serif", size = 21))
+        strip.text = element_text(family = "serif", size = 21),
+        legend.text = element_text(family = "serif", size = 15),
+        legend.title = element_text(family = "serif", size = 17))
 
 bering_map
 
