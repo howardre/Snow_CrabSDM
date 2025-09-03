@@ -112,7 +112,7 @@ sub_male_test <- crab_test %>%
 # Bottom depth based on survey
 depth_loess <- loess(depth ~ longitude * latitude,
                      data = crab_trans,
-                     span = 0.7,
+                     span = 0.07,
                      degree = 2,
                      control = loess.control(surface = "interpolate"))
 summary(lm(depth_loess$fitted ~ crab_trans$depth)) # check R2
