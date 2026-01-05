@@ -77,7 +77,7 @@ pred_fun <- function(X_model, newdata){
 num_cores <- detectCores() - 2
 vars <- c(1:8, 10, 16)
 
-# Legal Males ----
+## Legal Males ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
 leg_male_data <- crab_trans %>% 
@@ -287,6 +287,85 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Compare environmental and biological
+shap_matrix_leg_male <- as.matrix(leg_male_mshap_sv$S)
+feature_data_leg_male <- as.matrix(leg_male_mshap_sv$X)
+spatial_comparison_leg_male <- data.frame(longitude = feature_data_leg_male[, "longitude"],
+                                          latitude = feature_data_leg_male[, "latitude"],
+                                          # Sum absolute SHAP values for environmental variables
+                                          shap_env = (abs(shap_matrix_leg_male[, "phi"]) + 
+                                            abs(shap_matrix_leg_male[, "temperature"]) + 
+                                            abs(shap_matrix_leg_male[, "ice_mean"]) + 
+                                            abs(shap_matrix_leg_male[, "depth"])),
+                                          # Sum absolute SHAP values for biological variables
+                                          shap_bio = abs(shap_matrix_leg_male[, "bcs_legal_male"]) + 
+                                            abs(shap_matrix_leg_male[, "log_pcod_cpue"]))
+
+spatial_comparison_leg_male$total_shap <- spatial_comparison_leg_male$shap_env + spatial_comparison_leg_male$shap_bio
+spatial_comparison_leg_male$env_proportion <- spatial_comparison_leg_male$shap_env / spatial_comparison_leg_male$total_shap
+spatial_comparison_leg_male$ratio <- spatial_comparison_leg_male$shap_env / spatial_comparison_leg_male$shap_bio
+spatial_comparison_leg_male$difference <- spatial_comparison_leg_male$shap_env - spatial_comparison_leg_male$shap_bio
+
+# Plot
+ggplot(spatial_comparison_leg_male, aes(x = longitude, y = latitude, color = env_proportion)) +
+  geom_point(size = 2.5, 
+             alpha = 0.7,
+             position = position_jitter(width = 0.5, height = 0.5)) +
+  scale_color_gradient2(midpoint = 0.5, 
+                        low = "blue", 
+                        mid = "white", 
+                        high = "red",
+                        name = "Env Proportion",
+                        limits = c(0, 1)) +
+  labs(x = "Longitude °W", y = "Latitude °N",
+       title = "Proportion of SHAP from Environmental Variables")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'leg_male_compare.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Statistics
+summary_stats_leg_male <- data.frame(metric = c("Mean Env SHAP", "Mean Bio SHAP", 
+                                                "Median Ratio", "% Env Dominated (ratio > 1)",
+                                                "Correlation (Env vs Bio)"),
+  value = c(mean(spatial_comparison_leg_male$shap_env),
+            mean(spatial_comparison_leg_male$shap_bio),
+            median(spatial_comparison_leg_male$ratio),
+            100 * mean(spatial_comparison_leg_male$ratio > 1),
+            cor(spatial_comparison_leg_male$shap_env, spatial_comparison_leg_male$shap_bio)))
+summary_stats_leg_male
+
+# Directional analysis
+# Calculate environmental contribution
+env_contribution_leg_male <- abs(shap_matrix_leg_male[, "temperature"]) + 
+  abs(shap_matrix_leg_male[, "ice_mean"]) + 
+  abs(shap_matrix_leg_male[, "depth"]) + 
+  abs(shap_matrix_leg_male[, "phi"])
+
+# Create SW index (higher = more southwest)
+sw_index_leg_male <- -feature_data_leg_male[, "longitude"] - feature_data_leg_male[, "latitude"]
+
+# Test correlation
+cor_result_leg_male <- cor.test(env_contribution_leg_male, sw_index_leg_male, method = "spearman", exact = FALSE)
+
+print(paste("Spearman's ρ =", round(cor_result_leg_male$estimate, 3), 
+            ", p =", format.pval(cor_result_leg_male$p.value, digits = 3)))
+
+# Visualize
+ggplot(data.frame(sw_index = sw_index_leg_male, 
+                  env_contribution = env_contribution_leg_male,
+                  lon = feature_data_leg_male[, "longitude"],
+                  lat = feature_data_leg_male[, "latitude"]),
+       aes(x = sw_index, y = env_contribution)) +
+  geom_point(aes(color = lon), alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  labs(x = "Southwest Index", 
+       y = "Total Environmental SHAP Contribution",
+       title = "Environmental directional contribution")
 
 # Force plots 
 # Yellow means variable pushes prediction higher, purple means variable pushes prediction lower
@@ -479,6 +558,86 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Compare environmental and biological
+shap_matrix_sub_male <- as.matrix(sub_male_mshap_sv$S)
+feature_data_sub_male <- as.matrix(sub_male_mshap_sv$X)
+spatial_comparison_sub_male <- data.frame(longitude = feature_data_sub_male[, "longitude"],
+                                          latitude = feature_data_sub_male[, "latitude"],
+                                          # Sum absolute SHAP values for environmental variables
+                                          shap_env = (abs(shap_matrix_sub_male[, "phi"]) + 
+                                                        abs(shap_matrix_sub_male[, "temperature"]) + 
+                                                        abs(shap_matrix_sub_male[, "ice_mean"]) + 
+                                                        abs(shap_matrix_sub_male[, "depth"])),
+                                          # Sum absolute SHAP values for biological variables
+                                          shap_bio = abs(shap_matrix_sub_male[, "bcs_sublegal_male"]) + 
+                                            abs(shap_matrix_sub_male[, "log_pcod_cpue"]))
+
+spatial_comparison_sub_male$total_shap <- spatial_comparison_sub_male$shap_env + spatial_comparison_sub_male$shap_bio
+spatial_comparison_sub_male$env_proportion <- spatial_comparison_sub_male$shap_env / spatial_comparison_sub_male$total_shap
+spatial_comparison_sub_male$ratio <- spatial_comparison_sub_male$shap_env / spatial_comparison_sub_male$shap_bio
+spatial_comparison_sub_male$difference <- spatial_comparison_sub_male$shap_env - spatial_comparison_sub_male$shap_bio
+
+# Plot
+ggplot(spatial_comparison_sub_male, aes(x = longitude, y = latitude, color = env_proportion)) +
+  geom_point(size = 2.5, 
+             alpha = 0.7,
+             position = position_jitter(width = 0.5, height = 0.5)) +
+  scale_color_gradient2(midpoint = 0.5, 
+                        low = "blue", 
+                        mid = "white", 
+                        high = "red",
+                        name = "Env Proportion",
+                        limits = c(0, 1)) +
+  labs(x = "Longitude °W", y = "Latitude °N",
+       title = "Proportion of SHAP from Environmental Variables")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'sub_male_compare.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Statistics
+summary_stats_sub_male <- data.frame(metric = c("Mean Env SHAP", "Mean Bio SHAP", 
+                                                "Median Ratio", "% Env Dominated (ratio > 1)",
+                                                "Correlation (Env vs Bio)"),
+                                     value = c(mean(spatial_comparison_sub_male$shap_env),
+                                               mean(spatial_comparison_sub_male$shap_bio),
+                                               median(spatial_comparison_sub_male$ratio),
+                                               100 * mean(spatial_comparison_sub_male$ratio > 1),
+                                               cor(spatial_comparison_sub_male$shap_env, spatial_comparison_sub_male$shap_bio)))
+summary_stats_sub_male
+
+# Directional analysis
+# Calculate environmental contribution
+env_contribution_sub_male <- abs(shap_matrix_sub_male[, "temperature"]) + 
+  abs(shap_matrix_sub_male[, "ice_mean"]) + 
+  abs(shap_matrix_sub_male[, "depth"]) + 
+  abs(shap_matrix_sub_male[, "phi"])
+
+# Create SW index (higher = more southwest)
+sw_index_sub_male <- -feature_data_sub_male[, "longitude"] - feature_data_sub_male[, "latitude"]
+
+# Test correlation
+cor_result_sub_male <- cor.test(env_contribution_sub_male, sw_index_sub_male, method = "spearman", exact = FALSE)
+
+print(paste("Spearman's ρ =", round(cor_result_sub_male$estimate, 3), 
+            ", p =", format.pval(cor_result_sub_male$p.value, digits = 3)))
+
+# Visualize
+ggplot(data.frame(sw_index = sw_index_sub_male, 
+                  env_contribution = env_contribution_sub_male,
+                  lon = feature_data_sub_male[, "longitude"],
+                  lat = feature_data_sub_male[, "latitude"]),
+       aes(x = sw_index, y = env_contribution)) +
+  geom_point(aes(color = lon), alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  labs(x = "Southwest Index", 
+       y = "Total Environmental SHAP Contribution",
+       title = "Environmental directional contribution")
+
 ## Mature Females ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
@@ -664,6 +823,86 @@ dev.copy(jpeg,
          units = 'in')
 dev.off()
 
+# Compare environmental and biological
+shap_matrix_mat_female <- as.matrix(mat_female_mshap_sv$S)
+feature_data_mat_female <- as.matrix(mat_female_mshap_sv$X)
+spatial_comparison_mat_female <- data.frame(longitude = feature_data_mat_female[, "longitude"],
+                                          latitude = feature_data_mat_female[, "latitude"],
+                                          # Sum absolute SHAP values for environmental variables
+                                          shap_env = (abs(shap_matrix_mat_female[, "phi"]) + 
+                                                        abs(shap_matrix_mat_female[, "temperature"]) + 
+                                                        abs(shap_matrix_mat_female[, "ice_mean"]) + 
+                                                        abs(shap_matrix_mat_female[, "depth"])),
+                                          # Sum absolute SHAP values for biological variables
+                                          shap_bio = abs(shap_matrix_mat_female[, "bcs_mature_female"]) + 
+                                            abs(shap_matrix_mat_female[, "log_pcod_cpue"]))
+
+spatial_comparison_mat_female$total_shap <- spatial_comparison_mat_female$shap_env + spatial_comparison_mat_female$shap_bio
+spatial_comparison_mat_female$env_proportion <- spatial_comparison_mat_female$shap_env / spatial_comparison_mat_female$total_shap
+spatial_comparison_mat_female$ratio <- spatial_comparison_mat_female$shap_env / spatial_comparison_mat_female$shap_bio
+spatial_comparison_mat_female$difference <- spatial_comparison_mat_female$shap_env - spatial_comparison_mat_female$shap_bio
+
+# Plot
+ggplot(spatial_comparison_mat_female, aes(x = longitude, y = latitude, color = env_proportion)) +
+  geom_point(size = 2.5, 
+             alpha = 0.7,
+             position = position_jitter(width = 0.5, height = 0.5)) +
+  scale_color_gradient2(midpoint = 0.5, 
+                        low = "blue", 
+                        mid = "white", 
+                        high = "red",
+                        name = "Env Proportion",
+                        limits = c(0, 1)) +
+  labs(x = "Longitude °W", y = "Latitude °N",
+       title = "Proportion of SHAP from Environmental Variables")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'mat_female_compare.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Statistics
+summary_stats_mat_female <- data.frame(metric = c("Mean Env SHAP", "Mean Bio SHAP", 
+                                                "Median Ratio", "% Env Dominated (ratio > 1)",
+                                                "Correlation (Env vs Bio)"),
+                                     value = c(mean(spatial_comparison_mat_female$shap_env),
+                                               mean(spatial_comparison_mat_female$shap_bio),
+                                               median(spatial_comparison_mat_female$ratio),
+                                               100 * mean(spatial_comparison_mat_female$ratio > 1),
+                                               cor(spatial_comparison_mat_female$shap_env, spatial_comparison_mat_female$shap_bio)))
+summary_stats_mat_female
+
+# Directional analysis
+# Calculate environmental contribution
+env_contribution_mat_female <- abs(shap_matrix_mat_female[, "temperature"]) + 
+  abs(shap_matrix_mat_female[, "ice_mean"]) + 
+  abs(shap_matrix_mat_female[, "depth"]) + 
+  abs(shap_matrix_mat_female[, "phi"])
+
+# Create SW index (higher = more southwest)
+sw_index_mat_female <- -feature_data_mat_female[, "longitude"] - feature_data_mat_female[, "latitude"]
+
+# Test correlation
+cor_result_mat_female <- cor.test(env_contribution_mat_female, sw_index_mat_female, method = "spearman", exact = FALSE)
+
+print(paste("Spearman's ρ =", round(cor_result_mat_female$estimate, 3), 
+            ", p =", format.pval(cor_result_mat_female$p.value, digits = 3)))
+
+# Visualize
+ggplot(data.frame(sw_index = sw_index_mat_female, 
+                  env_contribution = env_contribution_mat_female,
+                  lon = feature_data_mat_female[, "longitude"],
+                  lat = feature_data_mat_female[, "latitude"]),
+       aes(x = sw_index, y = env_contribution)) +
+  geom_point(aes(color = lon), alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  labs(x = "Southwest Index", 
+       y = "Total Environmental SHAP Contribution",
+       title = "Environmental directional contribution")
+
 ## Immature Females ----
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
@@ -848,3 +1087,83 @@ dev.copy(jpeg,
          res = 200,
          units = 'in')
 dev.off()
+
+# Compare environmental and biological
+shap_matrix_imm_female <- as.matrix(imm_female_mshap_sv$S)
+feature_data_imm_female <- as.matrix(imm_female_mshap_sv$X)
+spatial_comparison_imm_female <- data.frame(longitude = feature_data_imm_female[, "longitude"],
+                                          latitude = feature_data_imm_female[, "latitude"],
+                                          # Sum absolute SHAP values for environmental variables
+                                          shap_env = (abs(shap_matrix_imm_female[, "phi"]) + 
+                                                        abs(shap_matrix_imm_female[, "temperature"]) + 
+                                                        abs(shap_matrix_imm_female[, "ice_mean"]) + 
+                                                        abs(shap_matrix_imm_female[, "depth"])),
+                                          # Sum absolute SHAP values for biological variables
+                                          shap_bio = abs(shap_matrix_imm_female[, "bcs_immature_female"]) + 
+                                            abs(shap_matrix_imm_female[, "log_pcod_cpue"]))
+
+spatial_comparison_imm_female$total_shap <- spatial_comparison_imm_female$shap_env + spatial_comparison_imm_female$shap_bio
+spatial_comparison_imm_female$env_proportion <- spatial_comparison_imm_female$shap_env / spatial_comparison_imm_female$total_shap
+spatial_comparison_imm_female$ratio <- spatial_comparison_imm_female$shap_env / spatial_comparison_imm_female$shap_bio
+spatial_comparison_imm_female$difference <- spatial_comparison_imm_female$shap_env - spatial_comparison_imm_female$shap_bio
+
+# Plot
+ggplot(spatial_comparison_imm_female, aes(x = longitude, y = latitude, color = env_proportion)) +
+  geom_point(size = 2.5, 
+             alpha = 0.7,
+             position = position_jitter(width = 0.5, height = 0.5)) +
+  scale_color_gradient2(midpoint = 0.5, 
+                        low = "blue", 
+                        mid = "white", 
+                        high = "red",
+                        name = "Env Proportion",
+                        limits = c(0, 1)) +
+  labs(x = "Longitude °W", y = "Latitude °N",
+       title = "Proportion of SHAP from Environmental Variables")
+dev.copy(jpeg,
+         here('results/SHAP',
+              'imm_female_compare.jpg'),
+         height = 6,
+         width = 6,
+         res = 200,
+         units = 'in')
+dev.off()
+
+# Statistics
+summary_stats_imm_female <- data.frame(metric = c("Mean Env SHAP", "Mean Bio SHAP", 
+                                                "Median Ratio", "% Env Dominated (ratio > 1)",
+                                                "Correlation (Env vs Bio)"),
+                                     value = c(mean(spatial_comparison_imm_female$shap_env),
+                                               mean(spatial_comparison_imm_female$shap_bio),
+                                               median(spatial_comparison_imm_female$ratio),
+                                               100 * mean(spatial_comparison_imm_female$ratio > 1),
+                                               cor(spatial_comparison_imm_female$shap_env, spatial_comparison_imm_female$shap_bio)))
+summary_stats_imm_female
+
+# Directional analysis
+# Calculate environmental contribution
+env_contribution_imm_female <- abs(shap_matrix_imm_female[, "temperature"]) + 
+  abs(shap_matrix_imm_female[, "ice_mean"]) + 
+  abs(shap_matrix_imm_female[, "depth"]) + 
+  abs(shap_matrix_imm_female[, "phi"])
+
+# Create SW index (higher = more southwest)
+sw_index_imm_female <- -feature_data_imm_female[, "longitude"] - feature_data_imm_female[, "latitude"]
+
+# Test correlation
+cor_result_imm_female <- cor.test(env_contribution_imm_female, sw_index_imm_female, method = "spearman", exact = FALSE)
+
+print(paste("Spearman's ρ =", round(cor_result_imm_female$estimate, 3), 
+            ", p =", format.pval(cor_result_imm_female$p.value, digits = 3)))
+
+# Visualize
+ggplot(data.frame(sw_index = sw_index_imm_female, 
+                  env_contribution = env_contribution_imm_female,
+                  lon = feature_data_imm_female[, "longitude"],
+                  lat = feature_data_imm_female[, "latitude"]),
+       aes(x = sw_index, y = env_contribution)) +
+  geom_point(aes(color = lon), alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  labs(x = "Southwest Index", 
+       y = "Total Environmental SHAP Contribution",
+       title = "Environmental directional contribution")
