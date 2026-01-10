@@ -151,10 +151,16 @@ summary(lm(phi_loess$fitted ~ crab_trans$phi)) # check R2
 # Gaussian
 # Base model with presence/absence
 mat_female_gam_base <- gam(pres_mat_female ~ s(longitude, latitude) +
-                             s(julian),
+                             s(julian) +
+                             s(depth, k = 5) +
+                             s(phi, k = 5) +
+                             s(temperature, k = 5) +
+                             s(ice_mean, k = 5) +
+                             s(log_pcod_cpue, k = 5) +
+                             s(bcs_mature_female, k = 5),,
                            data = mat_female_train,
                            family = "binomial")
-summary(mat_female_gam_base) # 51.3% explained
+summary(mat_female_gam_base) # 55.6% explained
 
 # Abundance model
 mat_female_gam_abun <- gam(lncount_mat_female ~ s(longitude, latitude) +
@@ -212,13 +218,13 @@ rmse_mat_female_tweedie <- sqrt(mean((mat_female_test$lncount_mat_female - mat_f
 rmse_mat_female_tweedie # 2.68
 
 rmse_mat_female_delta <- sqrt(mean((mat_female_test$lncount_mat_female - mat_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_mat_female_delta # 1.79
+rmse_mat_female_delta # 1.86
 
 # Spearman correlation coefficient
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.67
+         exact = FALSE) # 0.68
 
 cor.test(mat_female_test$lncount_mat_female, 
          mat_female_test$pred_gam, 
@@ -248,10 +254,16 @@ dev.off()
 # Gaussian
 # Base model with presence/absence
 imm_female_gam_base <- gam(pres_imm_female ~ s(longitude, latitude) +
-                             s(julian),
+                             s(julian) +
+                             s(depth, k = 5) +
+                             s(phi, k = 5) +
+                             s(temperature, k = 5) +
+                             s(ice_mean, k = 5) +
+                             s(log_pcod_cpue, k = 5) +
+                             s(bcs_immature_female, k = 5),,
                            data = imm_female_train,
                            family = "binomial")
-summary(imm_female_gam_base) # 43.1% explained
+summary(imm_female_gam_base) # 46.6% explained
 
 # Abundance model
 imm_female_gam_abun <- gam(lncount_imm_female ~ s(longitude, latitude) +
@@ -309,13 +321,13 @@ rmse_imm_female_tweedie <- sqrt(mean((imm_female_test$lncount_imm_female - imm_f
 rmse_imm_female_tweedie # 2.73
 
 rmse_imm_female_delta <- sqrt(mean((imm_female_test$lncount_imm_female - imm_female_test$pred_gam_delta)^2, na.rm = T))
-rmse_imm_female_delta # 1.72
+rmse_imm_female_delta # 1.66
 
 # Spearman correlation coefficient
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.69
+         exact = FALSE) # 0.70
 
 cor.test(imm_female_test$lncount_imm_female, 
          imm_female_test$pred_gam, 
@@ -345,10 +357,16 @@ dev.off()
 # Gaussian
 # Base model with presence/absence
 leg_male_gam_base <- gam(pres_leg_male ~ s(longitude, latitude) +
-                           s(julian),
+                           s(julian) +
+                           s(depth, k = 5) +
+                           s(phi, k = 5) +
+                           s(temperature, k = 5) +
+                           s(ice_mean, k = 5) +
+                           s(log_pcod_cpue, k = 5) +
+                           s(bcs_legal_male, k = 5),
                          data = leg_male_train,
                          family = "binomial")
-summary(leg_male_gam_base) # 55.9% explained
+summary(leg_male_gam_base) # 59.9% explained
 
 # Abundance model
 leg_male_gam_abun <- gam(lncount_leg_male ~ s(longitude, latitude) +
@@ -406,13 +424,13 @@ rmse_leg_male_tweedie <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_te
 rmse_leg_male_tweedie # 1.72
 
 rmse_leg_male_delta <- sqrt(mean((leg_male_test$lncount_leg_male - leg_male_test$pred_gam_delta)^2, na.rm = T))
-rmse_leg_male_delta # 1.26
+rmse_leg_male_delta # 1.24
 
 # Spearman correlation coefficient
 cor.test(leg_male_test$lncount_leg_male, 
          leg_male_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.75
+         exact = FALSE) # 0.76
 
 cor.test(leg_male_test$lncount_leg_male, 
          leg_male_test$pred_gam, 
@@ -442,10 +460,16 @@ dev.off()
 # Gaussian
 # Base model with presence/absence
 sub_male_gam_base <- gam(pres_sub_male ~ s(longitude, latitude) +
-                           s(julian),
+                           s(julian) +
+                           s(depth, k = 5) +
+                           s(phi, k = 5) +
+                           s(temperature, k = 5) +
+                           s(ice_mean, k = 5) +
+                           s(log_pcod_cpue, k = 5) +
+                           s(bcs_sublegal_male, k = 5),
                          data = sub_male_train,
                          family = "binomial")
-summary(sub_male_gam_base) # 60.2% explained
+summary(sub_male_gam_base) # 63.6% explained
 
 # Abundance model
 sub_male_gam_abun <- gam(lncount_sub_male ~ s(longitude, latitude) +
@@ -509,7 +533,7 @@ rmse_sub_male_delta # 1.69
 cor.test(sub_male_test$lncount_sub_male, 
          sub_male_test$pred_gam_delta, 
          method = 'spearman',
-         exact = FALSE) # 0.81
+         exact = FALSE) # 0.82
 
 cor.test(sub_male_test$lncount_sub_male, 
          sub_male_test$pred_gam, 
